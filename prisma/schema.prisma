@@ -1,0 +1,237 @@
+// Prisma Schema for Raha Fitness Platform
+// Supports Persian (Farsi) and English text with UTF-8 encoding
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Can be changed to postgresql, mysql, etc.
+  url      = env("DATABASE_URL")
+}
+
+// User model (extends existing user system)
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  language      String    @default("fa") // 'fa' for Farsi, 'en' for English
+  createdAt     DateTime  @default(now()) @map("created_at")
+  
+  // Relations
+  profile       UserProfile?
+  exercises     Exercise[]
+  exerciseHistory ExerciseHistory[]
+  chatHistory   ChatHistory[]
+  nutritionPlans NutritionPlan[]
+  
+  @@map("users")
+}
+
+// User Profile with detailed fitness information
+model UserProfile {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Basic Information
+  age             Int?
+  weight          Float?   // in kg
+  height          Float?   // in cm
+  gender          String?  // 'male', 'female', 'other'
+  
+  // Training Information
+  trainingLevel   String?  @map("training_level") // 'beginner', 'intermediate', 'advanced'
+  fitnessGoals    String?  @map("fitness_goals") // JSON array: ["weight_loss", "muscle_gain", "endurance", etc.]
+  
+  // Health Information
+  injuries        String?  // JSON array: ["knee", "shoulder", "lower_back", etc.]
+  injuryDetails   String?  @map("injury_details") // Detailed description of injuries
+  
+  // Equipment Access
+  equipmentAccess String?  @map("equipment_access") // JSON array: ["machine", "dumbbells", "barbell", "home", etc.]
+  gymAccess       Boolean? @default(false) @map("gym_access")
+  homeEquipment   String?  @map("home_equipment") // JSON array of available home equipment
+  
+  // Preferences
+  preferredWorkoutTime String? @map("preferred_workout_time") // 'morning', 'afternoon', 'evening'
+  workoutDaysPerWeek   Int?    @map("workout_days_per_week") // 1-7
+  preferredIntensity   String? @map("preferred_intensity") // 'light', 'medium', 'heavy'
+  
+  // Metadata
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  @@map("user_profiles")
+}
+
+// Exercise Categories Enum
+enum ExerciseCategory {
+  BODYBUILDING_MACHINE  // حرکات باشگاهی با دستگاه
+  FUNCTIONAL_HOME       // حرکات فانکشنال / بدون وسیله
+  HYBRID_HIIT_MACHINE   // حرکات ترکیبی
+}
+
+// Training Level Enum
+enum TrainingLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+// Gender Suitability Enum
+enum GenderSuitability {
+  MALE
+  FEMALE
+  BOTH
+}
+
+// Intensity Level Enum
+enum IntensityLevel {
+  LIGHT
+  MEDIUM
+  HEAVY
+}
+
+// Exercise Model with comprehensive Persian/English support
+model Exercise {
+  id          Int      @id @default(autoincrement())
+  
+  // Category
+  category    ExerciseCategory
+  
+  // Names (Persian & English)
+  nameFa      String   @map("name_fa") // نام فارسی
+  nameEn      String   @map("name_en") // English name
+  
+  // Target Information
+  targetMuscleFa String @map("target_muscle_fa") // عضله درگیر (Persian)
+  targetMuscleEn String @map("target_muscle_en") // Target Muscle (English)
+  
+  // Level and Intensity
+  level       TrainingLevel
+  intensity   IntensityLevel
+  
+  // Execution Details
+  executionTipsFa String? @map("execution_tips_fa") // نکات اجرا (Persian)
+  executionTipsEn String? @map("execution_tips_en") // Execution Tips (English)
+  
+  // Breathing Guide
+  breathingGuideFa String? @map("breathing_guide_fa") // دم و بازدم (Persian)
+  breathingGuideEn String? @map("breathing_guide_en") // Breathing Guide (English)
+  
+  // Suitability
+  genderSuitability GenderSuitability @map("gender_suitability")
+  
+  // Injury Contraindications (JSON array of injury types)
+  injuryContraindications String? @map("injury_contraindications") // ["knee", "shoulder", "lower_back", etc.]
+  
+  // Additional Information
+  equipmentNeededFa String? @map("equipment_needed_fa") // تجهیزات مورد نیاز (Persian)
+  equipmentNeededEn String? @map("equipment_needed_en") // Equipment Needed (English)
+  
+  videoUrl    String?  @map("video_url")
+  imageUrl    String?  @map("image_url")
+  
+  // Metadata
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  // Relations
+  exerciseHistory ExerciseHistory[]
+  
+  @@map("exercises")
+}
+
+// Exercise History - tracks user's completed exercises
+model ExerciseHistory {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  exerciseId  Int?     @map("exercise_id") // Can be null if custom exercise
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise    Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  
+  // Exercise Details (can override exercise defaults or be custom)
+  exerciseNameFa String? @map("exercise_name_fa")
+  exerciseNameEn String? @map("exercise_name_en")
+  category       ExerciseCategory?
+  
+  // Workout Details
+  sets        Int?
+  reps        Int?
+  weight      Float?   // in kg
+  duration    Int?     // in minutes (for cardio/HIIT)
+  distance    Float?   // in km (for running, cycling, etc.)
+  caloriesBurned Int?  @map("calories_burned")
+  
+  // Notes
+  notesFa     String?  @map("notes_fa")
+  notesEn     String?  @map("notes_en")
+  
+  // Date
+  workoutDate DateTime @default(now()) @map("workout_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([userId, workoutDate])
+  @@map("exercise_history")
+}
+
+// Chat History (existing, keeping for compatibility)
+model ChatHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  response  String
+  timestamp DateTime @default(now())
+  
+  @@map("chat_history")
+}
+
+// Nutrition Plan (existing, keeping for compatibility)
+model NutritionPlan {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType  String   @map("plan_type") // '2week' or '4week'
+  day       Int
+  mealType  String?  @map("meal_type")
+  foodItem  String   @map("food_item")
+  calories  Int?
+  protein   Float?
+  carbs     Float?
+  fats      Float?
+  notes     String?
+  
+  @@map("nutrition_plans")
+}
+
+// Tips (existing, keeping for compatibility)
+model Tip {
+  id        Int      @id @default(autoincrement())
+  titleFa   String   @map("title_fa")
+  titleEn   String   @map("title_en")
+  contentFa String   @map("content_fa")
+  contentEn String   @map("content_en")
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("tips")
+}
+
+// Injuries (existing, keeping for compatibility)
+model Injury {
+  id          Int      @id @default(autoincrement())
+  titleFa     String   @map("title_fa")
+  titleEn     String   @map("title_en")
+  descriptionFa String @map("description_fa")
+  descriptionEn String @map("description_en")
+  preventionFa String? @map("prevention_fa")
+  preventionEn String? @map("prevention_en")
+  treatmentFa  String? @map("treatment_fa")
+  treatmentEn String? @map("treatment_en")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@map("injuries")
+}
+

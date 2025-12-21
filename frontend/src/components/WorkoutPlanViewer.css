@@ -1,0 +1,272 @@
+.workout-plan-viewer {
+  padding: 2rem;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  color: var(--text-primary);
+}
+
+.plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.plan-header h2 {
+  color: var(--accent);
+  margin: 0;
+}
+
+.view-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-controls button {
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.view-controls button:hover {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.view-controls button.active {
+  background-color: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.month-selector {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.month-selector button {
+  padding: 1rem;
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+.month-selector button:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.month-selector button.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.month-selector button small {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.week-selector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.week-selector button {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.week-selector button:hover {
+  background-color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.week-selector button.active {
+  background-color: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.weekly-table-view {
+  overflow-x: auto;
+}
+
+.workout-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.workout-table thead {
+  background-color: var(--bg-primary);
+}
+
+.workout-table th {
+  padding: 1rem;
+  text-align: right;
+  color: var(--accent);
+  font-weight: 600;
+  border-bottom: 2px solid var(--border);
+}
+
+.workout-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.workout-table tbody tr:hover {
+  background-color: var(--bg-primary);
+}
+
+.workout-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.breathing-note {
+  font-style: italic;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.form-tips {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.superset-row {
+  background-color: rgba(74, 158, 255, 0.1);
+}
+
+.superset-row td {
+  border-top: 2px solid var(--accent);
+}
+
+.plan-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.week-plan {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.week-plan h4 {
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.day-workout {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.day-workout:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.day-workout h5 {
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.exercises-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.exercise-card {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.exercise-card h6 {
+  color: var(--accent);
+  margin: 0 0 0.75rem 0;
+}
+
+.exercise-details {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.exercise-card .breathing {
+  font-style: italic;
+  color: var(--accent);
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.exercise-card .form-tips {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0.5rem 0 0 0;
+}
+
+.workout-plan-loading,
+.workout-plan-error {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.workout-plan-error button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .month-selector {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .workout-table {
+    font-size: 0.85rem;
+  }
+  
+  .workout-table th,
+  .workout-table td {
+    padding: 0.5rem;
+  }
+}
+

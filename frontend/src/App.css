@@ -1,0 +1,25 @@
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #0a0a0a;
+  color: #e0e0e0;
+  font-size: 1.2rem;
+}
+
+/* Dark theme colors */
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #2a2a2a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --accent: #4a9eff;
+  --accent-hover: #6bb0ff;
+  --border: #333;
+  --success: #4caf50;
+  --error: #f44336;
+  --warning: #ff9800;
+}
+
