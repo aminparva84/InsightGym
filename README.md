@@ -1,4 +1,4 @@
-# Raha Fitness - Fitness Application
+# AlphaFit - Fitness Application
 
 A comprehensive fitness application with Flask backend and React frontend, featuring AI assistant, multi-language support (Farsi/English), and comprehensive fitness tracking.
 

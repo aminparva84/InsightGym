@@ -233,3 +233,5 @@ await workoutLogService.createWeeklyGoal({
 4. Add progress charts/visualizations
 5. Integrate with AI agent for automatic suggestions
 
+
+

@@ -1,25 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 import './NutritionTab.css';
 
 const NutritionTab = () => {
   const { t, i18n } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
   const [planType, setPlanType] = useState('2week');
   const [nutritionPlans, setNutritionPlans] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Get auth token
+  const getAuthToken = () => {
+    return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
+  };
+
+  const getAxiosConfig = () => {
+    const token = getAuthToken();
+    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+  };
+
   useEffect(() => {
-    loadNutritionPlans();
-  }, [planType]);
+    if (!authLoading && user) {
+      loadNutritionPlans();
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [planType, authLoading, user]);
 
   const loadNutritionPlans = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      console.warn('No token found for loading nutrition plans');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/nutrition/plans?type=${planType}`);
+      const response = await axios.get(`http://localhost:5000/api/nutrition/plans?type=${planType}`, getAxiosConfig());
       setNutritionPlans(response.data);
     } catch (error) {
       console.error('Error loading nutrition plans:', error);
+      if (error.response?.status === 401 || error.response?.status === 422) {
+        console.warn('Authentication error loading nutrition plans');
+      }
     } finally {
       setLoading(false);
     }

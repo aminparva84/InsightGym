@@ -1,5 +1,5 @@
 """
-Database Models for Raha Fitness Platform
+Database Models for AlphaFit Platform
 Supports Persian (Farsi) and English text with UTF-8 encoding
 """
 

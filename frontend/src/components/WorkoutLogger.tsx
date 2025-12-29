@@ -217,3 +217,5 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
 export default WorkoutLogger;
 
+
+

@@ -273,3 +273,5 @@ REACT_APP_VECTOR_DB_PROVIDER=pinecone  # or 'supabase'
 
 The system is production-ready and can handle 600+ exercises with efficient search and filtering!
 
+
+

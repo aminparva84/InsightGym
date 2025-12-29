@@ -79,3 +79,5 @@ const InjuriesTab = () => {
 
 export default InjuriesTab;
 
+
+

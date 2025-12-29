@@ -663,3 +663,5 @@ if __name__ == '__main__':
         seed_exercises()
         print('Exercise library seeded successfully!')
 
+
+

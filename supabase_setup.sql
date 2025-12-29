@@ -113,3 +113,5 @@ $$;
 -- GRANT EXECUTE ON FUNCTION match_exercises TO authenticated;
 -- GRANT EXECUTE ON FUNCTION filter_exercises_by_metadata TO authenticated;
 
+
+

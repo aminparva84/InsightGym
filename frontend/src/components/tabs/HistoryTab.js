@@ -1,29 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 import './HistoryTab.css';
 
 const HistoryTab = () => {
   const { t, i18n } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
   const [exercises, setExercises] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
   const [activeView, setActiveView] = useState('exercises');
   const [loading, setLoading] = useState(true);
 
+  // Get auth token
+  const getAuthToken = () => {
+    return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
+  };
+
+  const getAxiosConfig = () => {
+    const token = getAuthToken();
+    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+  };
+
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!authLoading && user) {
+      loadData();
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [authLoading, user]);
 
   const loadData = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      console.warn('No token found for loading history');
+      setLoading(false);
+      return;
+    }
+
     try {
       const [exercisesRes, chatRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/exercises'),
-        axios.get('http://localhost:5000/api/chat/history')
+        axios.get('http://localhost:5000/api/exercises', getAxiosConfig()),
+        axios.get('http://localhost:5000/api/chat/history', getAxiosConfig())
       ]);
       setExercises(exercisesRes.data);
       setChatHistory(chatRes.data);
     } catch (error) {
       console.error('Error loading data:', error);
+      if (error.response?.status === 401 || error.response?.status === 422) {
+        console.warn('Authentication error loading history');
+      }
     } finally {
       setLoading(false);
     }

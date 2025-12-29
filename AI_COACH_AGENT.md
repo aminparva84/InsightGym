@@ -190,3 +190,5 @@ The AI coach uses the same monthly progression rules as the workout plan generat
 4. Add more personalized recommendations
 5. Track conversation history
 
+
+

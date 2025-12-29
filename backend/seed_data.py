@@ -1,5 +1,5 @@
 """
-Seed script to populate initial data for Raha Fitness
+Seed script to populate initial data for AlphaFit
 Run this after setting up the database to add sample tips and injury information
 """
 

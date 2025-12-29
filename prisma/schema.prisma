@@ -235,3 +235,5 @@ model Injury {
   @@map("injuries")
 }
 
+
+

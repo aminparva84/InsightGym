@@ -180,3 +180,5 @@ If migration fails:
 - JSON fields in UserProfile use `json.dumps()` and `json.loads()` for serialization
 - The new schema is backward compatible with existing chat, nutrition, tips, and injuries data
 
+
+

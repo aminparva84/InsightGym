@@ -81,3 +81,5 @@ If you want sample data (exercises, chat history, etc.), you'll need to:
 2. Seed tips and injuries: `python backend/seed_data.py`
 3. Use the app to create additional data through the UI
 
+
+

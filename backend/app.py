@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    JWTManager, create_access_token, jwt_required, get_jwt_identity
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
@@ -31,6 +33,27 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 CORS(app)
+
+# JWT Error Handlers
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    print(f"JWT Token expired: {jwt_payload}")
+    return jsonify({'error': 'Token has expired', 'message': 'Please log in again'}), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error_string):
+    print(f"JWT Invalid token: {error_string}")
+    return jsonify({'error': 'Invalid token', 'message': 'Token format is invalid. Please log in again'}), 422
+
+@jwt.unauthorized_loader
+def missing_token_callback(error_string):
+    print(f"JWT Missing token: {error_string}")
+    return jsonify({'error': 'Authorization token is missing', 'message': 'Please log in'}), 401
+
+@jwt.needs_fresh_token_loader
+def token_not_fresh_callback(jwt_header, jwt_payload):
+    print(f"JWT Token not fresh: {jwt_payload}")
+    return jsonify({'error': 'Token is not fresh', 'message': 'Please log in again'}), 401
 
 # Database Models
 class User(db.Model):
@@ -481,6 +504,10 @@ def user_profile():
 def get_profile_image(filename):
     """Serve profile image file"""
     try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'Invalid token'}), 401
+        
         from flask import send_from_directory
         # Secure filename check
         if '..' in filename or '/' in filename:
@@ -493,7 +520,13 @@ def get_profile_image(filename):
 @app.route('/api/exercises', methods=['GET', 'POST'])
 @jwt_required()
 def exercises():
-    user_id = get_jwt_identity()
+    try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        print(f"Error in exercises auth: {e}")
+        return jsonify({'error': 'Authentication failed'}), 401
     
     if request.method == 'GET':
         exercises = Exercise.query.filter_by(user_id=user_id).order_by(Exercise.date.desc()).all()
@@ -590,19 +623,34 @@ def chat():
 @app.route('/api/chat/history', methods=['GET'])
 @jwt_required()
 def chat_history():
-    user_id = get_jwt_identity()
-    chats = ChatHistory.query.filter_by(user_id=user_id).order_by(ChatHistory.timestamp.desc()).all()
-    return jsonify([{
-        'id': chat.id,
-        'message': chat.message,
-        'response': chat.response,
-        'timestamp': chat.timestamp.isoformat()
-    } for chat in chats]), 200
+    try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'Invalid token'}), 401
+        
+        chats = ChatHistory.query.filter_by(user_id=user_id).order_by(ChatHistory.timestamp.desc()).all()
+        return jsonify([{
+            'id': chat.id,
+            'message': chat.message,
+            'response': chat.response,
+            'timestamp': chat.timestamp.isoformat()
+        } for chat in chats]), 200
+    except Exception as e:
+        import traceback
+        print(f"Error in chat_history: {e}")
+        print(traceback.format_exc())
+        return jsonify({'error': 'Authentication failed'}), 401
 
 @app.route('/api/nutrition/plans', methods=['GET', 'POST'])
 @jwt_required()
 def nutrition_plans():
-    user_id = get_jwt_identity()
+    try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        print(f"Error in nutrition_plans auth: {e}")
+        return jsonify({'error': 'Authentication failed'}), 401
     
     if request.method == 'GET':
         plan_type = request.args.get('type', '2week')
@@ -908,7 +956,7 @@ def generate_ai_response(message, user_id, language, local_time=None):
                     if important_fields:
                         profile_suggestion = f"\n\n💡 نکته: برای دریافت برنامه‌های شخصی‌تر، لطفاً اطلاعات پروفایل خود را در تب 'پروفایل' تکمیل کنید. اطلاعات مهم: {', '.join(important_fields)}"
                 
-                return f"{context_info}من دستیار هوشمند رها فیتنس هستم. {profile_details}چگونه می‌توانم به شما کمک کنم؟ می‌توانم در مورد برنامه تمرینی، تغذیه، یا هر سوال دیگری کمک کنم.{profile_suggestion}"
+                return f"{context_info}من دستیار هوشمند آلفا فیت هستم. {profile_details}چگونه می‌توانم به شما کمک کنم؟ می‌توانم در مورد برنامه تمرینی، تغذیه، یا هر سوال دیگری کمک کنم.{profile_suggestion}"
             
             # Fitness plan request
             elif any(word in message for word in ['برنامه', 'تمرین', 'ورزش', 'workout', 'plan']):
@@ -1138,7 +1186,7 @@ def generate_ai_response(message, user_id, language, local_time=None):
                     if important_fields:
                         profile_suggestion = f"\n\n💡 Tip: For more personalized plans, please complete your profile information in the 'Profile' tab. Important fields: {', '.join(important_fields)}"
                 
-                return f"{context_info}I'm Raha Fitness AI assistant. {profile_details}How can I help you today? I can assist with workout plans, nutrition, or answer any fitness-related questions.{profile_suggestion}"
+                return f"{context_info}I'm AlphaFit AI assistant. {profile_details}How can I help you today? I can assist with workout plans, nutrition, or answer any fitness-related questions.{profile_suggestion}"
             
             # Fitness plan request
             elif any(word in message_lower for word in ['plan', 'workout', 'exercise', 'training']):

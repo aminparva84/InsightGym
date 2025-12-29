@@ -26,3 +26,5 @@ if response.status_code != 200:
     print(f"Registration Status: {reg_response.status_code}")
     print(f"Registration Response: {reg_response.json()}")
 
+
+

@@ -1,8 +1,120 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import './ProfileTab.css';
+
+// BMI Calculator Component
+const BMICalculator = ({ weight, height, gender, language }) => {
+  const bmi = useMemo(() => {
+    if (!weight || !height || height <= 0) return null;
+    // BMI = weight (kg) / (height (m))^2
+    const heightInMeters = height / 100;
+    return (weight / (heightInMeters * heightInMeters)).toFixed(1);
+  }, [weight, height]);
+
+  const getBMICategory = (bmiValue) => {
+    if (!bmiValue) return null;
+    const bmiNum = parseFloat(bmiValue);
+    
+    // Slightly different ranges for males and females
+    if (gender === 'female') {
+      if (bmiNum < 18.5) return { category: 'underweight', color: '#ff9800', label: language === 'fa' ? 'کم‌وزن' : 'Underweight' };
+      if (bmiNum < 24.9) return { category: 'normal', color: '#4caf50', label: language === 'fa' ? 'طبیعی' : 'Normal' };
+      if (bmiNum < 29.9) return { category: 'overweight', color: '#ff9800', label: language === 'fa' ? 'اضافه وزن' : 'Overweight' };
+      return { category: 'obese', color: '#f44336', label: language === 'fa' ? 'چاق' : 'Obese' };
+    } else {
+      // Male or other
+      if (bmiNum < 18.5) return { category: 'underweight', color: '#ff9800', label: language === 'fa' ? 'کم‌وزن' : 'Underweight' };
+      if (bmiNum < 25) return { category: 'normal', color: '#4caf50', label: language === 'fa' ? 'طبیعی' : 'Normal' };
+      if (bmiNum < 30) return { category: 'overweight', color: '#ff9800', label: language === 'fa' ? 'اضافه وزن' : 'Overweight' };
+      return { category: 'obese', color: '#f44336', label: language === 'fa' ? 'چاق' : 'Obese' };
+    }
+  };
+
+  const getBMIRange = () => {
+    if (gender === 'female') {
+      return [
+        { min: 0, max: 18.5, color: '#ff9800', label: language === 'fa' ? 'کم‌وزن' : 'Underweight' },
+        { min: 18.5, max: 24.9, color: '#4caf50', label: language === 'fa' ? 'طبیعی' : 'Normal' },
+        { min: 24.9, max: 29.9, color: '#ff9800', label: language === 'fa' ? 'اضافه وزن' : 'Overweight' },
+        { min: 29.9, max: 50, color: '#f44336', label: language === 'fa' ? 'چاق' : 'Obese' }
+      ];
+    } else {
+      return [
+        { min: 0, max: 18.5, color: '#ff9800', label: language === 'fa' ? 'کم‌وزن' : 'Underweight' },
+        { min: 18.5, max: 25, color: '#4caf50', label: language === 'fa' ? 'طبیعی' : 'Normal' },
+        { min: 25, max: 30, color: '#ff9800', label: language === 'fa' ? 'اضافه وزن' : 'Overweight' },
+        { min: 30, max: 50, color: '#f44336', label: language === 'fa' ? 'چاق' : 'Obese' }
+      ];
+    }
+  };
+
+  if (!bmi) return null;
+
+  const category = getBMICategory(bmi);
+  const ranges = getBMIRange();
+  const maxBMI = 40;
+  const currentPosition = Math.min((parseFloat(bmi) / maxBMI) * 100, 100);
+
+  return (
+    <div className="bmi-calculator">
+      <h4>{language === 'fa' ? 'محاسبه BMI' : 'BMI Calculator'}</h4>
+      <div className="bmi-display">
+        <div className="bmi-value">
+          <span className="bmi-number">{bmi}</span>
+          <span className="bmi-unit">BMI</span>
+        </div>
+        {category && (
+          <div className="bmi-category" style={{ color: category.color }}>
+            {category.label}
+          </div>
+        )}
+      </div>
+      
+      <div className="bmi-range-container">
+        <div className="bmi-range-bar">
+          {ranges.map((range, index) => {
+            const width = ((range.max - range.min) / maxBMI) * 100;
+            const left = (range.min / maxBMI) * 100;
+            return (
+              <div
+                key={index}
+                className="bmi-range-segment"
+                style={{
+                  left: `${left}%`,
+                  width: `${width}%`,
+                  backgroundColor: range.color,
+                  opacity: 0.3
+                }}
+              />
+            );
+          })}
+          <div
+            className="bmi-indicator"
+            style={{
+              left: `${currentPosition}%`,
+              backgroundColor: category?.color || '#666'
+            }}
+          />
+        </div>
+        <div className="bmi-labels">
+          {ranges.map((range, index) => (
+            <div key={index} className="bmi-label-item">
+              <div 
+                className="bmi-label-color" 
+                style={{ backgroundColor: range.color }}
+              />
+              <span className="bmi-label-text">
+                {range.label}: {range.min.toFixed(1)} - {range.max === 50 ? '∞' : range.max.toFixed(1)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ProfileTab = () => {
   const { t, i18n } = useTranslation();
@@ -261,6 +373,16 @@ const ProfileTab = () => {
               />
             </div>
           </div>
+          
+          {/* BMI Calculator */}
+          {profile?.weight && profile?.height && parseFloat(profile.weight) > 0 && parseFloat(profile.height) > 0 && (
+            <BMICalculator 
+              weight={parseFloat(profile.weight)} 
+              height={parseFloat(profile.height)} 
+              gender={profile.gender}
+              language={i18n.language}
+            />
+          )}
         </div>
 
         {/* Training Information */}

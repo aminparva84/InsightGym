@@ -192,3 +192,5 @@ class WorkoutReminder(db.Model):
         """Set days_of_week from list"""
         self.days_of_week = json.dumps(days_list, ensure_ascii=False)
 
+
+

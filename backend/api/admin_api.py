@@ -191,3 +191,5 @@ def check_admin():
     user_id = get_jwt_identity()
     return jsonify({'is_admin': is_admin(user_id)}), 200
 
+
+

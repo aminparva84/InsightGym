@@ -250,3 +250,5 @@ For 600 exercises × 2 languages = 1200 embeddings:
 - Storage: Minimal
 - Query cost: ~$0.0001 per search
 
+
+

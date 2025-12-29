@@ -392,3 +392,5 @@ export const vectorSearchService = new VectorSearchService(
 // Export class for custom instances
 export default VectorSearchService;
 
+
+

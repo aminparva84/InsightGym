@@ -145,3 +145,5 @@ def generate_coach_workout_plan():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+

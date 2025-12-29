@@ -153,3 +153,5 @@ def get_recommended_exercises():
         'count': len(exercises)
     }), 200
 
+
+

@@ -217,3 +217,5 @@ if __name__ == '__main__':
         else:
             print(f'Exercise library already has {Exercise.query.count()} exercises. Skipping seed.')
 
+
+

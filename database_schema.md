@@ -184,3 +184,5 @@ If migrating from the old schema:
 3. A new `UserProfile` model stores detailed user information
 4. All relationships have been updated accordingly
 
+
+

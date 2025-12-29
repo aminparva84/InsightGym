@@ -103,3 +103,5 @@ if __name__ == '__main__':
         print(f"  1. Upload to Pinecone: python vector_db_setup.py pinecone {output_file}")
         print(f"  2. Upload to Supabase: python vector_db_setup.py supabase {output_file}")
 
+
+

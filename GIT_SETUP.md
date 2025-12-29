@@ -69,3 +69,5 @@ After pushing to GitHub:
 3. Deploy backend to a service like Heroku, Railway, or AWS
 4. Deploy frontend to Vercel, Netlify, or similar
 
+
+

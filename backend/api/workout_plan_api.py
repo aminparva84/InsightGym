@@ -182,3 +182,5 @@ def get_progression_rules():
     from services.workout_plan_generator import MONTHLY_RULES
     return jsonify(MONTHLY_RULES), 200
 
+
+

@@ -150,3 +150,5 @@ curl -X GET http://localhost:5000/api/exercises \
 
 For issues or questions, check the main README.md file for more detailed documentation.
 
+
+

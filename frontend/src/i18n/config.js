@@ -4,7 +4,7 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   fa: {
     translation: {
-      appName: 'رها فیتنس',
+      appName: 'آلفا فیت',
       welcome: 'خوش آمدید',
       login: 'ورود',
       register: 'ثبت نام',
@@ -45,7 +45,7 @@ const resources = {
       language: 'زبان',
       farsi: 'فارسی',
       english: 'English',
-      welcomeMessage: 'سلام! من دستیار هوشمند رها فیتنس هستم. چگونه می‌توانم به شما کمک کنم؟',
+      welcomeMessage: 'سلام! من دستیار هوشمند آلفا فیت هستم. چگونه می‌توانم به شما کمک کنم؟',
       getFitnessPlan: 'دریافت برنامه تمرینی',
       suggestNutrition: 'پیشنهاد تغذیه',
       getHelp: 'دریافت کمک',
@@ -106,7 +106,7 @@ const resources = {
   },
   en: {
     translation: {
-      appName: 'Raha Fitness',
+      appName: 'AlphaFit',
       welcome: 'Welcome',
       login: 'Login',
       register: 'Register',
@@ -147,7 +147,7 @@ const resources = {
       language: 'Language',
       farsi: 'فارسی',
       english: 'English',
-      welcomeMessage: 'Hello! I\'m Raha Fitness AI assistant. How can I help you today?',
+      welcomeMessage: 'Hello! I\'m AlphaFit AI assistant. How can I help you today?',
       getFitnessPlan: 'Get Fitness Plan',
       suggestNutrition: 'Suggest Nutrition',
       getHelp: 'Get Help',
