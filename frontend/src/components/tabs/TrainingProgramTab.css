@@ -1,0 +1,264 @@
+.training-program-tab {
+  padding: 1.5rem 2rem;
+  background-color: #ffffff;
+}
+
+.training-program-loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #000000;
+  background-color: #ffffff;
+}
+
+.training-program-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.training-program-header h2 {
+  margin: 0;
+  padding: 0;
+  color: #000000;
+  font-size: 1.8rem;
+}
+
+.training-program-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.no-programs {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #666;
+}
+
+.no-programs p {
+  margin: 0.75rem 0;
+  color: #000000;
+}
+
+.programs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.program-card {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.program-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.program-card h3 {
+  margin: 0 0 1.25rem 0;
+  padding: 0;
+  color: #000000;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.program-description {
+  color: #000000;
+  margin: 0 0 1rem 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.program-duration {
+  color: #666;
+  margin: 0.5rem 0;
+  padding: 0;
+  font-weight: 500;
+}
+
+.program-level {
+  color: #666;
+  margin: 0.5rem 0 1.5rem 0;
+  padding: 0;
+  font-weight: 500;
+}
+
+.program-exercises {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.program-exercises h4 {
+  margin: 0 0 1rem 0;
+  padding: 0;
+  color: #000000;
+  font-size: 1.1rem;
+}
+
+.program-exercises ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #000000;
+}
+
+.program-exercises li {
+  margin: 0.5rem 0;
+  padding: 0;
+  color: #000000;
+}
+
+.program-sessions {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e0e0e0;
+}
+
+.program-sessions h4 {
+  margin: 0 0 1.5rem 0;
+  padding: 0;
+  color: #000000;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 0;
+}
+
+.session-card {
+  background-color: #f8f9fa;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  margin: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.session-card.expanded {
+  border-color: #F6F3C2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.session-header {
+  padding: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.session-header:hover {
+  background-color: #f0f0f0;
+}
+
+.session-header-content {
+  flex: 1;
+}
+
+.session-header h5 {
+  margin: 0 0 0.5rem 0;
+  padding: 0;
+  color: #000000;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.session-info {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+  padding: 0;
+}
+
+.session-toggle-icon {
+  font-size: 1rem;
+  color: #666;
+  transition: transform 0.3s ease;
+  margin-left: 1rem;
+  flex-shrink: 0;
+  display: inline-block;
+  width: 1.5rem;
+  text-align: center;
+}
+
+.session-toggle-icon.expanded {
+  transform: rotate(0deg);
+}
+
+.session-card[dir="rtl"] .session-header {
+  flex-direction: row-reverse;
+}
+
+.session-card[dir="rtl"] .session-toggle-icon {
+  margin-left: 0;
+  margin-right: 1rem;
+}
+
+.session-exercises {
+  margin: 0;
+  padding: 1.5rem;
+  padding-top: 0;
+  border-top: 1px solid #e0e0e0;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.session-exercises h6 {
+  margin: 0 0 0.75rem 0;
+  padding: 0;
+  color: #000000;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.session-exercises ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+.exercise-item {
+  margin: 0.75rem 0;
+  padding: 0;
+  color: #000000;
+  line-height: 1.5;
+}
+
+.exercise-item strong {
+  color: #000000;
+  font-weight: 600;
+}
+
+.exercise-instructions {
+  margin: 0.5rem 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background-color: #ffffff;
+  border-left: 3px solid #F6F3C2;
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+  border-radius: 4px;
+}
+

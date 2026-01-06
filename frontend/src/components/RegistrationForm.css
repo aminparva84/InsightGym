@@ -5,6 +5,26 @@
   border: none;
   border-radius: 0;
   padding: 0;
+  color: #000000;
+}
+
+/* Ensure all text elements are black */
+.registration-form-container,
+.registration-form-container p,
+.registration-form-container span,
+.registration-form-container div:not(.btn-primary):not(.progress-step.active),
+.registration-form-container h1,
+.registration-form-container h2,
+.registration-form-container h3,
+.registration-form-container h4,
+.registration-form-container h5,
+.registration-form-container h6,
+.registration-form-container label,
+.registration-form-container input,
+.registration-form-container select,
+.registration-form-container textarea,
+.registration-form-container button:not(.btn-primary) {
+  color: #000000;
 }
 
 /* Force white background on ALL form elements */
@@ -29,20 +49,22 @@
   background-color: #ffffff !important;
 }
 
-/* Exception: buttons and checked checkboxes can have theme color */
+/* Exception: buttons and checked checkboxes use black theme */
 .btn-primary,
 .checkbox-label input[type="checkbox"]:checked {
-  background-color: #F6F3C2 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
 }
 
-/* Exception: progress fill can have theme color */
+/* Exception: progress fill uses black theme */
 .progress-fill {
-  background-color: #F6F3C2 !important;
+  background-color: #000000 !important;
 }
 
-/* Exception: active progress step can have theme color */
+/* Exception: active progress step uses black theme */
 .progress-step.active {
-  background-color: #F6F3C2 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
 }
 
 .registration-progress {
@@ -60,7 +82,7 @@
 
 .progress-fill {
   height: 100%;
-  background-color: #F6F3C2;
+  background-color: #000000;
   transition: width 0.3s;
 }
 
@@ -75,20 +97,20 @@
   height: 40px;
   border-radius: 50%;
   background-color: #ffffff;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #000000;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: #000000;
   font-weight: 600;
   transition: all 0.3s;
   user-select: none;
 }
 
 .progress-step.active {
-  background-color: #F6F3C2;
-  border-color: #F6F3C2;
-  color: #000000;
+  background-color: #000000;
+  border-color: #000000;
+  color: #ffffff;
 }
 
 .progress-step.clickable {
@@ -97,12 +119,12 @@
 
 .progress-step.clickable:hover {
   background-color: #ffffff !important;
-  border-color: #F6F3C2;
+  border-color: #000000;
   transform: scale(1.1);
 }
 
 .progress-step.clickable.active:hover {
-  background-color: #F6F3C2 !important;
+  background-color: #000000 !important;
   transform: scale(1.05);
 }
 
@@ -111,6 +133,7 @@
   flex-direction: column;
   gap: 1.2rem;
   background: #ffffff;
+  color: #000000;
 }
 
 .registration-step {
@@ -125,11 +148,69 @@
 }
 
 .step-description {
-  color: #666;
+  color: #000000;
   margin-bottom: 1rem;
   line-height: 1.5;
   font-size: 0.9rem;
   background-color: #ffffff !important;
+}
+
+.account-type-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.account-type-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.2rem;
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.account-type-option:hover {
+  border-color: #000000;
+  background-color: #f8f9fa;
+}
+
+.account-type-option.selected {
+  border-color: #000000;
+  background-color: #f0f0f0;
+  border-width: 3px;
+}
+
+.account-type-option input[type="radio"] {
+  margin-top: 0.2rem;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #000000;
+  border: 2px solid #000000;
+}
+
+.account-type-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.account-type-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #000000;
+}
+
+.account-type-description {
+  font-size: 0.9rem;
+  color: #000000;
+  line-height: 1.4;
 }
 
 .form-row {
@@ -160,7 +241,7 @@
 .form-group select {
   padding: 0.6rem 0.9rem;
   background-color: #ffffff !important;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #000000;
   border-radius: 6px;
   color: #000000;
   font-size: 0.95rem;
@@ -169,26 +250,37 @@
   line-height: 1.4;
 }
 
+.form-group select,
 .form-group select option {
   background-color: #ffffff !important;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .form-group select:focus option,
 .form-group select:active option {
   background-color: #ffffff !important;
-  color: #000000;
+  color: #000000 !important;
+}
+
+/* Ensure select dropdown text is black */
+.form-group select {
+  color: #000000 !important;
+}
+
+.form-group select option {
+  color: #000000 !important;
 }
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-  color: #999;
+  color: #000000;
+  opacity: 0.6;
 }
 
 .form-group textarea {
   padding: 0.6rem 0.9rem;
   background-color: #ffffff !important;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #000000;
   border-radius: 6px;
   color: #000000;
   font-size: 0.95rem;
@@ -208,9 +300,9 @@
 .form-group textarea:active,
 .form-group textarea:hover {
   outline: none;
-  border-color: #F6F3C2;
+  border-color: #000000;
   background-color: #ffffff !important;
-  box-shadow: 0 0 0 3px rgba(246, 243, 194, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 .checkbox-group {
@@ -253,7 +345,7 @@
   cursor: pointer;
   padding: 0.6rem 0.9rem;
   background-color: #ffffff;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #000000;
   border-radius: 6px;
   transition: all 0.3s;
   font-size: 0.9rem;
@@ -262,16 +354,16 @@
 
 .checkbox-label:hover {
   background-color: #ffffff !important;
-  border-color: #F6F3C2;
+  border-color: #000000;
 }
 
 .checkbox-label input[type="checkbox"] {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #F6F3C2;
+  accent-color: #000000;
   background-color: #ffffff !important;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #000000;
   border-radius: 4px;
   appearance: none;
   -webkit-appearance: none;
@@ -280,8 +372,8 @@
 }
 
 .checkbox-label input[type="checkbox"]:checked {
-  background-color: #F6F3C2 !important;
-  border-color: #F6F3C2;
+  background-color: #000000 !important;
+  border-color: #000000;
 }
 
 .checkbox-label input[type="checkbox"]:checked::before {
@@ -290,7 +382,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #000000;
+  color: #ffffff;
   font-size: 14px;
   font-weight: bold;
 }
@@ -298,7 +390,7 @@
 .checkbox-label input[type="checkbox"]:checked + span {
   color: #000000;
   font-weight: 600;
-  background-color: #C2E2FA !important;
+  background-color: #f0f0f0 !important;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
 }
@@ -314,7 +406,7 @@
   gap: 1rem;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 2px solid #e0e0e0;
+  border-top: 2px solid #000000;
 }
 
 .btn-primary,
@@ -329,36 +421,40 @@
 }
 
 .btn-primary {
-  background-color: #F6F3C2;
-  color: #000000;
+  background-color: #000000;
+  color: #ffffff;
+  border: 2px solid #000000;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #e8e4a8;
+  background-color: #333333;
+  border-color: #000000;
+  color: #ffffff;
 }
 
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  border-color: #000000;
 }
 
 .btn-secondary {
   background-color: #ffffff;
   color: #000000;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #000000;
 }
 
 .btn-secondary:hover {
   background-color: #ffffff !important;
-  border-color: #F6F3C2;
+  border-color: #000000;
 }
 
 .error-message {
   padding: 0.75rem;
   background-color: rgba(244, 67, 54, 0.1);
-  border: 2px solid #f44336;
+  border: 2px solid #000000;
   border-radius: 6px;
-  color: #d32f2f;
+  color: #000000;
   text-align: center;
 }
 

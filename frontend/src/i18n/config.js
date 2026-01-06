@@ -101,7 +101,35 @@ const resources = {
       evening: 'عصر',
       previous: 'قبلی',
       next: 'بعدی',
-      complete: 'تکمیل'
+      complete: 'تکمیل',
+      myProfile: 'پروفایل من',
+      about: 'درباره ما',
+      contactUs: 'تماس با ما',
+      letsStart: 'شروع کنیم',
+      buyTrainingProgramme: 'خرید برنامه تمرینی',
+      privacy: 'حریم خصوصی',
+      terms: 'شرایط استفاده',
+      copyright: 'تمامی حقوق محفوظ است',
+      // Training Programs
+      trainingProgram1: 'برنامه مبتدی',
+      trainingProgram1Desc: 'مناسب برای تازه‌کارها - شروع سفر تناسب اندام شما',
+      trainingProgram1Price: '$99',
+      trainingProgram2: 'برنامه متوسط',
+      trainingProgram2Desc: 'برای افرادی که آماده چالش بیشتر هستند',
+      trainingProgram2Price: '$149',
+      trainingProgram3: 'برنامه پیشرفته',
+      trainingProgram3Desc: 'برنامه جامع برای رسیدن به اهداف تناسب اندام',
+      trainingProgram3Price: '$199',
+      trainingProgram4: 'برنامه حرفه‌ای',
+      trainingProgram4Desc: 'برنامه کامل با پشتیبانی شخصی و مشاوره تخصصی',
+      trainingProgram4Price: '$299',
+      // Features
+      feature1: 'برنامه تمرینی هفتگی',
+      feature2: 'راهنمایی تغذیه',
+      feature3: 'پشتیبانی آنلاین',
+      feature4: 'بررسی پیشرفت',
+      feature5: 'مشاوره شخصی',
+      feature6: 'دسترسی مادام‌العمر'
     }
   },
   en: {
@@ -203,7 +231,35 @@ const resources = {
       evening: 'Evening',
       previous: 'Previous',
       next: 'Next',
-      complete: 'Complete'
+      complete: 'Complete',
+      myProfile: 'My Profile',
+      about: 'About',
+      contactUs: 'Contact Us',
+      letsStart: "Let's Start",
+      buyTrainingProgramme: 'Buy a Training Programme',
+      privacy: 'Privacy',
+      terms: 'Terms',
+      copyright: 'All rights reserved',
+      // Training Programs
+      trainingProgram1: 'Beginner Program',
+      trainingProgram1Desc: 'Perfect for beginners - Start your fitness journey',
+      trainingProgram1Price: '$99',
+      trainingProgram2: 'Intermediate Program',
+      trainingProgram2Desc: 'For those ready for more challenges',
+      trainingProgram2Price: '$149',
+      trainingProgram3: 'Advanced Program',
+      trainingProgram3Desc: 'Comprehensive program to achieve your fitness goals',
+      trainingProgram3Price: '$199',
+      trainingProgram4: 'Professional Program',
+      trainingProgram4Desc: 'Complete program with personal support and expert coaching',
+      trainingProgram4Price: '$299',
+      // Features
+      feature1: 'Weekly workout plan',
+      feature2: 'Nutrition guidance',
+      feature3: 'Online support',
+      feature4: 'Progress tracking',
+      feature5: 'Personal coaching',
+      feature6: 'Lifetime access'
     }
   }
 };

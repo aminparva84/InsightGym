@@ -27,7 +27,7 @@
   padding: 0.75rem 1.5rem;
   background-color: #ffffff;
   border: 1px solid #e0e0e0;
-  color: #666;
+  color: #000000;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s;
@@ -48,7 +48,7 @@
 .no-data {
   text-align: center;
   padding: 3rem;
-  color: #666;
+  color: #000000;
   font-size: 1.1rem;
   background-color: #ffffff;
 }
@@ -64,6 +64,11 @@
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 1.5rem;
+  min-height: 200px;
+}
+
+.nutrition-day * {
+  color: #000000 !important;
 }
 
 .day-header {
@@ -119,14 +124,14 @@
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
   font-size: 0.85rem;
-  color: #666;
+  color: #000000;
 }
 
 .meal-notes {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px solid #e0e0e0;
-  color: #666;
+  color: #000000;
   font-size: 0.9rem;
   font-style: italic;
 }
@@ -134,14 +139,14 @@
 .no-meals {
   text-align: center;
   padding: 1rem;
-  color: #666;
+  color: #000000;
   font-style: italic;
 }
 
 .loading {
   text-align: center;
   padding: 3rem;
-  color: #666;
+  color: #000000;
   background-color: #ffffff;
 }
 

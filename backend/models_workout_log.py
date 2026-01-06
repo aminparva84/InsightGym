@@ -11,7 +11,7 @@ class WorkoutLog(db.Model):
     __tablename__ = 'workout_logs'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Changed from 'users.id' to 'user.id' to match app.py User table
     exercise_id = db.Column(db.Integer, db.ForeignKey('exercises.id'), nullable=True)
     exercise_name_fa = db.Column(db.String(200))  # For custom exercises
     exercise_name_en = db.Column(db.String(200))
@@ -42,8 +42,8 @@ class WorkoutLog(db.Model):
     
     # Relationships
     user = db.relationship('User', backref='workout_logs')
-    exercise = db.relationship('Exercise', foreign_keys=[exercise_id], backref='workout_logs')
-    alternative_exercise = db.relationship('Exercise', foreign_keys=[alternative_exercise_id])
+    exercise = db.relationship('models.Exercise', foreign_keys=[exercise_id], backref='workout_logs')
+    alternative_exercise = db.relationship('models.Exercise', foreign_keys=[alternative_exercise_id])
     
     __table_args__ = (
         db.Index('idx_user_workout_date', 'user_id', 'workout_date'),
@@ -54,7 +54,7 @@ class ProgressEntry(db.Model):
     __tablename__ = 'progress_entries'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Changed from 'users.id' to 'user.id' to match app.py User table
     
     # Weight tracking
     weight_kg = db.Column(db.Float)
@@ -81,8 +81,8 @@ class ProgressEntry(db.Model):
     recorded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationship
-    user = db.relationship('User', backref='progress_entries')
+    # Relationship removed - use direct queries instead to avoid cross-module relationship issues
+    # user = db.relationship('User', backref='progress_entries')
     
     __table_args__ = (
         db.Index('idx_user_recorded_at', 'user_id', 'recorded_at'),
@@ -93,7 +93,7 @@ class WeeklyGoal(db.Model):
     __tablename__ = 'weekly_goals'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Changed from 'users.id' to 'user.id' to match app.py User table
     
     # Goal details
     week_start_date = db.Column(db.Date, nullable=False)
@@ -122,8 +122,8 @@ class WeeklyGoal(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship
-    user = db.relationship('User', backref='weekly_goals')
+    # Relationship removed - use direct queries instead to avoid cross-module relationship issues
+    # user = db.relationship('User', backref='weekly_goals')
     
     def get_exercise_goals(self):
         """Parse exercise_goals JSON"""
@@ -156,7 +156,7 @@ class WorkoutReminder(db.Model):
     __tablename__ = 'workout_reminders'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Changed from 'users.id' to 'user.id' to match app.py User table
     
     # Reminder settings
     enabled = db.Column(db.Boolean, default=True)
@@ -176,8 +176,8 @@ class WorkoutReminder(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship
-    user = db.relationship('User', backref='workout_reminders')
+    # Relationship removed - use direct queries instead to avoid cross-module relationship issues
+    # user = db.relationship('User', backref='workout_reminders')
     
     def get_days_of_week(self):
         """Parse days_of_week JSON"""

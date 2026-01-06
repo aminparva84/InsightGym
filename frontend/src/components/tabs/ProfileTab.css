@@ -9,7 +9,7 @@
   text-align: center;
   padding: 3rem;
   font-size: 1.2rem;
-  color: #666;
+  color: #000000;
   background-color: #ffffff;
 }
 
@@ -86,6 +86,8 @@
   display: flex;
   justify-content: center;
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
 }
 
 .image-container {
@@ -96,6 +98,7 @@
   overflow: hidden;
   border: 4px solid #F6F3C2;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  z-index: 1;
 }
 
 .profile-image {
@@ -111,7 +114,7 @@
   align-items: center;
   justify-content: center;
   background-color: #ffffff;
-  color: #666;
+  color: #000000;
   font-size: 1rem;
   text-align: center;
   padding: 1rem;
@@ -155,6 +158,23 @@
   padding: 1.5rem;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
+  min-height: 200px;
+}
+
+.profile-section p,
+.profile-section span:not(input):not(select):not(textarea),
+.profile-section label,
+.profile-section h3,
+.profile-section h4 {
+  color: #000000 !important;
+}
+
+.profile-section input[type="text"],
+.profile-section input[type="number"],
+.profile-section input[type="email"],
+.profile-section select,
+.profile-section textarea {
+  color: #000000 !important;
 }
 
 .profile-section h3 {
@@ -200,12 +220,101 @@
   background-color: #ffffff;
   color: #000000;
   transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+/* Ensure values are always visible */
+.form-group input[value=""],
+.form-group select[value=""],
+.form-group textarea:empty {
+  color: #000000;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
+  border-color: #F6F3C2;
+  box-shadow: 0 0 0 2px rgba(246, 243, 194, 0.2);
+}
+
+/* Remove borders and styling when not editing - but keep values clearly visible */
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled {
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid transparent !important;
+  padding: 0.75rem 0 !important;
+  cursor: default !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  outline: none !important;
+  box-shadow: none !important;
+  min-height: auto !important;
+  pointer-events: auto !important;
+  color: #000000 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-size: 1rem !important;
+  font-family: inherit !important;
+}
+
+/* For select elements, show the selected value */
+.form-group select:disabled {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  color: #000000 !important;
+}
+
+/* Ensure option values are visible in disabled selects */
+.form-group select:disabled option {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+}
+
+/* Hide empty option when select is disabled and value is empty */
+.form-group select:disabled option[value=""]:empty {
+  display: none !important;
+}
+
+/* Style for empty disabled selects - make them appear blank */
+.form-group select:disabled:invalid,
+.form-group select:disabled[value=""] {
+  color: transparent !important;
+}
+
+/* Show placeholder text when select is enabled (for editing) */
+.form-group select:not(:disabled) option[value=""] {
+  color: #666 !important;
+}
+
+.form-group input:disabled:focus,
+.form-group select:disabled:focus,
+.form-group textarea:disabled:focus,
+.form-group input:disabled:hover,
+.form-group select:disabled:hover,
+.form-group textarea:disabled:hover {
+  border: none !important;
+  border-bottom: 1px solid transparent !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Remove selection highlight for disabled inputs */
+.form-group input:disabled::selection,
+.form-group select:disabled::selection,
+.form-group textarea:disabled::selection {
+  background: rgba(246, 243, 194, 0.3) !important;
 }
 
 /* BMI Calculator Styles */
@@ -246,7 +355,7 @@
 
 .bmi-unit {
   font-size: 1.2rem;
-  color: #666;
+  color: #000000;
   font-weight: 500;
 }
 
@@ -329,18 +438,19 @@
   }
 }
 
-.form-group input:disabled,
-.form-group select:disabled,
-.form-group textarea:disabled {
-  background-color: #f8f9fa;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
+/* Disabled styles are now handled above with transparent background */
 
 .form-group textarea {
   resize: vertical;
   min-height: 100px;
   font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group textarea:disabled {
+  min-height: auto;
+  resize: none;
 }
 
 .checkbox-group {
@@ -367,6 +477,24 @@
 .checkbox-label:hover {
   background-color: #f8f9fa;
   border-color: #F6F3C2;
+}
+
+/* Remove borders and styling for disabled checkboxes */
+.checkbox-label:has(input[type="checkbox"]:disabled) {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0.5rem 0 !important;
+  cursor: default !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  pointer-events: none !important;
+}
+
+.checkbox-label:has(input[type="checkbox"]:disabled):hover {
+  background-color: transparent !important;
+  border: none !important;
 }
 
 .checkbox-label input[type="checkbox"] {

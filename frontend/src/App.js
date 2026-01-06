@@ -10,7 +10,7 @@ import './App.css';
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AppRoutes />
       </Router>
     </AuthProvider>
@@ -27,8 +27,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/" />} />
-      <Route path="/admin" element={user ? <AdminPage /> : <Navigate to="/" />} />
+      <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/" replace />} />
+      <Route path="/admin" element={user ? <AdminPage /> : <Navigate to="/" replace />} />
     </Routes>
   );
 }

@@ -125,6 +125,8 @@ const ProfileTab = () => {
   const [saving, setSaving] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
 
   // Get auth token
   const getAuthToken = () => {
@@ -142,33 +144,51 @@ const ProfileTab = () => {
   };
 
   const getAxiosConfig = () => {
-    // Always get fresh token from localStorage first
+    // Always get fresh token from localStorage first (source of truth)
     let token = localStorage.getItem('token');
     
-    if (token) {
-      token = token.trim();
-      // Always update axios defaults when we have a token
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-      // If no token in localStorage, try axios defaults
-      const authHeader = axios.defaults.headers.common['Authorization'];
-      if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-        token = authHeader.replace('Bearer ', '').trim();
-      }
-    }
-    
-    if (!token || token === '') {
-      console.error('No auth token found! User may need to log in again.');
-      console.error('localStorage token:', localStorage.getItem('token'));
-      console.error('axios defaults:', axios.defaults.headers.common['Authorization']);
+    if (!token || token.trim() === '') {
+      console.error('No auth token found in localStorage!');
       alert(i18n.language === 'fa' 
         ? 'خطا: توکن احراز هویت یافت نشد. لطفاً دوباره وارد شوید.'
         : 'Error: Authentication token not found. Please log in again.');
       return {};
     }
     
+    // Clean the token
+    token = token.trim();
+    
+    // Remove any accidental "Bearer " prefix
+    if (token.startsWith('Bearer ')) {
+      token = token.replace(/^Bearer\s+/i, '').trim();
+    }
+    
+    // Ensure token is valid JWT format (starts with eyJ)
+    if (!token.startsWith('eyJ')) {
+      console.error('Invalid token format! Token should start with "eyJ"');
+      console.error('Token (first 50 chars):', token.substring(0, 50));
+      console.error('Token length:', token.length);
+      return {};
+    }
+    
+    // Check token structure (JWT should have 3 parts separated by dots)
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      console.error('Invalid JWT structure! Token should have 3 parts separated by dots');
+      console.error('Token parts count:', parts.length);
+      console.error('Token:', token.substring(0, 100));
+      return {};
+    }
+    
+    // Always update axios defaults when we have a valid token
     const authHeader = `Bearer ${token}`;
-    console.log('getAxiosConfig - Token found, creating config with header:', authHeader.substring(0, 30) + '...');
+    axios.defaults.headers.common['Authorization'] = authHeader;
+    
+    console.log('getAxiosConfig - Token validated and config created');
+    console.log('Token length:', token.length);
+    console.log('Token format check - starts with eyJ:', token.startsWith('eyJ'));
+    console.log('Token parts count:', parts.length);
+    console.log('Auth header (first 30 chars):', authHeader.substring(0, 30) + '...');
     
     return { 
       headers: { 
@@ -179,11 +199,34 @@ const ProfileTab = () => {
 
   useEffect(() => {
     // Wait for auth to finish loading before loading profile
+    // Use a ref to prevent multiple simultaneous loads
+    let isMounted = true;
+    
     if (!authLoading && user) {
-      loadProfile();
-    } else if (!authLoading && !user) {
+      // Small delay to ensure token is fully set in axios defaults
+      const timer = setTimeout(() => {
+        if (isMounted) {
+          loadProfile();
+        }
+      }, 100);
+      
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
+      } else if (!authLoading && !user) {
       setLoading(false);
     }
+    
+    // Set username and email when user is available
+    if (user && !authLoading) {
+      setUsername(user.username || '');
+      setEmail(user.email || '');
+    }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [authLoading, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadProfile = async () => {
@@ -217,37 +260,142 @@ const ProfileTab = () => {
     }
 
     try {
-      // Ensure token is set in axios defaults
-      if (token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token.trim()}`;
+      // Clean and validate token
+      let cleanToken = token.trim();
+      if (cleanToken.startsWith('Bearer ')) {
+        cleanToken = cleanToken.replace(/^Bearer\s+/i, '').trim();
       }
       
-      console.log('Loading profile with token:', token.substring(0, 20) + '...');
+      if (!cleanToken.startsWith('eyJ')) {
+        console.error('Invalid token format - token should start with "eyJ"');
+        throw new Error('Invalid token format');
+      }
+      
+      // Ensure token is set in axios defaults
+      const authHeader = `Bearer ${cleanToken}`;
+      axios.defaults.headers.common['Authorization'] = authHeader;
+      
+      console.log('Loading profile with token:', cleanToken.substring(0, 20) + '...');
+      console.log('Token length:', cleanToken.length);
+      console.log('Token format valid:', cleanToken.startsWith('eyJ'));
+      
       const config = getAxiosConfig();
       if (!config.headers || !config.headers['Authorization']) {
         throw new Error('Authorization header not set');
       }
-      console.log('Loading profile with config:', { hasAuthHeader: !!config.headers['Authorization'] });
+      
+      // Verify the header format
+      const configHeader = config.headers['Authorization'];
+      if (!configHeader.startsWith('Bearer ') || !configHeader.substring(7).startsWith('eyJ')) {
+        console.error('Invalid Authorization header format:', configHeader.substring(0, 30));
+        throw new Error('Invalid Authorization header format');
+      }
+      
+      console.log('Loading profile with config:', { 
+        hasAuthHeader: !!config.headers['Authorization'],
+        headerFormat: config.headers['Authorization'].substring(0, 30) + '...',
+        fullHeader: config.headers['Authorization']
+      });
+      console.log('Full token being sent:', cleanToken);
+      
       const response = await axios.get('http://localhost:5000/api/user/profile', config);
-      console.log('Profile loaded successfully:', response.data);
-      setProfile(response.data);
+      console.log('Profile loaded successfully - RAW response:', JSON.stringify(response.data, null, 2));
+      
+      // Ensure all fields are properly formatted and not null/undefined
+      // Handle both direct response and nested profile structure
+      const rawData = response.data;
+      const profileData = {
+        age: (rawData.age !== undefined && rawData.age !== null) ? rawData.age : null,
+        weight: (rawData.weight !== undefined && rawData.weight !== null) ? rawData.weight : null,
+        height: (rawData.height !== undefined && rawData.height !== null) ? rawData.height : null,
+        gender: rawData.gender || '',
+        training_level: rawData.training_level || '',
+        exercise_history_years: (rawData.exercise_history_years !== undefined && rawData.exercise_history_years !== null) ? rawData.exercise_history_years : null,
+        exercise_history_description: rawData.exercise_history_description || '',
+        fitness_goals: (() => {
+          if (Array.isArray(rawData.fitness_goals)) return rawData.fitness_goals;
+          if (typeof rawData.fitness_goals === 'string' && rawData.fitness_goals.trim()) {
+            try { return JSON.parse(rawData.fitness_goals); } catch { return []; }
+          }
+          return [];
+        })(),
+        injuries: (() => {
+          if (Array.isArray(rawData.injuries)) return rawData.injuries;
+          if (typeof rawData.injuries === 'string' && rawData.injuries.trim()) {
+            try { return JSON.parse(rawData.injuries); } catch { return []; }
+          }
+          return [];
+        })(),
+        injury_details: rawData.injury_details || '',
+        medical_conditions: (() => {
+          if (Array.isArray(rawData.medical_conditions)) return rawData.medical_conditions;
+          if (typeof rawData.medical_conditions === 'string' && rawData.medical_conditions.trim()) {
+            try { return JSON.parse(rawData.medical_conditions); } catch { return []; }
+          }
+          return [];
+        })(),
+        medical_condition_details: rawData.medical_condition_details || '',
+        equipment_access: (() => {
+          if (Array.isArray(rawData.equipment_access)) return rawData.equipment_access;
+          if (typeof rawData.equipment_access === 'string' && rawData.equipment_access.trim()) {
+            try { return JSON.parse(rawData.equipment_access); } catch { return []; }
+          }
+          return [];
+        })(),
+        gym_access: rawData.gym_access ?? false,
+        home_equipment: (() => {
+          if (Array.isArray(rawData.home_equipment)) return rawData.home_equipment;
+          if (typeof rawData.home_equipment === 'string' && rawData.home_equipment.trim()) {
+            try { return JSON.parse(rawData.home_equipment); } catch { return []; }
+          }
+          return [];
+        })(),
+        preferred_workout_time: rawData.preferred_workout_time || '',
+        workout_days_per_week: (rawData.workout_days_per_week !== undefined && rawData.workout_days_per_week !== null) ? rawData.workout_days_per_week : 3,
+        preferred_intensity: rawData.preferred_intensity || '',
+        profile_image: rawData.profile_image || null
+      };
+      
+      console.log('Formatted profile data:', JSON.stringify(profileData, null, 2));
+      console.log('Profile data summary:', {
+        age: profileData.age,
+        weight: profileData.weight,
+        height: profileData.height,
+        gender: profileData.gender,
+        training_level: profileData.training_level,
+        fitness_goals_count: profileData.fitness_goals.length,
+        injuries_count: profileData.injuries.length,
+        medical_conditions_count: profileData.medical_conditions.length
+      });
+      setProfile(profileData);
+      
+      // Load user info (username and email)
+      if (user) {
+        setUsername(user.username || '');
+        setEmail(user.email || '');
+      }
       
       // Load profile image if exists
-      if (response.data.profile_image) {
-        const imageUrl = `http://localhost:5000/api/user/profile/image/${response.data.profile_image}`;
+      if (profileData.profile_image) {
+        const imageUrl = `http://localhost:5000/api/user/profile/image/${profileData.profile_image}`;
         setImagePreview(imageUrl);
+      } else {
+        setImagePreview(null);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
       console.error('Error details:', {
         status: error.response?.status,
+        statusText: error.response?.statusText,
         data: error.response?.data,
-        message: error.message
+        message: error.message,
+        config: error.config?.url
       });
       
       if (error.response?.status === 404) {
         // Profile doesn't exist - create empty profile
         console.log('Profile not found (404), creating empty profile');
+        console.log('This means the user has not created a profile yet. They can fill it out now.');
         setProfile({
           age: null,
           weight: null,
@@ -269,11 +417,25 @@ const ProfileTab = () => {
           preferred_intensity: ''
         });
       } else if (error.response?.status === 401 || error.response?.status === 422) {
-        // Authentication error - user needs to log in again
+        // Authentication error - check if it's a token error
+        const errorData = error.response?.data || {};
+        const errorMessage = (errorData.error || errorData.message || '').toLowerCase();
+        const isTokenError = errorMessage.includes('token') && (
+          errorMessage.includes('expired') || 
+          errorMessage.includes('invalid') || 
+          errorMessage.includes('missing') ||
+          errorMessage.includes('format')
+        );
+        
         console.error('Authentication error loading profile');
-        alert(i18n.language === 'fa' 
-          ? 'لطفاً دوباره وارد شوید'
-          : 'Please log in again');
+        console.error('Auth error message:', errorMessage);
+        console.error('Is token error:', isTokenError);
+        
+        if (isTokenError) {
+          // Token is invalid - don't clear user state here, let auth context handle it
+          console.warn('Token error detected, but keeping user state. Auth context will handle logout if needed.');
+        }
+        
         // Still set empty profile so form is visible
         setProfile({
           age: null,
@@ -297,7 +459,8 @@ const ProfileTab = () => {
         });
       } else {
         // Other errors - still set empty profile so user can see the form
-        console.log('Other error, creating empty profile');
+        console.log('Other error loading profile, creating empty profile');
+        console.error('Full error:', error);
         setProfile({
           age: null,
           weight: null,
@@ -446,7 +609,25 @@ const ProfileTab = () => {
       console.log('Axios config headers present:', !!config.headers['Authorization']);
       console.log('Authorization header:', config.headers['Authorization'].substring(0, 30) + '...');
       
+      // Save profile data
       await axios.put('http://localhost:5000/api/user/profile', profileData, config);
+      
+      // Save user data (username and email) if changed
+      if (username !== user?.username || email !== user?.email) {
+        try {
+          await axios.put('http://localhost:5000/api/user', {
+            username: username,
+            email: email
+          }, config);
+        } catch (userError) {
+          console.error('Error updating user info:', userError);
+          // Don't fail the whole save if user update fails, but show a warning
+          alert(i18n.language === 'fa' 
+            ? 'پروفایل به‌روزرسانی شد اما به‌روزرسانی اطلاعات کاربری با خطا مواجه شد'
+            : 'Profile updated but user info update failed');
+        }
+      }
+      
       setEditing(false);
       setProfileImage(null);
       await loadProfile();
@@ -493,7 +674,13 @@ const ProfileTab = () => {
       <div className="profile-header">
         <h2>{i18n.language === 'fa' ? 'پروفایل کاربری' : 'User Profile'}</h2>
         {!editing && (
-          <button className="edit-btn" onClick={() => setEditing(true)}>
+          <button className="edit-btn" onClick={() => {
+            // Ensure profile data is loaded before entering edit mode
+            if (!profile) {
+              loadProfile();
+            }
+            setEditing(true);
+          }}>
             {i18n.language === 'fa' ? 'ویرایش' : 'Edit'}
           </button>
         )}
@@ -532,18 +719,30 @@ const ProfileTab = () => {
           <div className="form-grid">
             <div className="form-group">
               <label>{i18n.language === 'fa' ? 'نام کاربری' : 'Username'}</label>
-              <input type="text" value={user?.username || ''} disabled />
+              <input 
+                type="text" 
+                name="username"
+                value={username || ''} 
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={!editing}
+              />
             </div>
             <div className="form-group">
               <label>{i18n.language === 'fa' ? 'ایمیل' : 'Email'}</label>
-              <input type="email" value={user?.email || ''} disabled />
+              <input 
+                type="email" 
+                name="email"
+                value={email || ''} 
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={!editing}
+              />
             </div>
             <div className="form-group">
               <label>{i18n.language === 'fa' ? 'سن' : 'Age'}</label>
               <input
                 type="number"
                 name="age"
-                value={profile?.age || ''}
+                value={profile?.age ?? ''}
                 onChange={handleInputChange}
                 disabled={!editing}
                 min="1"
@@ -558,7 +757,8 @@ const ProfileTab = () => {
                 onChange={handleInputChange}
                 disabled={!editing}
               >
-                <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>
+                {editing && <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>}
+                {!editing && !profile?.gender && <option value=""></option>}
                 <option value="male">{i18n.language === 'fa' ? 'مرد' : 'Male'}</option>
                 <option value="female">{i18n.language === 'fa' ? 'زن' : 'Female'}</option>
                 <option value="other">{i18n.language === 'fa' ? 'سایر' : 'Other'}</option>
@@ -569,7 +769,7 @@ const ProfileTab = () => {
               <input
                 type="number"
                 name="weight"
-                value={profile?.weight || ''}
+                value={profile?.weight ?? ''}
                 onChange={handleInputChange}
                 disabled={!editing}
                 min="1"
@@ -581,7 +781,7 @@ const ProfileTab = () => {
               <input
                 type="number"
                 name="height"
-                value={profile?.height || ''}
+                value={profile?.height ?? ''}
                 onChange={handleInputChange}
                 disabled={!editing}
                 min="1"
@@ -613,7 +813,8 @@ const ProfileTab = () => {
                 onChange={handleInputChange}
                 disabled={!editing}
               >
-                <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>
+                {editing && <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>}
+                {!editing && !profile?.training_level && <option value=""></option>}
                 <option value="beginner">{i18n.language === 'fa' ? 'مبتدی' : 'Beginner'}</option>
                 <option value="intermediate">{i18n.language === 'fa' ? 'متوسط' : 'Intermediate'}</option>
                 <option value="advanced">{i18n.language === 'fa' ? 'پیشرفته' : 'Advanced'}</option>
@@ -624,7 +825,7 @@ const ProfileTab = () => {
               <input
                 type="number"
                 name="workout_days_per_week"
-                value={profile?.workout_days_per_week || ''}
+                value={profile?.workout_days_per_week ?? ''}
                 onChange={handleInputChange}
                 disabled={!editing}
                 min="1"
@@ -639,7 +840,8 @@ const ProfileTab = () => {
                 onChange={handleInputChange}
                 disabled={!editing}
               >
-                <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>
+                {editing && <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>}
+                {!editing && !profile?.preferred_workout_time && <option value=""></option>}
                 <option value="morning">{i18n.language === 'fa' ? 'صبح' : 'Morning'}</option>
                 <option value="afternoon">{i18n.language === 'fa' ? 'ظهر' : 'Afternoon'}</option>
                 <option value="evening">{i18n.language === 'fa' ? 'عصر' : 'Evening'}</option>
@@ -653,7 +855,8 @@ const ProfileTab = () => {
                 onChange={handleInputChange}
                 disabled={!editing}
               >
-                <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>
+                {editing && <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>}
+                {!editing && !profile?.preferred_intensity && <option value=""></option>}
                 <option value="light">{i18n.language === 'fa' ? 'سبک' : 'Light'}</option>
                 <option value="medium">{i18n.language === 'fa' ? 'متوسط' : 'Medium'}</option>
                 <option value="heavy">{i18n.language === 'fa' ? 'سنگین' : 'Heavy'}</option>
@@ -719,7 +922,7 @@ const ProfileTab = () => {
               <input
                 type="number"
                 name="exercise_history_years"
-                value={profile?.exercise_history_years || ''}
+                value={profile?.exercise_history_years ?? ''}
                 onChange={handleInputChange}
                 disabled={!editing}
                 min="0"
@@ -899,7 +1102,16 @@ const ProfileTab = () => {
             <button className="save-btn" onClick={handleSave} disabled={saving}>
               {saving ? (i18n.language === 'fa' ? 'در حال ذخیره...' : 'Saving...') : (i18n.language === 'fa' ? 'ذخیره' : 'Save')}
             </button>
-            <button className="cancel-btn" onClick={() => { setEditing(false); setProfileImage(null); loadProfile(); }}>
+            <button className="cancel-btn" onClick={() => { 
+              setEditing(false); 
+              setProfileImage(null); 
+              // Reset username and email to original values
+              if (user) {
+                setUsername(user.username || '');
+                setEmail(user.email || '');
+              }
+              loadProfile(); 
+            }}>
               {i18n.language === 'fa' ? 'لغو' : 'Cancel'}
             </button>
           </div>

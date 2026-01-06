@@ -11,10 +11,13 @@ import './RegistrationForm.css';
 const RegistrationForm = ({ onComplete }) => {
   const { t, i18n } = useTranslation();
   const { register } = useAuth();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const stepContainerRef = useRef(null);
+
+  // Step 0: Account Type Selection
+  const [accountType, setAccountType] = useState('');
 
   // Step 1: Basic Account Info
   const [username, setUsername] = useState('');
@@ -74,7 +77,17 @@ const RegistrationForm = ({ onComplete }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (step < 5) {
+    // Step 0: Account type selection
+    if (step === 0) {
+      if (!accountType) {
+        setError(i18n.language === 'fa' ? 'لطفاً نوع حساب کاربری خود را انتخاب کنید' : 'Please select your account type');
+        return;
+      }
+      handleStepChange(step + 1);
+      return;
+    }
+    
+    if (step < 6) {
       handleStepChange(step + 1);
       return;
     }
@@ -89,6 +102,7 @@ const RegistrationForm = ({ onComplete }) => {
     setError('');
 
     const profileData = {
+      account_type: accountType,
       age: age ? parseInt(age) : null,
       gender: gender,
       height: height ? parseFloat(height) : null,
@@ -117,6 +131,55 @@ const RegistrationForm = ({ onComplete }) => {
       onComplete();
     }
   };
+
+  const renderStep0 = () => (
+    <div className="registration-step">
+      <h3>{i18n.language === 'fa' ? 'نوع حساب کاربری' : 'Account Type'}</h3>
+      <p className="step-description">
+        {i18n.language === 'fa' 
+          ? 'لطفاً نوع حساب کاربری خود را انتخاب کنید'
+          : 'Please select your account type'}
+      </p>
+      <div className="account-type-selection">
+        <label className={`account-type-option ${accountType === 'trainer' ? 'selected' : ''}`}>
+          <input
+            type="radio"
+            name="accountType"
+            value="trainer"
+            checked={accountType === 'trainer'}
+            onChange={(e) => setAccountType(e.target.value)}
+            required
+          />
+          <div className="account-type-content">
+            <span className="account-type-title">{i18n.language === 'fa' ? 'مربی' : 'Trainer'}</span>
+            <span className="account-type-description">
+              {i18n.language === 'fa' 
+                ? 'من یک مربی هستم و می‌خواهم برنامه‌های تمرینی برای دیگران ایجاد کنم'
+                : 'I am a trainer and want to create training programs for others'}
+            </span>
+          </div>
+        </label>
+        <label className={`account-type-option ${accountType === 'member' ? 'selected' : ''}`}>
+          <input
+            type="radio"
+            name="accountType"
+            value="member"
+            checked={accountType === 'member'}
+            onChange={(e) => setAccountType(e.target.value)}
+            required
+          />
+          <div className="account-type-content">
+            <span className="account-type-title">{i18n.language === 'fa' ? 'عضو' : 'Member'}</span>
+            <span className="account-type-description">
+              {i18n.language === 'fa' 
+                ? 'من می‌خواهم تمرین کنم و برنامه‌های تمرینی دریافت کنم'
+                : 'I want to train and receive training programs'}
+            </span>
+          </div>
+        </label>
+      </div>
+    </div>
+  );
 
   const renderStep1 = () => (
     <div className="registration-step">
@@ -527,10 +590,10 @@ const RegistrationForm = ({ onComplete }) => {
     <div className="registration-form-container">
       <div className="registration-progress">
         <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${(step / 5) * 100}%` }}></div>
+          <div className="progress-fill" style={{ width: `${((step + 1) / 6) * 100}%` }}></div>
         </div>
         <div className="progress-steps">
-          {[1, 2, 3, 4, 5].map(s => (
+          {[0, 1, 2, 3, 4, 5].map(s => (
             <div
               key={s}
               className={`progress-step ${s <= step ? 'active' : ''} ${s < step ? 'clickable' : ''}`}
@@ -545,7 +608,7 @@ const RegistrationForm = ({ onComplete }) => {
                 opacity: s > step ? 0.5 : 1
               }}
             >
-              {s}
+              {s + 1}
             </div>
           ))}
         </div>
@@ -555,6 +618,7 @@ const RegistrationForm = ({ onComplete }) => {
         {error && <div className="error-message">{error}</div>}
 
         <div ref={stepContainerRef}>
+          {step === 0 && renderStep0()}
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
@@ -563,7 +627,7 @@ const RegistrationForm = ({ onComplete }) => {
         </div>
 
         <div className="form-actions">
-          {step > 1 && (
+          {step > 0 && (
             <button type="button" className="btn-secondary" onClick={() => handleStepChange(step - 1)}>
               {i18n.language === 'fa' ? 'قبلی' : 'Previous'}
             </button>

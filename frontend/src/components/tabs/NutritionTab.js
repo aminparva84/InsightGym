@@ -82,14 +82,24 @@ const NutritionTab = () => {
         <h2>{t('nutrition')}</h2>
         <div className="plan-type-selector">
           <button
+            type="button"
             className={`plan-type-btn ${planType === '2week' ? 'active' : ''}`}
-            onClick={() => setPlanType('2week')}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setPlanType('2week');
+            }}
           >
             {t('twoWeekPlan')}
           </button>
           <button
+            type="button"
             className={`plan-type-btn ${planType === '4week' ? 'active' : ''}`}
-            onClick={() => setPlanType('4week')}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setPlanType('4week');
+            }}
           >
             {t('fourWeekPlan')}
           </button>

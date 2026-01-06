@@ -5,7 +5,8 @@ API endpoints for vector search functionality
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from models import User, UserProfile, Exercise
+from models import UserProfile, Exercise
+from app import User  # User is defined in app.py, not models.py
 import os
 import openai
 from typing import List, Dict, Any

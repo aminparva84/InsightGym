@@ -4,7 +4,8 @@ Run this to create a demo user for testing
 """
 
 from app import app, db
-from models import User, UserProfile, ExerciseHistory
+from models import UserProfile, ExerciseHistory
+from app import User  # User is defined in app.py, not models.py
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
 import json

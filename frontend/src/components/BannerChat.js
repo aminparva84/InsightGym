@@ -29,9 +29,25 @@ const BannerChat = () => {
     if (!token) {
       return {};
     }
+    
+    // Remove any accidental "Bearer " prefix
+    let cleanToken = token.trim();
+    if (cleanToken.startsWith('Bearer ')) {
+      cleanToken = cleanToken.replace(/^Bearer\s+/i, '').trim();
+    }
+    
+    // Validate token format
+    if (!cleanToken.startsWith('eyJ')) {
+      console.error('Invalid token format in BannerChat!');
+      return {};
+    }
+    
+    // Update axios defaults
+    axios.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
+    
     return {
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${cleanToken}`
       }
     };
   };

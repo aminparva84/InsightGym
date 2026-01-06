@@ -6,7 +6,8 @@ Allows admins to CRUD exercises
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from models import Exercise, User, EXERCISE_CATEGORY_BODYBUILDING_MACHINE, EXERCISE_CATEGORY_FUNCTIONAL_HOME, EXERCISE_CATEGORY_HYBRID_HIIT_MACHINE
+from models import Exercise, EXERCISE_CATEGORY_BODYBUILDING_MACHINE, EXERCISE_CATEGORY_FUNCTIONAL_HOME, EXERCISE_CATEGORY_HYBRID_HIIT_MACHINE
+from app import User  # User is defined in app.py, not models.py
 import json
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')

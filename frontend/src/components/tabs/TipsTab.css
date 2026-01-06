@@ -12,7 +12,7 @@
 .no-data {
   text-align: center;
   padding: 3rem;
-  color: #666;
+  color: #000000;
   font-size: 1.1rem;
   background-color: #ffffff;
 }
@@ -29,6 +29,11 @@
   border-radius: 8px;
   padding: 1.5rem;
   transition: transform 0.3s, box-shadow 0.3s;
+  min-height: 200px;
+}
+
+.tip-card * {
+  color: #000000 !important;
 }
 
 .tip-card:hover {
@@ -56,7 +61,7 @@
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
   font-size: 0.85rem;
-  color: #666;
+  color: #000000;
   white-space: nowrap;
 }
 
@@ -68,14 +73,14 @@
 
 .tip-date {
   font-size: 0.85rem;
-  color: #666;
+  color: #000000;
   text-align: left;
 }
 
 .loading {
   text-align: center;
   padding: 3rem;
-  color: #666;
+  color: #000000;
   background-color: #ffffff;
 }
 

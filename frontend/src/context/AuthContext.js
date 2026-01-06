@@ -14,11 +14,22 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(() => {
+    // Initialize from localStorage on mount
+    const storedToken = localStorage.getItem('token');
+    return storedToken && storedToken.trim() !== '' ? storedToken.trim() : null;
+  });
   const justLoggedInRef = useRef(false);
+  const initializedRef = useRef(false);
 
   // Initialize auth state on mount only
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
+
     // Check localStorage on mount (source of truth)
     const storedToken = localStorage.getItem('token');
     
@@ -53,6 +64,12 @@ export const AuthProvider = ({ children }) => {
           return Promise.reject(error);
         }
         
+        // Don't clear token for /api/user endpoint - let fetchUser handle it
+        // This prevents premature logout when fetchUser is called on page reload
+        if (url.includes('/api/user')) {
+          return Promise.reject(error);
+        }
+        
         // Only handle authentication errors, and only if we have a response
         if (error.response) {
           const status = error.response.status;
@@ -65,16 +82,33 @@ export const AuthProvider = ({ children }) => {
               return Promise.reject(error);
             }
             
+            // For 422 errors, always treat as token error (Flask-JWT-Extended returns 422 for invalid tokens)
+            // For 401 errors, check the error message
+            const errorData = error.response.data || {};
+            const errorMessage = (errorData.error || errorData.message || '').toLowerCase();
+            const isTokenError = status === 422 || // 422 from Flask-JWT-Extended always means invalid token
+                                 (status === 401 && errorMessage.includes('token') && 
+                                  (errorMessage.includes('expired') || 
+                                   errorMessage.includes('invalid') || 
+                                   errorMessage.includes('missing')));
+            
             // Check if we have a valid token before clearing
             const currentToken = localStorage.getItem('token');
-            if (currentToken && currentToken.trim() !== '') {
-              console.warn('Axios interceptor: Authentication error detected, clearing token');
+            if (currentToken && currentToken.trim() !== '' && isTokenError) {
+              console.warn('Axios interceptor: Token error detected, clearing token');
               console.warn('Error URL:', url);
               console.warn('Error status:', status);
+              console.warn('Error message:', errorMessage);
               localStorage.removeItem('token');
               setToken(null);
               setUser(null);
               delete axios.defaults.headers.common['Authorization'];
+            } else if (currentToken && currentToken.trim() !== '' && !isTokenError) {
+              // Auth error but not specifically a token error - don't clear token
+              // This might be a temporary backend issue or permission issue
+              console.warn('Axios interceptor: Auth error but not a token error, keeping token');
+              console.warn('Error URL:', url);
+              console.warn('Error status:', status);
             }
           }
         }
@@ -102,10 +136,26 @@ export const AuthProvider = ({ children }) => {
       
       // Ensure token is properly formatted and set in axios defaults
       const cleanToken = token.trim();
-      axios.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
       
-      console.log('Fetching user with token:', cleanToken.substring(0, 20) + '...');
-      const response = await axios.get('http://localhost:5000/api/user');
+      // Remove any existing "Bearer " prefix if accidentally added
+      const tokenWithoutBearer = cleanToken.startsWith('Bearer ') 
+        ? cleanToken.replace(/^Bearer\s+/i, '').trim() 
+        : cleanToken;
+      
+      // Set axios defaults with proper format
+      const authHeader = `Bearer ${tokenWithoutBearer}`;
+      axios.defaults.headers.common['Authorization'] = authHeader;
+      
+      console.log('Fetching user with token:', tokenWithoutBearer.substring(0, 20) + '...');
+      console.log('Authorization header format:', authHeader.substring(0, 30) + '...');
+      console.log('Token length:', tokenWithoutBearer.length);
+      console.log('Full token (for debugging):', tokenWithoutBearer);
+      
+      const response = await axios.get('http://localhost:5000/api/user', {
+        headers: {
+          'Authorization': authHeader
+        }
+      });
       console.log('User fetched successfully:', response.data);
       setUser(response.data);
       setLoading(false);
@@ -118,20 +168,41 @@ export const AuthProvider = ({ children }) => {
         data: error.response?.data
       });
       
-      // Only clear token and user on actual authentication errors (401/422)
-      // Don't clear on network errors, CORS errors, or other errors
+      // Only clear token and user if error explicitly indicates token is invalid/expired
+      // Don't clear on network errors, CORS errors, or ambiguous auth errors
       if (error.response) {
         const status = error.response.status;
+        const errorData = error.response.data || {};
+        const errorMessage = (errorData.error || errorData.message || '').toLowerCase();
+        
+        // Check if error specifically mentions token expiration or invalidity
+        const isTokenExpired = errorMessage.includes('token') && errorMessage.includes('expired');
+        const isTokenInvalid = errorMessage.includes('token') && 
+                              (errorMessage.includes('invalid') || 
+                               errorMessage.includes('missing') ||
+                               errorMessage.includes('format'));
+        
         if (status === 401 || status === 422) {
-          if (preserveExistingUser) {
-            // Don't clear token or user if we're preserving existing user (e.g., after login)
-            console.warn('Authentication error (401/422) but preserveExistingUser=true, keeping token and user');
+          if (isTokenExpired || isTokenInvalid) {
+            // Token is explicitly expired or invalid - clear it
+            if (preserveExistingUser) {
+              console.warn('Token expired/invalid but preserveExistingUser=true, keeping token and user');
+            } else {
+              console.warn('Token expired/invalid, clearing token and user');
+              localStorage.removeItem('token');
+              setToken(null);
+              setUser(null);
+              delete axios.defaults.headers.common['Authorization'];
+            }
           } else {
-            console.warn('Authentication error (401/422), clearing token and user');
-            localStorage.removeItem('token');
-            setToken(null);
-            setUser(null);
-            delete axios.defaults.headers.common['Authorization'];
+            // Auth error but not specifically a token error - keep token
+            // This might be a temporary backend issue, permission issue, or other auth problem
+            console.warn('Authentication error (401/422) but not a token error, keeping token');
+            console.warn('Error message:', errorMessage);
+            if (!preserveExistingUser) {
+              // Don't set user, but keep token for retry
+              setUser(null);
+            }
           }
         } else {
           // Non-auth error - keep token and user if preserveExistingUser is true
@@ -144,6 +215,7 @@ export const AuthProvider = ({ children }) => {
         }
       } else {
         // Network error or no response - keep token and user if preserveExistingUser is true
+        // Never clear token on network errors - user might just be offline
         if (!preserveExistingUser) {
           console.warn('Network error or no response, keeping token. Error:', error.message);
           console.warn('User will need to refresh or retry when backend is available');
@@ -180,8 +252,16 @@ export const AuthProvider = ({ children }) => {
       
       // Ensure token is stored correctly
       if (access_token) {
-        const cleanToken = access_token.trim();
+        // Remove any accidental "Bearer " prefix from backend response
+        let cleanToken = access_token.trim();
+        if (cleanToken.startsWith('Bearer ')) {
+          cleanToken = cleanToken.replace(/^Bearer\s+/i, '').trim();
+        }
+        
         console.log('Login successful, storing token:', cleanToken.substring(0, 20) + '...');
+        console.log('Token length:', cleanToken.length);
+        console.log('Token format check - starts with eyJ:', cleanToken.startsWith('eyJ'));
+        
         localStorage.setItem('token', cleanToken);
         setToken(cleanToken);
         axios.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
@@ -250,8 +330,16 @@ export const AuthProvider = ({ children }) => {
       
       // Ensure token is stored correctly
       if (access_token) {
-        const cleanToken = access_token.trim();
+        // Remove any accidental "Bearer " prefix from backend response
+        let cleanToken = access_token.trim();
+        if (cleanToken.startsWith('Bearer ')) {
+          cleanToken = cleanToken.replace(/^Bearer\s+/i, '').trim();
+        }
+        
         console.log('Registration successful, storing token:', cleanToken.substring(0, 20) + '...');
+        console.log('Token length:', cleanToken.length);
+        console.log('Token format check - starts with eyJ:', cleanToken.startsWith('eyJ'));
+        
         localStorage.setItem('token', cleanToken);
         setToken(cleanToken);
         axios.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;

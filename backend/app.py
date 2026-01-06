@@ -13,6 +13,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Import models to avoid circular imports - import after db is created
+# We'll import specific classes as needed to avoid conflicts
+
 # Import workout plan API
 try:
     from api.workout_plan_api import workout_plan_bp
@@ -22,8 +25,24 @@ except ImportError:
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///raha_fitness.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+# Get JWT_SECRET_KEY from environment or use default
+# IMPORTANT: This key must be consistent - if it changes, all existing tokens become invalid
+jwt_secret_key = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+app.config['JWT_SECRET_KEY'] = jwt_secret_key
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+
+# Print JWT_SECRET_KEY on startup for debugging (first 20 chars only for security)
+print(f"\n{'='*70}")
+print(f"JWT Configuration:")
+print(f"  JWT_SECRET_KEY: {jwt_secret_key[:20]}... (length: {len(jwt_secret_key)})")
+print(f"  JWT_ACCESS_TOKEN_EXPIRES: {app.config['JWT_ACCESS_TOKEN_EXPIRES']}")
+print(f"  NOTE: If JWT_SECRET_KEY changes, all existing tokens become invalid")
+print(f"{'='*70}\n")
+
+# Print JWT_SECRET_KEY on startup for debugging (first 20 chars only for security)
+print(f"\n{'='*60}")
+print(f"JWT_SECRET_KEY configured: {jwt_secret_key[:20]}... (length: {len(jwt_secret_key)})")
+print(f"{'='*60}\n")
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads', 'profiles')
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
 
@@ -34,6 +53,15 @@ db = SQLAlchemy(app)
 jwt = JWTManager(app)
 CORS(app)
 
+# Import models module early to register all model classes
+# This ensures relationships can resolve class names properly
+# Note: models.py imports db from app, so we import after db is created
+# We'll configure the User.nutrition_plans relationship after User class is defined
+try:
+    import models  # This registers NutritionPlan, Exercise, UserProfile, etc. in SQLAlchemy registry
+except ImportError as e:
+    print(f"Warning: Could not import models module: {e}. Some relationships may not work.")
+
 # JWT Error Handlers
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
@@ -42,7 +70,45 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 @jwt.invalid_token_loader
 def invalid_token_callback(error_string):
-    print(f"JWT Invalid token: {error_string}")
+    """
+    This callback is triggered when Flask-JWT-Extended cannot decode/validate a token.
+    The error_string contains the exact reason why the token is invalid.
+    """
+    print(f"\n{'='*70}")
+    print(f"JWT INVALID TOKEN - ROOT CAUSE")
+    print(f"{'='*70}")
+    print(f"Flask-JWT-Extended Error: {repr(error_string)}")
+    print(f"Current JWT_SECRET_KEY (first 20 chars): {app.config['JWT_SECRET_KEY'][:20]}...")
+    print(f"JWT_SECRET_KEY length: {len(app.config['JWT_SECRET_KEY'])}")
+    
+    # Log the Authorization header
+    auth_header = request.headers.get('Authorization', '')
+    print(f"\nAuthorization header length: {len(auth_header) if auth_header else 0}")
+    
+    if auth_header and auth_header.startswith('Bearer '):
+        token_part = auth_header[7:]
+        parts = token_part.split('.')
+        print(f"Token structure: {len(parts)} parts (should be 3)")
+        print(f"Token (first 50 chars): {token_part[:50]}...")
+        
+        # Most common causes:
+        # 1. "Signature verification failed" = JWT_SECRET_KEY mismatch
+        # 2. "Not enough segments" = Token format issue
+        # 3. "Invalid header padding" = Token corruption
+        if 'signature' in error_string.lower() or 'verification' in error_string.lower():
+            print(f"\n{'='*70}")
+            print(f"ROOT CAUSE: JWT_SECRET_KEY MISMATCH")
+            print(f"The token signature cannot be verified with the current JWT_SECRET_KEY.")
+            print(f"This means the token was created with a DIFFERENT secret key.")
+            print(f"\nSOLUTION:")
+            print(f"1. User must LOG OUT and LOG BACK IN to get a fresh token")
+            print(f"2. Ensure JWT_SECRET_KEY is consistent (check .env file)")
+            print(f"{'='*70}\n")
+        else:
+            print(f"\n{'='*70}")
+            print(f"ROOT CAUSE: {error_string}")
+            print(f"{'='*70}\n")
+    
     return jsonify({'error': 'Invalid token', 'message': 'Token format is invalid. Please log in again'}), 422
 
 @jwt.unauthorized_loader
@@ -66,11 +132,11 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     language = db.Column(db.String(10), default='fa')  # 'fa' for Farsi, 'en' for English
     
-    exercises = db.relationship('Exercise', backref='user', lazy=True, cascade='all, delete-orphan')
+    exercises = db.relationship('UserExercise', backref='user', lazy=True, cascade='all, delete-orphan')
     chat_history = db.relationship('ChatHistory', backref='user', lazy=True, cascade='all, delete-orphan')
-    nutrition_plans = db.relationship('NutritionPlan', backref='user', lazy=True, cascade='all, delete-orphan')
+    # NutritionPlan relationship will be configured after models are imported
 
-class Exercise(db.Model):
+class UserExercise(db.Model):
     """User Exercise History - tracks user's completed exercises"""
     __tablename__ = 'user_exercises'
     
@@ -90,18 +156,7 @@ class ChatHistory(db.Model):
     response = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-class NutritionPlan(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    plan_type = db.Column(db.String(20), nullable=False)  # '2week' or '4week'
-    day = db.Column(db.Integer, nullable=False)
-    meal_type = db.Column(db.String(50))  # breakfast, lunch, dinner, snack
-    food_item = db.Column(db.String(200), nullable=False)
-    calories = db.Column(db.Integer)
-    protein = db.Column(db.Float)
-    carbs = db.Column(db.Float)
-    fats = db.Column(db.Float)
-    notes = db.Column(db.Text)
+# NutritionPlan is defined in models.py to avoid duplicate class names
 
 class Tip(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -111,6 +166,13 @@ class Tip(db.Model):
     content_en = db.Column(db.Text, nullable=False)
     category = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Configure User.nutrition_plans relationship after all models are defined
+# This must be done after User class is defined and models module is imported
+# Use a lambda to defer resolution until mapper configuration
+# Note: User.nutrition_plans relationship is not configured here to avoid SQLAlchemy issues
+# Nutrition plans can be accessed via direct queries: NutritionPlan.query.filter_by(user_id=user.id)
+# This avoids the foreign key relationship issues between different modules
 
 class Injury(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -218,7 +280,8 @@ def register():
         
         db.session.commit()
         
-        access_token = create_access_token(identity=user.id)
+        # Flask-JWT-Extended requires identity to be a string
+        access_token = create_access_token(identity=str(user.id))
         return jsonify({
             'access_token': access_token,
             'user': {
@@ -259,7 +322,9 @@ def login():
                 print(f"Password match: {password_match}")
                 
                 if password_match:
-                    access_token = create_access_token(identity=user.id)
+                    # Flask-JWT-Extended requires identity to be a string
+                    access_token = create_access_token(identity=str(user.id))
+                    print(f"Token created for user {user.id}, token (first 50 chars): {access_token[:50]}...")
                     return jsonify({
                         'access_token': access_token,
                         'user': {
@@ -306,15 +371,17 @@ def reset_demo_password():
         'password': new_password
     }), 200
 
-@app.route('/api/user', methods=['GET'])
+@app.route('/api/user', methods=['GET', 'PUT'])
 @jwt_required()
 def get_user():
     try:
-        user_id = get_jwt_identity()
-        if not user_id:
+        # get_jwt_identity() returns a string, convert to int for database query
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
         
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
     except Exception as e:
@@ -323,11 +390,55 @@ def get_user():
         print(traceback.format_exc())
         return jsonify({'error': 'Authentication failed'}), 401
     
-    # Get user profile if exists
+    if request.method == 'PUT':
+        try:
+            data = request.get_json()
+            
+            # Update username if provided
+            if 'username' in data and data['username']:
+                # Check if username is already taken by another user
+                existing_user = User.query.filter(User.username == data['username'], User.id != user_id).first()
+                if existing_user:
+                    return jsonify({'error': 'Username already taken'}), 400
+                user.username = data['username']
+            
+            # Update email if provided
+            if 'email' in data and data['email']:
+                # Validate email format
+                import re
+                email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                if not re.match(email_pattern, data['email']):
+                    return jsonify({'error': 'Invalid email format'}), 400
+                
+                # Check if email is already taken by another user
+                existing_user = User.query.filter(User.email == data['email'], User.id != user_id).first()
+                if existing_user:
+                    return jsonify({'error': 'Email already taken'}), 400
+                user.email = data['email']
+            
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'User updated successfully',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email
+                }
+            }), 200
+        except Exception as e:
+            import traceback
+            db.session.rollback()
+            print(f"Error updating user: {e}")
+            print(traceback.format_exc())
+            return jsonify({'error': str(e)}), 500
+    
+    # GET method - Get user profile if exists
     profile_data = None
     try:
         from models import UserProfile
-        profile = UserProfile.query.filter_by(user_id=user_id).first()
+        # Use db.session.query() to avoid app context issues
+        profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
         if profile:
             profile_data = {
                 'age': profile.age,
@@ -364,18 +475,15 @@ def get_user():
 @app.route('/api/user/profile', methods=['GET', 'PUT'])
 @jwt_required()
 def user_profile():
+    # @jwt_required() validates the token before this function runs
+    # If token is invalid, invalid_token_callback is called
+    # If token is valid, we can safely get user_id
+    # get_jwt_identity() returns a string, convert to int for database query
     try:
-        # Debug: Check if Authorization header is present
-        auth_header = request.headers.get('Authorization', '')
-        print(f"Profile endpoint - Authorization header present: {bool(auth_header)}")
-        if auth_header:
-            print(f"Profile endpoint - Authorization header: {auth_header[:30]}...")
-        
-        user_id = get_jwt_identity()
-        print(f"Profile endpoint - User ID from token: {user_id}")
-        if not user_id:
-            print("Profile endpoint - No user_id from token!")
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
     except Exception as e:
         import traceback
         print(f"Error getting user_id in user_profile: {e}")
@@ -383,38 +491,78 @@ def user_profile():
         return jsonify({'error': 'Authentication failed'}), 401
     
     if request.method == 'GET':
-        try:
-            from models import UserProfile
-            profile = UserProfile.query.filter_by(user_id=user_id).first()
-            if not profile:
-                return jsonify({'error': 'Profile not found'}), 404
-            
-            return jsonify({
-                'age': profile.age,
-                'weight': profile.weight,
-                'height': profile.height,
-                'gender': profile.gender,
-                'training_level': profile.training_level,
-                'fitness_goals': profile.get_fitness_goals(),
-                'injuries': profile.get_injuries(),
-                'injury_details': profile.injury_details,
-                'medical_conditions': profile.get_medical_conditions(),
-                'medical_condition_details': profile.medical_condition_details,
-                'exercise_history_years': profile.exercise_history_years,
-                'exercise_history_description': profile.exercise_history_description,
-                'equipment_access': profile.get_equipment_access(),
-                'gym_access': profile.gym_access,
-                'home_equipment': profile.get_home_equipment(),
-                'preferred_workout_time': profile.preferred_workout_time,
-                'workout_days_per_week': profile.workout_days_per_week,
-                'preferred_intensity': profile.preferred_intensity,
-                'profile_image': profile.profile_image if hasattr(profile, 'profile_image') else None
-            }), 200
-        except Exception as e:
-            import traceback
-            print(f"Error getting profile: {e}")
-            print(traceback.format_exc())
-            return jsonify({'error': str(e)}), 500
+            try:
+                # Import UserProfile - it should be available from models
+                from models import UserProfile
+                
+                # Query profile using db.session.query() to avoid app context issues
+                profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
+                if not profile:
+                    return jsonify({'error': 'Profile not found'}), 404
+                
+                # Safely get all profile data with error handling for each field
+                try:
+                    fitness_goals = profile.get_fitness_goals() if hasattr(profile, 'get_fitness_goals') else []
+                except Exception as e:
+                    print(f"Error getting fitness_goals: {e}")
+                    fitness_goals = []
+                
+                try:
+                    injuries = profile.get_injuries() if hasattr(profile, 'get_injuries') else []
+                except Exception as e:
+                    print(f"Error getting injuries: {e}")
+                    injuries = []
+                
+                try:
+                    medical_conditions = profile.get_medical_conditions() if hasattr(profile, 'get_medical_conditions') else []
+                except Exception as e:
+                    print(f"Error getting medical_conditions: {e}")
+                    medical_conditions = []
+                
+                try:
+                    equipment_access = profile.get_equipment_access() if hasattr(profile, 'get_equipment_access') else []
+                except Exception as e:
+                    print(f"Error getting equipment_access: {e}")
+                    equipment_access = []
+                
+                try:
+                    home_equipment = profile.get_home_equipment() if hasattr(profile, 'get_home_equipment') else []
+                except Exception as e:
+                    print(f"Error getting home_equipment: {e}")
+                    home_equipment = []
+                
+                return jsonify({
+                    'age': profile.age,
+                    'weight': profile.weight,
+                    'height': profile.height,
+                    'gender': profile.gender or '',
+                    'training_level': profile.training_level or '',
+                    'fitness_goals': fitness_goals,
+                    'injuries': injuries,
+                    'injury_details': profile.injury_details or '',
+                    'medical_conditions': medical_conditions,
+                    'medical_condition_details': profile.medical_condition_details or '',
+                    'exercise_history_years': profile.exercise_history_years,
+                    'exercise_history_description': profile.exercise_history_description or '',
+                    'equipment_access': equipment_access,
+                    'gym_access': profile.gym_access if profile.gym_access is not None else False,
+                    'home_equipment': home_equipment,
+                    'preferred_workout_time': profile.preferred_workout_time or '',
+                    'workout_days_per_week': profile.workout_days_per_week,
+                    'preferred_intensity': profile.preferred_intensity or '',
+                    'profile_image': profile.profile_image if hasattr(profile, 'profile_image') and profile.profile_image else None
+                }), 200
+            except Exception as e:
+                import traceback
+                error_trace = traceback.format_exc()
+                print(f"\n{'='*70}")
+                print(f"ERROR in /api/user/profile GET: {e}")
+                print(f"Error type: {type(e).__name__}")
+                print(f"User ID: {user_id}")
+                print(f"Traceback:")
+                print(error_trace)
+                print(f"{'='*70}\n")
+                return jsonify({'error': f'Error loading profile: {str(e)}'}), 500
     
     elif request.method == 'PUT':
         try:
@@ -422,7 +570,8 @@ def user_profile():
             import json as json_lib
             
             data = request.get_json()
-            profile = UserProfile.query.filter_by(user_id=user_id).first()
+            # Use db.session.query() to avoid app context issues
+            profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
             
             if not profile:
                 # Create new profile
@@ -535,9 +684,11 @@ def user_profile():
 def get_profile_image(filename):
     """Serve profile image file"""
     try:
-        user_id = get_jwt_identity()
-        if not user_id:
+        # get_jwt_identity() returns a string, convert to int for database query
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
         
         from flask import send_from_directory
         # Secure filename check
@@ -552,15 +703,17 @@ def get_profile_image(filename):
 @jwt_required()
 def exercises():
     try:
-        user_id = get_jwt_identity()
-        if not user_id:
+        # get_jwt_identity() returns a string, convert to int for database query
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
     except Exception as e:
         print(f"Error in exercises auth: {e}")
         return jsonify({'error': 'Authentication failed'}), 401
     
     if request.method == 'GET':
-        exercises = Exercise.query.filter_by(user_id=user_id).order_by(Exercise.date.desc()).all()
+        exercises = UserExercise.query.filter_by(user_id=user_id).order_by(UserExercise.date.desc()).all()
         return jsonify([{
             'id': ex.id,
             'exercise_name': ex.exercise_name,
@@ -573,7 +726,7 @@ def exercises():
     
     if request.method == 'POST':
         data = request.get_json()
-        exercise = Exercise(
+        exercise = UserExercise(
             user_id=user_id,
             exercise_name=data.get('exercise_name'),
             exercise_type=data.get('exercise_type'),
@@ -589,11 +742,15 @@ def exercises():
 @jwt_required()
 def chat():
     try:
-        user_id = get_jwt_identity()
+        # get_jwt_identity() returns a string, convert to int for database query
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
+            return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
         data = request.get_json()
         message = data.get('message')
         local_time = data.get('local_time')  # Get local time from browser
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         user_language = user.language if user else 'fa'
         
         if not message:
@@ -635,9 +792,11 @@ def chat():
         user = None
         user_language = 'fa'
         try:
-            user_id = get_jwt_identity()
-            if user_id:
-                user = User.query.get(user_id)
+            # get_jwt_identity() returns a string, convert to int for database query
+            user_id_str = get_jwt_identity()
+            if user_id_str:
+                user_id = int(user_id_str)
+                user = db.session.get(User, user_id)
                 if user:
                     user_language = user.language
         except:
@@ -655,9 +814,11 @@ def chat():
 @jwt_required()
 def chat_history():
     try:
-        user_id = get_jwt_identity()
-        if not user_id:
+        # get_jwt_identity() returns a string, convert to int for database query
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
         
         chats = ChatHistory.query.filter_by(user_id=user_id).order_by(ChatHistory.timestamp.desc()).all()
         return jsonify([{
@@ -675,10 +836,13 @@ def chat_history():
 @app.route('/api/nutrition/plans', methods=['GET', 'POST'])
 @jwt_required()
 def nutrition_plans():
+    from models import NutritionPlan
     try:
-        user_id = get_jwt_identity()
-        if not user_id:
+        # get_jwt_identity() returns a string, convert to int for database query
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
     except Exception as e:
         print(f"Error in nutrition_plans auth: {e}")
         return jsonify({'error': 'Authentication failed'}), 401
@@ -766,7 +930,7 @@ def generate_ai_response(message, user_id, language, local_time=None):
     
     try:
         # Get user info
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         user_name = user.username if user else 'کاربر'
     except Exception as e:
         print(f"Error getting user: {e}")
@@ -776,7 +940,8 @@ def generate_ai_response(message, user_id, language, local_time=None):
         from models import Exercise as ExerciseLibrary, UserProfile
         try:
             # Get user profile for context
-            user_profile = UserProfile.query.filter_by(user_id=user_id).first()
+            # Use db.session.query() to avoid app context issues
+            user_profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
             if user_profile:
                 try:
                     user_injuries = user_profile.get_injuries()
@@ -839,12 +1004,13 @@ def generate_ai_response(message, user_id, language, local_time=None):
     
     # Get user's exercise history and nutrition plans for context
     try:
-        exercises = Exercise.query.filter_by(user_id=user_id).order_by(Exercise.date.desc()).limit(10).all()
+        exercises = UserExercise.query.filter_by(user_id=user_id).order_by(UserExercise.date.desc()).limit(10).all()
     except Exception as e:
         print(f"Error querying exercise history: {e}")
         exercises = []
     
     try:
+        from models import NutritionPlan
         nutrition_plans = NutritionPlan.query.filter_by(user_id=user_id).limit(5).all()
     except Exception as e:
         print(f"Error querying nutrition plans: {e}")
@@ -1392,6 +1558,44 @@ try:
     app.register_blueprint(exercise_library_bp)
 except ImportError:
     pass
+
+@app.route('/api/training-programs', methods=['GET'])
+@jwt_required()
+def get_training_programs():
+    """Get training programs for the current user"""
+    try:
+        from models import TrainingProgram
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
+            return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
+        
+        # Get user's language preference
+        # Use db.session.query() to avoid app context issues
+        user = db.session.query(User).filter_by(id=user_id).first()
+        language = user.language if user and user.language else 'fa'
+        
+        # Get user-specific programs and general programs
+        # Use db.session.query() to avoid app context issues
+        user_programs = db.session.query(TrainingProgram).filter_by(user_id=user_id).all()
+        general_programs = db.session.query(TrainingProgram).filter(TrainingProgram.user_id.is_(None)).all()
+        
+        # Combine and convert to dict
+        all_programs = user_programs + general_programs
+        programs_data = [program.to_dict(language) for program in all_programs]
+        
+        print(f"[Training Programs API] User ID: {user_id}, Language: {language}")
+        print(f"[Training Programs API] Found {len(all_programs)} programs: {len(user_programs)} user-specific, {len(general_programs)} general")
+        print(f"[Training Programs API] Program IDs: {[p.id for p in all_programs]}")
+        if programs_data:
+            print(f"[Training Programs API] First program keys: {list(programs_data[0].keys())}")
+            print(f"[Training Programs API] First program name: {programs_data[0].get('name', 'N/A')}")
+        return jsonify(programs_data), 200
+    except Exception as e:
+        import traceback
+        print(f"Error getting training programs: {e}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     with app.app_context():

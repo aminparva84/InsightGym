@@ -28,22 +28,12 @@ INTENSITY_MEDIUM = 'medium'
 INTENSITY_HEAVY = 'heavy'
 
 
-class User(db.Model):
-    """User model with authentication"""
-    __tablename__ = 'users'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    language = db.Column(db.String(10), default='fa')  # 'fa' for Farsi, 'en' for English
-    
-    # Relationships
-    profile = db.relationship('UserProfile', backref='user', uselist=False, cascade='all, delete-orphan')
-    exercise_history = db.relationship('ExerciseHistory', backref='user', lazy=True, cascade='all, delete-orphan')
-    chat_history = db.relationship('ChatHistory', backref='user', lazy=True, cascade='all, delete-orphan')
-    nutrition_plans = db.relationship('NutritionPlan', backref='user', lazy=True, cascade='all, delete-orphan')
+# User model is defined in app.py, not here, to avoid duplicate class names
+# The User class in app.py uses __tablename__ = 'user' (singular)
+# All relationships to User should reference 'user.id' not 'users.id'
+# 
+# If you need to import User, use: from app import User
+# Do NOT import User from models
 
 
 class UserProfile(db.Model):
@@ -249,7 +239,7 @@ class ExerciseHistory(db.Model):
     __tablename__ = 'exercise_history'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Changed from 'users.id' to 'user.id' to match app.py User table
     exercise_id = db.Column(db.Integer, db.ForeignKey('exercises.id'), nullable=True)  # Can be null if custom exercise
     
     # Exercise Details (can override exercise defaults or be custom)
@@ -286,7 +276,7 @@ class NutritionPlan(db.Model):
     __tablename__ = 'nutrition_plans'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Changed from 'users.id' to 'user.id' to match app.py User table
     plan_type = db.Column(db.String(20), nullable=False)  # '2week' or '4week'
     day = db.Column(db.Integer, nullable=False)
     meal_type = db.Column(db.String(50))  # breakfast, lunch, dinner, snack
@@ -325,4 +315,60 @@ class Injury(db.Model):
     treatment_fa = db.Column(db.Text)
     treatment_en = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class TrainingProgram(db.Model):
+    """Training Programs - Comprehensive workout programs with sessions"""
+    __tablename__ = 'training_programs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Null for general programs, set for user-specific
+    
+    # Program Information
+    name_fa = db.Column(db.String(200), nullable=False)
+    name_en = db.Column(db.String(200), nullable=False)
+    description_fa = db.Column(db.Text)
+    description_en = db.Column(db.Text)
+    
+    # Program Details
+    duration_weeks = db.Column(db.Integer, default=4)  # 4 weeks = 1 month
+    training_level = db.Column(db.String(20))  # 'beginner', 'intermediate', 'advanced'
+    category = db.Column(db.String(50))  # 'bodybuilding', 'functional', 'hiit', 'hybrid'
+    
+    # Sessions (JSON array of session objects)
+    sessions = db.Column(db.Text)  # JSON array with session details
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def get_sessions(self):
+        """Parse sessions JSON string to list"""
+        if self.sessions:
+            try:
+                return json.loads(self.sessions)
+            except:
+                return []
+        return []
+    
+    def set_sessions(self, sessions_list):
+        """Set sessions from list to JSON string"""
+        self.sessions = json.dumps(sessions_list, ensure_ascii=False)
+    
+    def to_dict(self, language='fa'):
+        """Convert program to dictionary based on language"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'name': self.name_fa if language == 'fa' else self.name_en,
+            'name_fa': self.name_fa,
+            'name_en': self.name_en,
+            'description': self.description_fa if language == 'fa' else self.description_en,
+            'description_fa': self.description_fa,
+            'description_en': self.description_en,
+            'duration_weeks': self.duration_weeks,
+            'training_level': self.training_level,
+            'category': self.category,
+            'sessions': self.get_sessions()
+        }
 

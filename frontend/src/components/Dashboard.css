@@ -166,10 +166,32 @@
 }
 
 .dashboard-content {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 2rem;
   background-color: #ffffff;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.dashboard-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: sticky;
+  top: 100px;
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+}
+
+.dashboard-right {
+  display: flex;
+  flex-direction: column;
 }
 
 .tabs-container {
@@ -179,6 +201,10 @@
   border-bottom: 1px solid #e0e0e0;
   padding-bottom: 1rem;
   flex-wrap: wrap;
+  background-color: #F6F3C2;
+  padding: 1rem;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 2px solid #e0e0e0;
 }
 
 .tab-btn {
@@ -188,7 +214,7 @@
   padding: 0.75rem 1.5rem;
   background: none;
   border: none;
-  color: #666;
+  color: #000000;
   cursor: pointer;
   font-size: 1rem;
   border-bottom: 2px solid transparent;
@@ -217,6 +243,36 @@
   border-radius: 12px;
   padding: 2rem;
   min-height: 500px;
+  color: #000000;
+}
+
+.tab-content * {
+  color: #000000;
+}
+
+.tab-content p,
+.tab-content span:not(.tab-icon),
+.tab-content div:not(.bmi-calculator):not(.bmi-range-container),
+.tab-content td,
+.tab-content th,
+.tab-content li,
+.tab-content label {
+  color: #000000 !important;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-left {
+    position: static;
+    order: 2;
+  }
+
+  .dashboard-right {
+    order: 1;
+  }
 }
 
 @media (max-width: 768px) {

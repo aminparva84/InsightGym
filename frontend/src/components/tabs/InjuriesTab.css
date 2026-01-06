@@ -12,7 +12,7 @@
 .no-data {
   text-align: center;
   padding: 3rem;
-  color: #666;
+  color: #000000;
   font-size: 1.1rem;
   background-color: #ffffff;
 }
@@ -38,6 +38,11 @@
   padding: 1rem;
   cursor: pointer;
   transition: all 0.3s;
+  min-height: 100px;
+}
+
+.injury-item * {
+  color: #000000 !important;
 }
 
 .injury-item:hover {
@@ -57,7 +62,7 @@
 }
 
 .injury-preview {
-  color: #666;
+  color: #000000;
   font-size: 0.9rem;
   margin: 0;
   line-height: 1.5;
@@ -72,6 +77,11 @@
   top: 20px;
   max-height: 600px;
   overflow-y: auto;
+  min-height: 200px;
+}
+
+.injury-details * {
+  color: #000000 !important;
 }
 
 .injury-details h3 {
@@ -101,7 +111,7 @@
 .loading {
   text-align: center;
   padding: 3rem;
-  color: #666;
+  color: #000000;
   background-color: #ffffff;
 }
 

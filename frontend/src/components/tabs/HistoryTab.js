@@ -63,14 +63,24 @@ const HistoryTab = () => {
     <div className="history-tab">
       <div className="history-tabs">
         <button
+          type="button"
           className={`history-tab-btn ${activeView === 'exercises' ? 'active' : ''}`}
-          onClick={() => setActiveView('exercises')}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveView('exercises');
+          }}
         >
           {t('exerciseHistory')}
         </button>
         <button
+          type="button"
           className={`history-tab-btn ${activeView === 'chat' ? 'active' : ''}`}
-          onClick={() => setActiveView('chat')}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveView('chat');
+          }}
         >
           {t('chatHistory')}
         </button>
