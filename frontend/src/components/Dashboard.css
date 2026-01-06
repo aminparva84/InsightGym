@@ -1,19 +1,24 @@
 .dashboard {
   min-height: 100vh;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background-color: #ffffff;
+  color: #000000;
+  padding-top: 80px;
 }
 
-.dashboard-nav {
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  padding: 1rem 2rem;
-  position: sticky;
+/* Dashboard Topbar - Same as Landing Page but with white background */
+.dashboard-topbar {
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  padding: 1rem 2rem;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #e0e0e0;
 }
 
-.nav-container {
+.topbar-container {
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
@@ -21,74 +26,157 @@
   align-items: center;
 }
 
-.app-logo {
+.topbar-title {
   font-size: 1.8rem;
-  font-weight: bold;
-  color: var(--accent);
+  font-weight: 700;
+  color: #000000;
   margin: 0;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
 }
 
-.nav-actions {
+.topbar-title:hover {
+  opacity: 0.8;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  direction: ltr; /* Always LTR for topbar */
+}
+
+/* Language Toggle Button (On/Off Style) - Same as Landing Page */
+.lang-toggle {
+  position: relative;
+  width: 80px;
+  height: 36px;
+  background: #e0e0e0;
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  overflow: hidden;
+  direction: ltr; /* Always LTR for toggle */
+}
+
+.lang-toggle:hover {
+  background: #d0d0d0;
+}
+
+.lang-toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 32px;
+  height: 32px;
+  background: #F6F3C2;
+  border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #000000;
 }
 
-.lang-btn {
-  padding: 0.5rem 1rem;
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 0.9rem;
+/* When Persian is active, slider is on the right with "فا" */
+.lang-toggle.fa-active .lang-toggle-slider {
+  transform: translateX(44px);
 }
 
-.lang-btn:hover {
-  background-color: var(--bg-primary);
-  border-color: var(--accent);
+.lang-toggle.fa-active .lang-toggle-slider::before {
+  content: 'فا';
 }
 
-.lang-btn.active {
-  background-color: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+/* When English is active, slider is on the left with "EN" */
+.lang-toggle.en-active .lang-toggle-slider {
+  transform: translateX(0);
+}
+
+.lang-toggle.en-active .lang-toggle-slider::before {
+  content: 'EN';
+}
+
+.lang-label-fa,
+.lang-label-en {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #666;
+  transition: color 0.3s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.lang-label-fa {
+  right: 10px;
+}
+
+.lang-label-en {
+  left: 10px;
+}
+
+.lang-toggle.fa-active .lang-label-fa {
+  display: none; /* Hide "فا" label when it's in the circle */
+}
+
+.lang-toggle.fa-active .lang-label-en {
+  color: #666;
+  left: 10px; /* Show "EN" on the left side */
+}
+
+.lang-toggle.en-active .lang-label-en {
+  display: none; /* Hide "EN" label when it's in the circle */
+}
+
+.lang-toggle.en-active .lang-label-fa {
+  color: #666;
+  right: 10px; /* Show "فا" on the right side */
 }
 
 .username {
-  color: var(--text-secondary);
+  color: #000000;
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.logout-btn {
+.topbar-logout-btn {
   padding: 0.5rem 1rem;
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
+  background-color: #F6F3C2;
+  border: none;
+  border-radius: 6px;
+  color: #000000;
   font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.logout-btn:hover {
-  background-color: var(--error);
-  border-color: var(--error);
-  color: #fff;
+.topbar-logout-btn:hover {
+  background-color: #e8e4a8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(246, 243, 194, 0.3);
 }
 
 .dashboard-content {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
+  background-color: #ffffff;
 }
 
 .tabs-container {
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #e0e0e0;
   padding-bottom: 1rem;
   flex-wrap: wrap;
 }
@@ -100,7 +188,7 @@
   padding: 0.75rem 1.5rem;
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: #666;
   cursor: pointer;
   font-size: 1rem;
   border-bottom: 2px solid transparent;
@@ -110,12 +198,13 @@
 }
 
 .tab-btn:hover {
-  color: var(--text-primary);
+  color: #000000;
 }
 
 .tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  color: #000000;
+  border-bottom-color: #F6F3C2;
+  font-weight: 600;
 }
 
 .tab-icon {
@@ -123,8 +212,8 @@
 }
 
 .tab-content {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
   border-radius: 12px;
   padding: 2rem;
   min-height: 500px;

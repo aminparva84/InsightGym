@@ -4,7 +4,7 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   fa: {
     translation: {
-      appName: 'آلفا فیت',
+      appName: 'الفافیت با رها',
       welcome: 'خوش آمدید',
       login: 'ورود',
       register: 'ثبت نام',

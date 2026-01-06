@@ -3,7 +3,7 @@
  * Collects all required information for personalized AI plans
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import './RegistrationForm.css';
@@ -14,6 +14,7 @@ const RegistrationForm = ({ onComplete }) => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const stepContainerRef = useRef(null);
 
   // Step 1: Basic Account Info
   const [username, setUsername] = useState('');
@@ -54,11 +55,27 @@ const RegistrationForm = ({ onComplete }) => {
     }
   };
 
+  // Scroll to top when step changes
+  useEffect(() => {
+    if (stepContainerRef.current) {
+      stepContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // Also scroll the modal content to top
+    const modalContent = document.querySelector('.auth-modal-content');
+    if (modalContent) {
+      modalContent.scrollTop = 0;
+    }
+  }, [step]);
+
+  const handleStepChange = (newStep) => {
+    setStep(newStep);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (step < 5) {
-      setStep(step + 1);
+      handleStepChange(step + 1);
       return;
     }
 
@@ -234,42 +251,42 @@ const RegistrationForm = ({ onComplete }) => {
         <label className="checkbox-label">
           <input
             type="checkbox"
-            checked={fitnessGoals.includes('weight_loss')}
-            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'weight_loss')}
+            checked={fitnessGoals.includes('lose_weight')}
+            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'lose_weight')}
           />
-          <span>{i18n.language === 'fa' ? 'چربی‌سوزی' : 'Fat Loss'}</span>
+          <span>{i18n.language === 'fa' ? 'کاهش وزن' : 'Lose Weight'}</span>
         </label>
         <label className="checkbox-label">
           <input
             type="checkbox"
-            checked={fitnessGoals.includes('muscle_gain')}
-            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'muscle_gain')}
+            checked={fitnessGoals.includes('gain_weight')}
+            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'gain_weight')}
           />
-          <span>{i18n.language === 'fa' ? 'فرم‌دهی و عضله‌سازی' : 'Shaping and Muscle Building'}</span>
+          <span>{i18n.language === 'fa' ? 'افزایش وزن' : 'Gain Weight'}</span>
         </label>
         <label className="checkbox-label">
           <input
             type="checkbox"
-            checked={fitnessGoals.includes('strength')}
-            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'strength')}
+            checked={fitnessGoals.includes('gain_muscle')}
+            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'gain_muscle')}
           />
-          <span>{i18n.language === 'fa' ? 'قدرت' : 'Strength'}</span>
+          <span>{i18n.language === 'fa' ? 'افزایش عضله' : 'Gain Muscle'}</span>
         </label>
         <label className="checkbox-label">
           <input
             type="checkbox"
-            checked={fitnessGoals.includes('endurance')}
-            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'endurance')}
+            checked={fitnessGoals.includes('shape_fitting')}
+            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'shape_fitting')}
           />
-          <span>{i18n.language === 'fa' ? 'استقامت' : 'Endurance'}</span>
+          <span>{i18n.language === 'fa' ? 'تناسب اندام' : 'Shape Fitting'}</span>
         </label>
         <label className="checkbox-label">
           <input
             type="checkbox"
-            checked={fitnessGoals.includes('combined')}
-            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'combined')}
+            checked={fitnessGoals.includes('healthy_diet')}
+            onChange={() => toggleArrayItem(fitnessGoals, setFitnessGoals, 'healthy_diet')}
           />
-          <span>{i18n.language === 'fa' ? 'ترکیبی' : 'Combined'}</span>
+          <span>{i18n.language === 'fa' ? 'رژیم غذایی سالم' : 'Healthy Diet'}</span>
         </label>
       </div>
     </div>
@@ -514,7 +531,20 @@ const RegistrationForm = ({ onComplete }) => {
         </div>
         <div className="progress-steps">
           {[1, 2, 3, 4, 5].map(s => (
-            <div key={s} className={`progress-step ${s <= step ? 'active' : ''}`}>
+            <div
+              key={s}
+              className={`progress-step ${s <= step ? 'active' : ''} ${s < step ? 'clickable' : ''}`}
+              onClick={() => {
+                // Only allow clicking on steps that have been reached (previous steps)
+                if (s < step) {
+                  handleStepChange(s);
+                }
+              }}
+              style={{
+                cursor: s < step ? 'pointer' : 'default',
+                opacity: s > step ? 0.5 : 1
+              }}
+            >
               {s}
             </div>
           ))}
@@ -524,15 +554,17 @@ const RegistrationForm = ({ onComplete }) => {
       <form onSubmit={handleSubmit} className="registration-form">
         {error && <div className="error-message">{error}</div>}
 
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
-        {step === 4 && renderStep4()}
-        {step === 5 && renderStep5()}
+        <div ref={stepContainerRef}>
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+          {step === 4 && renderStep4()}
+          {step === 5 && renderStep5()}
+        </div>
 
         <div className="form-actions">
           {step > 1 && (
-            <button type="button" className="btn-secondary" onClick={() => setStep(step - 1)}>
+            <button type="button" className="btn-secondary" onClick={() => handleStepChange(step - 1)}>
               {i18n.language === 'fa' ? 'قبلی' : 'Previous'}
             </button>
           )}

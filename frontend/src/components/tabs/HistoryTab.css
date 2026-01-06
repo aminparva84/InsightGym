@@ -1,19 +1,21 @@
 .history-tab {
   width: 100%;
+  background-color: #ffffff;
 }
 
 .history-tabs {
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #ffffff;
 }
 
 .history-tab-btn {
   padding: 0.75rem 1.5rem;
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: #666;
   cursor: pointer;
   font-size: 1rem;
   border-bottom: 2px solid transparent;
@@ -23,24 +25,27 @@
 }
 
 .history-tab-btn:hover {
-  color: var(--text-primary);
+  color: #000000;
 }
 
 .history-tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  color: #000000;
+  border-bottom-color: #F6F3C2;
+  font-weight: 600;
 }
 
 .history-content h2 {
   margin-bottom: 1.5rem;
-  color: var(--accent);
+  color: #000000;
+  background-color: #ffffff;
 }
 
 .no-data {
   text-align: center;
   padding: 3rem;
-  color: var(--text-secondary);
+  color: #666;
   font-size: 1.1rem;
+  background-color: #ffffff;
 }
 
 .table-container {
@@ -50,31 +55,34 @@
 .history-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: var(--bg-tertiary);
+  background-color: #ffffff;
   border-radius: 8px;
   overflow: hidden;
+  border: 1px solid #e0e0e0;
 }
 
 .history-table thead {
-  background-color: var(--bg-primary);
+  background-color: #ffffff;
 }
 
 .history-table th {
   padding: 1rem;
   text-align: right;
-  color: var(--accent);
+  color: #000000;
   font-weight: 600;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 2px solid #e0e0e0;
+  background-color: #ffffff;
 }
 
 .history-table td {
   padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-primary);
+  border-bottom: 1px solid #e0e0e0;
+  color: #000000;
+  background-color: #ffffff;
 }
 
 .history-table tbody tr:hover {
-  background-color: var(--bg-primary);
+  background-color: #f8f9fa;
 }
 
 .history-table tbody tr:last-child td {
@@ -88,8 +96,8 @@
 }
 
 .chat-history-item {
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 1.5rem;
 }
@@ -97,30 +105,32 @@
 .chat-message {
   margin-bottom: 1rem;
   padding: 0.75rem;
-  background-color: var(--bg-primary);
+  background-color: #ffffff;
   border-radius: 6px;
-  color: var(--text-primary);
+  color: #000000;
+  border: 1px solid #e0e0e0;
 }
 
 .chat-response {
   margin-bottom: 0.5rem;
   padding: 0.75rem;
-  background-color: rgba(74, 158, 255, 0.1);
-  border-left: 3px solid var(--accent);
+  background-color: #C2E2FA;
+  border-left: 3px solid #F6F3C2;
   border-radius: 6px;
-  color: var(--text-primary);
+  color: #000000;
 }
 
 .chat-timestamp {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: #666;
   margin-top: 0.5rem;
 }
 
 .loading {
   text-align: center;
   padding: 3rem;
-  color: var(--text-secondary);
+  color: #666;
+  background-color: #ffffff;
 }
 
 @media (max-width: 768px) {

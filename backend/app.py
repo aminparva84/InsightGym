@@ -158,6 +158,8 @@ def register():
                 from models import UserProfile
                 import json
                 
+                print(f"Creating profile for user {user.id} with data: {profile_data}")
+                
                 profile = UserProfile(
                     user_id=user.id,
                     age=profile_data.get('age'),
@@ -175,30 +177,44 @@ def register():
                 
                 # Set JSON fields
                 if profile_data.get('fitness_goals'):
+                    print(f"Setting fitness_goals: {profile_data['fitness_goals']}")
                     profile.set_fitness_goals(profile_data['fitness_goals'])
                 
                 if profile_data.get('injuries'):
+                    print(f"Setting injuries: {profile_data['injuries']}")
                     profile.set_injuries(profile_data['injuries'])
                 
                 if profile_data.get('injury_details'):
                     profile.injury_details = profile_data['injury_details']
                 
                 if profile_data.get('medical_conditions'):
-                    profile.medical_conditions = json.dumps(profile_data['medical_conditions'], ensure_ascii=False)
+                    print(f"Setting medical_conditions: {profile_data['medical_conditions']}")
+                    profile.set_medical_conditions(profile_data['medical_conditions'])
                 
                 if profile_data.get('medical_condition_details'):
                     profile.medical_condition_details = profile_data['medical_condition_details']
                 
                 if profile_data.get('equipment_access'):
+                    print(f"Setting equipment_access: {profile_data['equipment_access']}")
                     profile.set_equipment_access(profile_data['equipment_access'])
                 
                 if profile_data.get('home_equipment'):
+                    print(f"Setting home_equipment: {profile_data['home_equipment']}")
                     profile.set_home_equipment(profile_data['home_equipment'])
                 
                 db.session.add(profile)
+                db.session.flush()  # Flush to ensure profile is in session before commit
+                print(f"Profile created successfully for user {user.id}, profile ID: {profile.id}")
             except Exception as e:
+                import traceback
                 print(f"Error creating user profile: {e}")
-                # Continue without profile if it fails
+                print(traceback.format_exc())
+                # Don't fail registration if profile creation fails - user can complete profile later
+                # Just log the error and continue
+                db.session.rollback()
+                # Re-add user since rollback removed it
+                db.session.add(user)
+                db.session.flush()
         
         db.session.commit()
         
@@ -349,8 +365,16 @@ def get_user():
 @jwt_required()
 def user_profile():
     try:
+        # Debug: Check if Authorization header is present
+        auth_header = request.headers.get('Authorization', '')
+        print(f"Profile endpoint - Authorization header present: {bool(auth_header)}")
+        if auth_header:
+            print(f"Profile endpoint - Authorization header: {auth_header[:30]}...")
+        
         user_id = get_jwt_identity()
+        print(f"Profile endpoint - User ID from token: {user_id}")
         if not user_id:
+            print("Profile endpoint - No user_id from token!")
             return jsonify({'error': 'Invalid token'}), 401
     except Exception as e:
         import traceback
@@ -425,7 +449,7 @@ def user_profile():
             if 'injury_details' in data:
                 profile.injury_details = data['injury_details']
             if 'medical_conditions' in data:
-                profile.medical_conditions = json_lib.dumps(data['medical_conditions'], ensure_ascii=False)
+                profile.set_medical_conditions(data['medical_conditions'])
             if 'medical_condition_details' in data:
                 profile.medical_condition_details = data['medical_condition_details']
             if 'equipment_access' in data:
@@ -448,11 +472,11 @@ def user_profile():
                 profile.exercise_history_description = data['exercise_history_description']
             
             # Handle profile image (base64 encoded)
-            if 'profile_image' in data and data['profile_image']:
+            if 'profile_image' in data and data['profile_image'] and data['profile_image'] != 'null':
                 try:
                     # Save base64 image
                     image_data = data['profile_image']
-                    if image_data.startswith('data:image'):
+                    if isinstance(image_data, str) and image_data.startswith('data:image'):
                         # Extract base64 data
                         header, encoded = image_data.split(',', 1)
                         image_bytes = base64.b64decode(encoded)
@@ -495,9 +519,16 @@ def user_profile():
         except Exception as e:
             import traceback
             db.session.rollback()
+            error_trace = traceback.format_exc()
             print(f"Error updating profile: {e}")
-            print(traceback.format_exc())
-            return jsonify({'error': str(e)}), 500
+            print(error_trace)
+            # Return more detailed error for debugging
+            error_msg = str(e)
+            if 'ForeignKey' in error_msg or 'foreign key' in error_msg.lower():
+                error_msg = 'Database relationship error. Please contact support.'
+            elif 'no such table' in error_msg.lower():
+                error_msg = 'Database table not found. Please restart the server.'
+            return jsonify({'error': error_msg, 'details': error_trace if app.debug else None}), 500
 
 @app.route('/api/user/profile/image/<filename>', methods=['GET'])
 @jwt_required()

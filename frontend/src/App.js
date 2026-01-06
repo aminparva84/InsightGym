@@ -26,7 +26,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/" />} />
       <Route path="/admin" element={user ? <AdminPage /> : <Navigate to="/" />} />
     </Routes>

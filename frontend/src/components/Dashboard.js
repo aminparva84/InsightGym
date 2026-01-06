@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ProfileTab from './tabs/ProfileTab';
 import HistoryTab from './tabs/HistoryTab';
@@ -12,12 +13,14 @@ import './Dashboard.css';
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
 
-  const changeLanguage = (lng) => {
-    i18n.changeLanguage(lng);
-    document.documentElement.lang = lng;
-    document.documentElement.dir = lng === 'fa' ? 'rtl' : 'ltr';
+  const changeLanguage = () => {
+    const newLang = i18n.language === 'fa' ? 'en' : 'fa';
+    i18n.changeLanguage(newLang);
+    document.documentElement.lang = newLang;
+    // Don't change direction for topbar, only for content
   };
 
   const tabs = [
@@ -30,24 +33,26 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <nav className="dashboard-nav">
-        <div className="nav-container">
-          <h1 className="app-logo">{t('appName')}</h1>
-          <div className="nav-actions">
+      <nav className="dashboard-topbar">
+        <div className="topbar-container">
+          {/* Right side - Title */}
+          <h1 className="topbar-title" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            {t('appName')}
+          </h1>
+          
+          {/* Left side - Language toggle and Logout */}
+          <div className="topbar-actions">
             <button
-              className={`lang-btn ${i18n.language === 'fa' ? 'active' : ''}`}
-              onClick={() => changeLanguage('fa')}
+              className={`lang-toggle ${i18n.language === 'fa' ? 'fa-active' : 'en-active'}`}
+              onClick={changeLanguage}
+              title={i18n.language === 'fa' ? 'Switch to English' : 'تبدیل به فارسی'}
             >
-              {t('farsi')}
-            </button>
-            <button
-              className={`lang-btn ${i18n.language === 'en' ? 'active' : ''}`}
-              onClick={() => changeLanguage('en')}
-            >
-              {t('english')}
+              <span className="lang-label-en">EN</span>
+              <span className="lang-label-fa">فا</span>
+              <span className="lang-toggle-slider"></span>
             </button>
             <span className="username">{user?.username}</span>
-            <button className="logout-btn" onClick={logout}>
+            <button className="topbar-logout-btn" onClick={logout}>
               {t('logout')}
             </button>
           </div>

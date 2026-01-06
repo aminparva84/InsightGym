@@ -128,12 +128,53 @@ const ProfileTab = () => {
 
   // Get auth token
   const getAuthToken = () => {
-    return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
+    // First try localStorage (most reliable)
+    const localToken = localStorage.getItem('token');
+    if (localToken && localToken.trim() !== '') {
+      return localToken.trim();
+    }
+    // Fallback to axios defaults
+    const authHeader = axios.defaults.headers.common['Authorization'];
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      return authHeader.replace('Bearer ', '').trim();
+    }
+    return null;
   };
 
   const getAxiosConfig = () => {
-    const token = getAuthToken();
-    return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
+    // Always get fresh token from localStorage first
+    let token = localStorage.getItem('token');
+    
+    if (token) {
+      token = token.trim();
+      // Always update axios defaults when we have a token
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      // If no token in localStorage, try axios defaults
+      const authHeader = axios.defaults.headers.common['Authorization'];
+      if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+        token = authHeader.replace('Bearer ', '').trim();
+      }
+    }
+    
+    if (!token || token === '') {
+      console.error('No auth token found! User may need to log in again.');
+      console.error('localStorage token:', localStorage.getItem('token'));
+      console.error('axios defaults:', axios.defaults.headers.common['Authorization']);
+      alert(i18n.language === 'fa' 
+        ? 'خطا: توکن احراز هویت یافت نشد. لطفاً دوباره وارد شوید.'
+        : 'Error: Authentication token not found. Please log in again.');
+      return {};
+    }
+    
+    const authHeader = `Bearer ${token}`;
+    console.log('getAxiosConfig - Token found, creating config with header:', authHeader.substring(0, 30) + '...');
+    
+    return { 
+      headers: { 
+        'Authorization': authHeader
+      } 
+    };
   };
 
   useEffect(() => {
@@ -143,18 +184,52 @@ const ProfileTab = () => {
     } else if (!authLoading && !user) {
       setLoading(false);
     }
-  }, [authLoading, user]);
+  }, [authLoading, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadProfile = async () => {
+    setLoading(true);
     const token = getAuthToken();
     if (!token) {
       console.warn('No token available for loading profile');
+      // Set empty profile so user can still see the form
+      setProfile({
+        age: null,
+        weight: null,
+        height: null,
+        gender: '',
+        training_level: '',
+        exercise_history_years: null,
+        exercise_history_description: '',
+        fitness_goals: [],
+        injuries: [],
+        injury_details: '',
+        medical_conditions: [],
+        medical_condition_details: '',
+        equipment_access: [],
+        gym_access: false,
+        home_equipment: [],
+        preferred_workout_time: '',
+        workout_days_per_week: 3,
+        preferred_intensity: ''
+      });
       setLoading(false);
       return;
     }
 
     try {
-      const response = await axios.get('http://localhost:5000/api/user/profile', getAxiosConfig());
+      // Ensure token is set in axios defaults
+      if (token) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token.trim()}`;
+      }
+      
+      console.log('Loading profile with token:', token.substring(0, 20) + '...');
+      const config = getAxiosConfig();
+      if (!config.headers || !config.headers['Authorization']) {
+        throw new Error('Authorization header not set');
+      }
+      console.log('Loading profile with config:', { hasAuthHeader: !!config.headers['Authorization'] });
+      const response = await axios.get('http://localhost:5000/api/user/profile', config);
+      console.log('Profile loaded successfully:', response.data);
       setProfile(response.data);
       
       // Load profile image if exists
@@ -164,18 +239,28 @@ const ProfileTab = () => {
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      
       if (error.response?.status === 404) {
         // Profile doesn't exist - create empty profile
+        console.log('Profile not found (404), creating empty profile');
         setProfile({
           age: null,
           weight: null,
           height: null,
           gender: '',
           training_level: '',
+          exercise_history_years: null,
+          exercise_history_description: '',
           fitness_goals: [],
           injuries: [],
           injury_details: '',
           medical_conditions: [],
+          medical_condition_details: '',
           equipment_access: [],
           gym_access: false,
           home_equipment: [],
@@ -189,6 +274,50 @@ const ProfileTab = () => {
         alert(i18n.language === 'fa' 
           ? 'لطفاً دوباره وارد شوید'
           : 'Please log in again');
+        // Still set empty profile so form is visible
+        setProfile({
+          age: null,
+          weight: null,
+          height: null,
+          gender: '',
+          training_level: '',
+          exercise_history_years: null,
+          exercise_history_description: '',
+          fitness_goals: [],
+          injuries: [],
+          injury_details: '',
+          medical_conditions: [],
+          medical_condition_details: '',
+          equipment_access: [],
+          gym_access: false,
+          home_equipment: [],
+          preferred_workout_time: '',
+          workout_days_per_week: 3,
+          preferred_intensity: ''
+        });
+      } else {
+        // Other errors - still set empty profile so user can see the form
+        console.log('Other error, creating empty profile');
+        setProfile({
+          age: null,
+          weight: null,
+          height: null,
+          gender: '',
+          training_level: '',
+          exercise_history_years: null,
+          exercise_history_description: '',
+          fitness_goals: [],
+          injuries: [],
+          injury_details: '',
+          medical_conditions: [],
+          medical_condition_details: '',
+          equipment_access: [],
+          gym_access: false,
+          home_equipment: [],
+          preferred_workout_time: '',
+          workout_days_per_week: 3,
+          preferred_intensity: ''
+        });
       }
     } finally {
       setLoading(false);
@@ -214,39 +343,122 @@ const ProfileTab = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setProfile(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) || null : value)
-    }));
+    setProfile(prev => {
+      const baseProfile = prev || {
+        age: null,
+        weight: null,
+        height: null,
+        gender: '',
+        training_level: '',
+        exercise_history_years: null,
+        exercise_history_description: '',
+        fitness_goals: [],
+        injuries: [],
+        injury_details: '',
+        medical_conditions: [],
+        medical_condition_details: '',
+        equipment_access: [],
+        gym_access: false,
+        home_equipment: [],
+        preferred_workout_time: '',
+        workout_days_per_week: 3,
+        preferred_intensity: ''
+      };
+      return {
+        ...baseProfile,
+        [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) || null : value)
+      };
+    });
   };
 
   const handleArrayChange = (field, value, checked) => {
     setProfile(prev => {
-      const currentArray = prev[field] || [];
+      const baseProfile = prev || {
+        age: null,
+        weight: null,
+        height: null,
+        gender: '',
+        training_level: '',
+        exercise_history_years: null,
+        exercise_history_description: '',
+        fitness_goals: [],
+        injuries: [],
+        injury_details: '',
+        medical_conditions: [],
+        medical_condition_details: '',
+        equipment_access: [],
+        gym_access: false,
+        home_equipment: [],
+        preferred_workout_time: '',
+        workout_days_per_week: 3,
+        preferred_intensity: ''
+      };
+      const currentArray = baseProfile[field] || [];
       if (checked) {
-        return { ...prev, [field]: [...currentArray, value] };
+        return { ...baseProfile, [field]: [...currentArray, value] };
       } else {
-        return { ...prev, [field]: currentArray.filter(item => item !== value) };
+        return { ...baseProfile, [field]: currentArray.filter(item => item !== value) };
       }
     });
   };
 
   const handleSave = async () => {
+    if (!profile) {
+      alert(i18n.language === 'fa' ? 'پروفایل یافت نشد' : 'Profile not found');
+      return;
+    }
+    
+    // Ensure token is set in axios defaults before saving
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token.trim()}`;
+    }
+    
+    // Check for token before attempting to save
+    const authToken = getAuthToken();
+    if (!authToken) {
+      alert(i18n.language === 'fa' 
+        ? 'خطا: توکن احراز هویت یافت نشد. لطفاً دوباره وارد شوید.'
+        : 'Error: Authentication token not found. Please log in again.');
+      return;
+    }
+    
     setSaving(true);
     try {
       const profileData = {
-        ...profile,
-        profile_image: profileImage
+        ...profile
       };
       
-      await axios.put('http://localhost:5000/api/user/profile', profileData, getAxiosConfig());
+      // Only include profile_image if it's actually set (not null)
+      if (profileImage) {
+        profileData.profile_image = profileImage;
+      }
+      
+      console.log('Saving profile data:', { ...profileData, profile_image: profileImage ? '[base64 image]' : null });
+      console.log('Using token:', authToken.substring(0, 20) + '...');
+      
+      const config = getAxiosConfig();
+      if (!config.headers || !config.headers['Authorization']) {
+        console.error('Config:', config);
+        throw new Error('Authorization header not set');
+      }
+      
+      console.log('Axios config headers present:', !!config.headers['Authorization']);
+      console.log('Authorization header:', config.headers['Authorization'].substring(0, 30) + '...');
+      
+      await axios.put('http://localhost:5000/api/user/profile', profileData, config);
       setEditing(false);
       setProfileImage(null);
       await loadProfile();
       alert(i18n.language === 'fa' ? 'پروفایل با موفقیت به‌روزرسانی شد' : 'Profile updated successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert(i18n.language === 'fa' ? 'خطا در به‌روزرسانی پروفایل' : 'Error updating profile');
+      console.error('Error response:', error.response);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Unknown error';
+      console.error('Full error details:', error.response?.data);
+      alert(i18n.language === 'fa' 
+        ? `خطا در به‌روزرسانی پروفایل: ${errorMessage}`
+        : `Error updating profile: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -254,6 +466,10 @@ const ProfileTab = () => {
 
   if (loading) {
     return <div className="profile-loading">{i18n.language === 'fa' ? 'در حال بارگذاری...' : 'Loading...'}</div>;
+  }
+
+  if (!profile) {
+    return <div className="profile-loading">{i18n.language === 'fa' ? 'در حال بارگذاری پروفایل...' : 'Loading profile...'}</div>;
   }
 
   const fitnessGoalsOptions = [
@@ -494,6 +710,84 @@ const ProfileTab = () => {
           </div>
         </div>
 
+        {/* Exercise History */}
+        <div className="profile-section">
+          <h3>{i18n.language === 'fa' ? 'سابقه تمرینی' : 'Exercise History'}</h3>
+          <div className="form-grid">
+            <div className="form-group">
+              <label>{i18n.language === 'fa' ? 'سال‌های سابقه تمرین' : 'Years of Exercise History'}</label>
+              <input
+                type="number"
+                name="exercise_history_years"
+                value={profile?.exercise_history_years || ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                min="0"
+                max="50"
+              />
+            </div>
+          </div>
+          <div className="form-group full-width">
+            <label>{i18n.language === 'fa' ? 'توضیحات سابقه تمرینی' : 'Exercise History Description'}</label>
+            <textarea
+              name="exercise_history_description"
+              value={profile?.exercise_history_description || ''}
+              onChange={handleInputChange}
+              disabled={!editing}
+              rows="3"
+              placeholder={i18n.language === 'fa' ? 'سابقه تمرینات قبلی خود را شرح دهید...' : 'Describe your previous exercise experience...'}
+            />
+          </div>
+        </div>
+
+        {/* Medical Conditions */}
+        <div className="profile-section">
+          <h3>{i18n.language === 'fa' ? 'شرایط پزشکی' : 'Medical Conditions'}</h3>
+          <div className="form-group full-width">
+            <label>{i18n.language === 'fa' ? 'بیماری‌ها و شرایط پزشکی' : 'Medical Conditions'}</label>
+            <div className="checkbox-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={(profile?.medical_conditions || []).includes('heart_disease')}
+                  onChange={(e) => handleArrayChange('medical_conditions', 'heart_disease', e.target.checked)}
+                  disabled={!editing}
+                />
+                {i18n.language === 'fa' ? 'بیماری قلبی' : 'Heart Disease'}
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={(profile?.medical_conditions || []).includes('high_blood_pressure')}
+                  onChange={(e) => handleArrayChange('medical_conditions', 'high_blood_pressure', e.target.checked)}
+                  disabled={!editing}
+                />
+                {i18n.language === 'fa' ? 'فشار خون بالا' : 'High Blood Pressure'}
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={(profile?.medical_conditions || []).includes('pregnancy')}
+                  onChange={(e) => handleArrayChange('medical_conditions', 'pregnancy', e.target.checked)}
+                  disabled={!editing}
+                />
+                {i18n.language === 'fa' ? 'بارداری' : 'Pregnancy'}
+              </label>
+            </div>
+          </div>
+          <div className="form-group full-width">
+            <label>{i18n.language === 'fa' ? 'توضیحات شرایط پزشکی' : 'Medical Condition Details'}</label>
+            <textarea
+              name="medical_condition_details"
+              value={profile?.medical_condition_details || ''}
+              onChange={handleInputChange}
+              disabled={!editing}
+              rows="3"
+              placeholder={i18n.language === 'fa' ? 'جزئیات شرایط پزشکی خود را شرح دهید...' : 'Describe your medical conditions in detail...'}
+            />
+          </div>
+        </div>
+
         {/* Equipment Access */}
         <div className="profile-section">
           <h3>{i18n.language === 'fa' ? 'دسترسی به تجهیزات' : 'Equipment Access'}</h3>
@@ -509,6 +803,94 @@ const ProfileTab = () => {
               {i18n.language === 'fa' ? 'دسترسی به باشگاه' : 'Gym Access'}
             </label>
           </div>
+          
+          {profile?.gym_access && (
+            <div className="form-group full-width">
+              <label>{i18n.language === 'fa' ? 'تجهیزات باشگاه' : 'Gym Equipment'}</label>
+              <div className="checkbox-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.equipment_access || []).includes('machine')}
+                    onChange={(e) => handleArrayChange('equipment_access', 'machine', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'دستگاه' : 'Machines'}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.equipment_access || []).includes('dumbbells')}
+                    onChange={(e) => handleArrayChange('equipment_access', 'dumbbells', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'دمبل' : 'Dumbbells'}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.equipment_access || []).includes('barbell')}
+                    onChange={(e) => handleArrayChange('equipment_access', 'barbell', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'هالتر' : 'Barbell'}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.equipment_access || []).includes('cable')}
+                    onChange={(e) => handleArrayChange('equipment_access', 'cable', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'کابل' : 'Cable Machine'}
+                </label>
+              </div>
+            </div>
+          )}
+
+          {!profile?.gym_access && (
+            <div className="form-group full-width">
+              <label>{i18n.language === 'fa' ? 'تجهیزات خانگی' : 'Home Equipment'}</label>
+              <div className="checkbox-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.home_equipment || []).includes('dumbbells')}
+                    onChange={(e) => handleArrayChange('home_equipment', 'dumbbells', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'دمبل' : 'Dumbbells'}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.home_equipment || []).includes('resistance_bands')}
+                    onChange={(e) => handleArrayChange('home_equipment', 'resistance_bands', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'باند مقاومتی' : 'Resistance Bands'}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.home_equipment || []).includes('yoga_mat')}
+                    onChange={(e) => handleArrayChange('home_equipment', 'yoga_mat', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'تشک یوگا' : 'Yoga Mat'}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.home_equipment || []).includes('body_weight_only')}
+                    onChange={(e) => handleArrayChange('home_equipment', 'body_weight_only', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'فقط وزن بدن' : 'Body Weight Only'}
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}

@@ -1,17 +1,20 @@
 .injuries-tab {
   width: 100%;
+  background-color: #ffffff;
 }
 
 .injuries-tab h2 {
-  color: var(--accent);
+  color: #000000;
   margin-bottom: 2rem;
+  background-color: #ffffff;
 }
 
 .no-data {
   text-align: center;
   padding: 3rem;
-  color: var(--text-secondary);
+  color: #666;
   font-size: 1.1rem;
+  background-color: #ffffff;
 }
 
 .injuries-container {
@@ -29,8 +32,8 @@
 }
 
 .injury-item {
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 1rem;
   cursor: pointer;
@@ -38,31 +41,31 @@
 }
 
 .injury-item:hover {
-  border-color: var(--accent);
+  border-color: #F6F3C2;
   transform: translateX(-5px);
 }
 
 .injury-item.active {
-  border-color: var(--accent);
-  background-color: rgba(74, 158, 255, 0.1);
+  border-color: #F6F3C2;
+  background-color: #C2E2FA;
 }
 
 .injury-item h3 {
-  color: var(--accent);
+  color: #000000;
   margin: 0 0 0.5rem 0;
   font-size: 1.1rem;
 }
 
 .injury-preview {
-  color: var(--text-secondary);
+  color: #666;
   font-size: 0.9rem;
   margin: 0;
   line-height: 1.5;
 }
 
 .injury-details {
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 2rem;
   position: sticky;
@@ -72,11 +75,11 @@
 }
 
 .injury-details h3 {
-  color: var(--accent);
+  color: #000000;
   margin: 0 0 1.5rem 0;
   font-size: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 2px solid #e0e0e0;
 }
 
 .detail-section {
@@ -84,13 +87,13 @@
 }
 
 .detail-section h4 {
-  color: var(--accent);
+  color: #000000;
   margin: 0 0 0.75rem 0;
   font-size: 1.1rem;
 }
 
 .detail-section p {
-  color: var(--text-primary);
+  color: #000000;
   line-height: 1.8;
   margin: 0;
 }
@@ -98,7 +101,8 @@
 .loading {
   text-align: center;
   padding: 3rem;
-  color: var(--text-secondary);
+  color: #666;
+  background-color: #ffffff;
 }
 
 @media (max-width: 1024px) {

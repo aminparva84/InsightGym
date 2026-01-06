@@ -51,7 +51,7 @@ class UserProfile(db.Model):
     __tablename__ = 'user_profiles'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
     
     # Basic Information
     age = db.Column(db.Integer)

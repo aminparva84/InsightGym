@@ -1,3 +1,28 @@
+/* Vazir Font Face Declarations */
+@font-face {
+  font-family: 'Vazir';
+  src: url('./assets/fonts/Vazir.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazir';
+  src: url('./assets/fonts/Vazir-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazir';
+  src: url('./assets/fonts/Vazir-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -15,8 +40,66 @@ body {
   direction: rtl;
 }
 
+/* Apply correct font weights for Vazir - use CSS variables for better control */
+html[lang="fa"] {
+  --vazir-font-family: 'Vazir', sans-serif;
+}
+
+/* Default: Use Vazir for all Persian text */
+html[lang="fa"] body,
+html[lang="fa"] * {
+  font-family: var(--vazir-font-family);
+}
+
+/* Light weight (300) - for light text - uses Vazir-Light.ttf */
+html[lang="fa"] *[style*="font-weight: 300"],
+html[lang="fa"] .font-light,
+html[lang="fa"] .hero-subtitle {
+  font-weight: 300 !important;
+  font-family: var(--vazir-font-family);
+}
+
+/* Normal weight (400) - default, uses Vazir.ttf */
+
+/* Bold weight (700+) - for bold, extra-bold, and black weights - uses Vazir-Bold.ttf */
+/* Vazir Bold will be used for all weights 700 and above */
+html[lang="fa"] *[style*="font-weight: bold"],
+html[lang="fa"] *[style*="font-weight: 700"],
+html[lang="fa"] *[style*="font-weight: 800"],
+html[lang="fa"] *[style*="font-weight: 900"],
+html[lang="fa"] .font-bold,
+html[lang="fa"] .app-logo,
+html[lang="fa"] .hero-title,
+html[lang="fa"] h1,
+html[lang="fa"] h2,
+html[lang="fa"] h3,
+html[lang="fa"] h4,
+html[lang="fa"] h5,
+html[lang="fa"] h6,
+html[lang="fa"] strong,
+html[lang="fa"] b {
+  font-weight: bold !important;
+  font-family: var(--vazir-font-family);
+}
+
 body[dir="ltr"] {
   direction: ltr;
+}
+
+/* English text uses default fonts */
+body[lang="en"],
+html[lang="en"] body,
+html[lang="en"] * {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+/* Ensure code elements always use monospace */
+code,
+pre {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }
 
 code {
