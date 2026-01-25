@@ -1,21 +1,96 @@
+/* Dashboard - Matching Landing Page Theme */
+
+/* ============================================
+   CSS Variables - Color Theme System (Shared with Landing Page)
+   ============================================ */
+:root {
+  /* Primary Colors - Deep Slate Blue (Professional, Trustworthy) */
+  --color-primary-900: #0f172a;
+  --color-primary-800: #1e293b;
+  --color-primary-700: #334155;
+  --color-primary-600: #475569;
+  --color-primary-500: #64748b;
+  --color-primary-400: #94a3b8;
+  --color-primary-300: #cbd5e1;
+  --color-primary-200: #e2e8f0;
+  --color-primary-100: #f1f5f9;
+  --color-primary-50: #f8fafc;
+
+  /* Accent Colors - Vibrant Orange (Energy, Action) */
+  --color-accent-600: #ea580c;
+  --color-accent-500: #f97316;
+  --color-accent-400: #fb923c;
+  --color-accent-300: #fdba74;
+  --color-accent-200: #fed7aa;
+  --color-accent-100: #ffedd5;
+  --color-accent-50: #fff7ed;
+
+  /* Secondary Accent - Teal/Cyan (Freshness, Health) */
+  --color-secondary-600: #0891b2;
+  --color-secondary-500: #06b6d4;
+  --color-secondary-400: #22d3ee;
+  --color-secondary-300: #67e8f9;
+  --color-secondary-200: #a5f3fc;
+  --color-secondary-100: #cffafe;
+  --color-secondary-50: #ecfeff;
+
+  /* Neutral Colors */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray-900: #111827;
+  --color-gray-800: #1f2937;
+  --color-gray-700: #374151;
+  --color-gray-600: #4b5563;
+  --color-gray-500: #6b7280;
+  --color-gray-400: #9ca3af;
+  --color-gray-300: #d1d5db;
+  --color-gray-200: #e5e7eb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-50: #f9fafb;
+
+  /* Status Colors */
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--color-primary-700) 0%, var(--color-secondary-500) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-accent-400) 100%);
+  --gradient-banner: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-primary-700) 50%, var(--color-secondary-600) 100%);
+  --gradient-hero: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-secondary-500) 50%, var(--color-accent-500) 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-accent: 0 4px 14px 0 rgba(249, 115, 22, 0.3);
+  --shadow-secondary: 0 4px 14px 0 rgba(6, 182, 212, 0.3);
+}
+
 .dashboard {
   min-height: 100vh;
-  background-color: #ffffff;
-  color: #000000;
+  background-color: var(--color-white);
+  color: var(--color-primary-800);
   padding-top: 80px;
 }
 
-/* Dashboard Topbar - Same as Landing Page but with white background */
+/* Dashboard Topbar - Matching Landing Page Theme */
 .dashboard-topbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   padding: 1rem 2rem;
   z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid #e0e0e0;
+  box-shadow: var(--shadow-md);
+  border-bottom: 1px solid rgba(30, 41, 59, 0.1);
+  transition: all 0.3s ease;
 }
 
 .topbar-container {
@@ -29,14 +104,21 @@
 .topbar-title {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #000000;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
   cursor: pointer;
-  transition: opacity 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .topbar-title:hover {
-  opacity: 0.8;
+  transform: scale(1.05);
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .topbar-actions {
@@ -46,23 +128,25 @@
   direction: ltr; /* Always LTR for topbar */
 }
 
-/* Language Toggle Button (On/Off Style) - Same as Landing Page */
+/* Language Toggle Button - Matching Landing Page */
 .lang-toggle {
   position: relative;
   width: 80px;
   height: 36px;
-  background: #e0e0e0;
-  border: none;
+  background: rgba(30, 41, 59, 0.08);
+  border: 1px solid rgba(30, 41, 59, 0.15);
   border-radius: 18px;
   cursor: pointer;
   transition: all 0.3s ease;
   padding: 0;
   overflow: hidden;
-  direction: ltr; /* Always LTR for toggle */
+  direction: ltr;
+  backdrop-filter: blur(10px);
 }
 
 .lang-toggle:hover {
-  background: #d0d0d0;
+  background: rgba(30, 41, 59, 0.12);
+  border-color: rgba(30, 41, 59, 0.25);
 }
 
 .lang-toggle-slider {
@@ -71,17 +155,17 @@
   left: 2px;
   width: 32px;
   height: 32px;
-  background: #F6F3C2;
+  background: var(--gradient-primary);
   border-radius: 50%;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-secondary);
   font-size: 0.75rem;
   font-weight: 700;
-  color: #000000;
+  color: var(--color-white);
 }
 
 /* When Persian is active, slider is on the right with "فا" */
@@ -109,7 +193,7 @@
   transform: translateY(-50%);
   font-size: 0.7rem;
   font-weight: 600;
-  color: #666;
+  color: var(--color-primary-600);
   transition: color 0.3s ease;
   z-index: 1;
   pointer-events: none;
@@ -128,48 +212,51 @@
 }
 
 .lang-toggle.fa-active .lang-label-en {
-  color: #666;
-  left: 10px; /* Show "EN" on the left side */
+  color: var(--color-primary-600);
+  left: 10px;
 }
 
 .lang-toggle.en-active .lang-label-en {
-  display: none; /* Hide "EN" label when it's in the circle */
+  display: none;
 }
 
 .lang-toggle.en-active .lang-label-fa {
-  color: #666;
-  right: 10px; /* Show "فا" on the right side */
+  color: var(--color-primary-600);
+  right: 10px;
 }
 
 .username {
-  color: #000000;
+  color: var(--color-primary-800);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .topbar-logout-btn {
-  padding: 0.5rem 1rem;
-  background-color: #F6F3C2;
-  border: none;
-  border-radius: 6px;
-  color: #000000;
-  font-size: 0.9rem;
+  padding: 0.6rem 1.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 
 .topbar-logout-btn:hover {
-  background-color: #e8e4a8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(246, 243, 194, 0.3);
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .dashboard-content {
   max-width: 1600px;
   margin: 0 auto;
   padding: 2rem;
-  background-color: #ffffff;
+  background-color: var(--color-white);
 }
 
 .dashboard-layout {
@@ -196,58 +283,81 @@
 
 .tabs-container {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   margin-bottom: 2rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-primary-200);
   padding-bottom: 1rem;
-  flex-wrap: wrap;
-  background-color: #F6F3C2;
+  flex-wrap: nowrap;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(249, 115, 22, 0.08) 100%);
   padding: 1rem;
   border-radius: 12px 12px 0 0;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--color-secondary-500);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tabs-container::-webkit-scrollbar-track {
+  background: var(--color-primary-100);
+  border-radius: 3px;
+}
+
+.tabs-container::-webkit-scrollbar-thumb {
+  background: var(--color-secondary-500);
+  border-radius: 3px;
 }
 
 .tab-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
   background: none;
   border: none;
-  color: #000000;
+  color: var(--color-primary-800);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.85rem;
   border-bottom: 2px solid transparent;
   transition: all 0.3s;
   position: relative;
   top: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-btn:hover {
-  color: #000000;
+  color: var(--color-secondary-600);
+  background: rgba(6, 182, 212, 0.05);
+  border-radius: 6px;
 }
 
 .tab-btn.active {
-  color: #000000;
-  border-bottom-color: #F6F3C2;
+  color: var(--color-secondary-600);
+  border-bottom-color: var(--color-secondary-500);
   font-weight: 600;
+  background: rgba(6, 182, 212, 0.1);
+  border-radius: 6px 6px 0 0;
 }
 
 .tab-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .tab-content {
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-primary-200);
   border-radius: 12px;
   padding: 2rem;
   min-height: 500px;
-  color: #000000;
+  color: var(--color-primary-800);
+  box-shadow: var(--shadow-md);
 }
 
 .tab-content * {
-  color: #000000;
+  color: var(--color-primary-800);
 }
 
 .tab-content p,
@@ -257,7 +367,7 @@
 .tab-content th,
 .tab-content li,
 .tab-content label {
-  color: #000000 !important;
+  color: var(--color-primary-800) !important;
 }
 
 @media (max-width: 1200px) {

@@ -178,7 +178,7 @@ const TrainingWithAgent = () => {
   };
 
   return (
-    <div className="training-with-agent" dir={i18n.language === 'fa' ? 'rtl' : 'ltr'}>
+    <div className="training-with-agent" dir="ltr">
       <div className="training-with-agent-header">
         <h3>{i18n.language === 'fa' ? 'تمرین با مربی' : 'Training with Agent'}</h3>
         <button 

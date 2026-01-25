@@ -29,6 +29,11 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: auto;
+  overflow-x: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -37,7 +42,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #0a0a0a;
   color: #e0e0e0;
-  direction: rtl;
+  direction: ltr; /* Always LTR for consistent alignment */
+  overflow-x: hidden;
 }
 
 /* Apply correct font weights for Vazir - use CSS variables for better control */
@@ -82,8 +88,9 @@ html[lang="fa"] b {
   font-family: var(--vazir-font-family);
 }
 
-body[dir="ltr"] {
-  direction: ltr;
+/* Always use LTR direction for consistent alignment */
+html, body {
+  direction: ltr !important;
 }
 
 /* English text uses default fonts */

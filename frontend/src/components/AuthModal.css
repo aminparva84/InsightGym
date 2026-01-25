@@ -1,12 +1,12 @@
-/* Auth Modal Styles */
+/* Auth Modal Styles - Matching New Theme */
 .auth-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(5px);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -24,22 +24,22 @@
 }
 
 .auth-modal {
-  background: #ffffff;
-  border: 2px solid #000000;
+  background: var(--color-white);
+  border: 1px solid var(--color-primary-200);
   border-radius: 20px;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-2xl);
   animation: slideUp 0.3s ease;
   display: flex;
   flex-direction: column;
-  color: #000000;
+  color: var(--color-primary-800);
 }
 
-/* Ensure all text in modal is black by default */
+/* Ensure all text in modal uses theme colors */
 .auth-modal,
 .auth-modal p,
 .auth-modal span,
@@ -54,7 +54,7 @@
 .auth-modal input,
 .auth-modal select,
 .auth-modal textarea {
-  color: #000000;
+  color: var(--color-primary-800);
 }
 
 @keyframes slideUp {
@@ -72,9 +72,9 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: #f0f0f0;
-  border: 2px solid #000000;
-  color: #000000;
+  background: var(--color-primary-100);
+  border: 1px solid var(--color-primary-200);
+  color: var(--color-primary-800);
   font-size: 2rem;
   width: 40px;
   height: 40px;
@@ -90,31 +90,36 @@
 }
 
 .auth-modal-close:hover {
-  background: #e0e0e0;
-  color: #000000;
-  border-color: #000000;
+  background: var(--color-error);
+  color: var(--color-white);
+  border-color: var(--color-error);
   transform: rotate(90deg);
 }
 
 .auth-modal-header {
   padding: 1.5rem 2rem 0.75rem;
   text-align: center;
-  border-bottom: 2px solid #000000;
+  border-bottom: 2px solid var(--color-secondary-500);
   flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(249, 115, 22, 0.05) 100%);
 }
 
 .auth-modal-title {
   font-size: 1.75rem;
-  font-weight: bold;
-  color: #000000;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
 }
 
 .auth-modal-tabs {
   display: flex;
-  border-bottom: 2px solid #000000;
+  border-bottom: 2px solid var(--color-secondary-500);
   padding: 0 2rem;
   flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.03) 0%, rgba(249, 115, 22, 0.03) 100%);
 }
 
 .auth-modal-tab {
@@ -123,7 +128,7 @@
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
-  color: #000000;
+  color: var(--color-primary-600);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -132,14 +137,15 @@
 }
 
 .auth-modal-tab:hover {
-  color: #000000;
-  background: #f8f9fa;
+  color: var(--color-secondary-600);
+  background: rgba(6, 182, 212, 0.1);
 }
 
 .auth-modal-tab.active {
-  color: #000000;
-  border-bottom-color: #000000;
-  background: #f8f9fa;
+  color: var(--color-secondary-600);
+  border-bottom-color: var(--color-secondary-500);
+  background: rgba(6, 182, 212, 0.15);
+  font-weight: 600;
 }
 
 .auth-modal-content {
@@ -150,11 +156,11 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #ffffff;
-  color: #000000;
+  background: var(--color-white);
+  color: var(--color-primary-800);
 }
 
-/* Ensure all text elements are black */
+/* Ensure all text elements use theme colors */
 .auth-modal-content *,
 .auth-modal-content p,
 .auth-modal-content span,
@@ -165,7 +171,7 @@
 .auth-modal-content h4,
 .auth-modal-content h5,
 .auth-modal-content h6 {
-  color: #000000;
+  color: var(--color-primary-800);
 }
 
 .auth-modal-form {
@@ -181,17 +187,17 @@
 }
 
 .form-group label {
-  color: #000000;
+  color: var(--color-primary-800);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .form-group input {
   padding: 0.6rem 0.9rem;
-  background: #ffffff;
-  border: 2px solid #000000;
+  background: var(--color-white);
+  border: 1px solid var(--color-primary-200);
   border-radius: 8px;
-  color: #000000;
+  color: var(--color-primary-800);
   font-size: 0.95rem;
   transition: all 0.3s ease;
   font-family: inherit;
@@ -200,53 +206,54 @@
 }
 
 .form-group input::placeholder {
-  color: #000000;
-  opacity: 0.6;
+  color: var(--color-primary-500);
+  opacity: 0.7;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #000000;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-secondary-500);
+  background: var(--color-white);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
 }
 
 .submit-btn {
   padding: 0.75rem 2rem;
-  background: #ffffff;
-  border: 2px solid #000000;
+  background: var(--gradient-accent);
+  border: none;
   border-radius: 8px;
-  color: #000000;
+  color: var(--color-white);
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;
+  box-shadow: var(--shadow-accent);
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: #f0f0f0;
-  border-color: #000000;
+  background: linear-gradient(135deg, var(--color-accent-600) 0%, var(--color-accent-500) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
 }
 
 .submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: #ccc;
-  color: #000000;
-  border-color: #000000;
+  background: var(--color-primary-300);
+  color: var(--color-primary-500);
+  box-shadow: none;
 }
 
 .error-message {
   padding: 0.75rem 1rem;
-  background: #ffebee;
-  border: 2px solid #000000;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error);
   border-radius: 8px;
-  color: #000000;
+  color: var(--color-error);
   font-size: 0.9rem;
   text-align: center;
+  font-weight: 500;
 }
 
 .auth-modal-signup {
@@ -254,11 +261,11 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: #ffffff !important;
-  color: #000000 !important;
+  background-color: var(--color-white) !important;
+  color: var(--color-primary-800) !important;
 }
 
-/* Ensure all text in signup area is black */
+/* Ensure all text in signup area uses theme colors */
 .auth-modal-signup,
 .auth-modal-signup p,
 .auth-modal-signup span,
@@ -274,7 +281,7 @@
 .auth-modal-signup select,
 .auth-modal-signup textarea,
 .auth-modal-signup button:not(.btn-primary) {
-  color: #000000 !important;
+  color: var(--color-primary-800) !important;
 }
 
 /* Ensure select dropdowns and lists are scrollable */
@@ -303,21 +310,21 @@
 .auth-modal-signup .checkbox-group::-webkit-scrollbar-track,
 .auth-modal-signup select::-webkit-scrollbar-track,
 .auth-modal-content::-webkit-scrollbar-track {
-  background: #ffffff;
+  background: var(--color-primary-50);
   border-radius: 3px;
 }
 
 .auth-modal-signup .checkbox-group::-webkit-scrollbar-thumb,
 .auth-modal-signup select::-webkit-scrollbar-thumb,
 .auth-modal-content::-webkit-scrollbar-thumb {
-  background: #e0e0e0;
+  background: var(--color-secondary-500);
   border-radius: 3px;
 }
 
 .auth-modal-signup .checkbox-group::-webkit-scrollbar-thumb:hover,
 .auth-modal-signup select::-webkit-scrollbar-thumb:hover,
 .auth-modal-content::-webkit-scrollbar-thumb:hover {
-  background: #d0d0d0;
+  background: var(--color-secondary-600);
 }
 
 /* Firefox scrollbar */
@@ -325,7 +332,7 @@
 .auth-modal-signup select,
 .auth-modal-content {
   scrollbar-width: thin;
-  scrollbar-color: #e0e0e0 #ffffff;
+  scrollbar-color: var(--color-secondary-500) var(--color-primary-50);
 }
 
 /* Responsive */

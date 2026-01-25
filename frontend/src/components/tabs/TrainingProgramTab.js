@@ -86,7 +86,7 @@ const TrainingProgramTab = () => {
   }
 
   return (
-    <div className="training-program-tab" dir={i18n.language === 'fa' ? 'rtl' : 'ltr'}>
+    <div className="training-program-tab" dir="ltr">
       <div className="training-program-header">
         <h2>{i18n.language === 'fa' ? 'برنامه تمرینی' : 'Training Program'}</h2>
       </div>
@@ -133,7 +133,7 @@ const TrainingProgramTab = () => {
                           <div 
                             key={sessionIdx} 
                             className={`session-card ${isExpanded ? 'expanded' : ''}`}
-                            dir={i18n.language === 'fa' ? 'rtl' : 'ltr'}
+                            dir="ltr"
                           >
                             <div 
                               className="session-header" 

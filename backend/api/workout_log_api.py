@@ -128,6 +128,17 @@ def log_progress():
         user_id = get_jwt_identity()
         data = request.get_json()
         
+        # Update user profile weight if provided
+        if data.get('weight_kg'):
+            try:
+                from models import UserProfile
+                profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
+                if profile:
+                    profile.weight = data.get('weight_kg')
+                    db.session.flush()  # Save but don't commit yet
+            except Exception as e:
+                print(f"Error updating user profile weight: {e}")
+        
         progress = ProgressEntry(
             user_id=user_id,
             weight_kg=data.get('weight_kg'),
@@ -154,6 +165,7 @@ def log_progress():
         }), 201
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @workout_log_bp.route('/progress', methods=['GET'])

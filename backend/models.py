@@ -48,6 +48,15 @@ class UserProfile(db.Model):
     weight = db.Column(db.Float)  # in kg
     height = db.Column(db.Float)  # in cm
     gender = db.Column(db.String(20))  # 'male', 'female', 'other'
+    account_type = db.Column(db.String(20))  # 'assistant', 'member', 'admin'
+    
+    # Body Measurements (in cm)
+    chest_circumference = db.Column(db.Float)  # in cm
+    waist_circumference = db.Column(db.Float)  # in cm
+    abdomen_circumference = db.Column(db.Float)  # in cm
+    arm_circumference = db.Column(db.Float)  # in cm
+    hip_circumference = db.Column(db.Float)  # in cm
+    thigh_circumference = db.Column(db.Float)  # in cm
     
     # Training Information
     training_level = db.Column(db.String(20))  # 'beginner', 'intermediate', 'advanced'
@@ -70,6 +79,14 @@ class UserProfile(db.Model):
     preferred_workout_time = db.Column(db.String(20))  # 'morning', 'afternoon', 'evening'
     workout_days_per_week = db.Column(db.Integer)  # 1-7
     preferred_intensity = db.Column(db.String(20))  # 'light', 'medium', 'heavy'
+    
+    # Trainer Professional Details (for assistants/trainers)
+    certifications = db.Column(db.Text)  # Certifications like NASM-CPT, ACE-CPT, etc.
+    qualifications = db.Column(db.Text)  # Educational qualifications
+    years_of_experience = db.Column(db.Integer)  # Years of training experience
+    specialization = db.Column(db.String(200))  # Specialization areas
+    education = db.Column(db.String(200))  # Education background
+    bio = db.Column(db.Text)  # Trainer bio/description
     
     # Profile Image
     profile_image = db.Column(db.String(255))  # Filename of profile image
@@ -371,4 +388,14 @@ class TrainingProgram(db.Model):
             'category': self.category,
             'sessions': self.get_sessions()
         }
+
+class Configuration(db.Model):
+    """Configuration for training levels and injuries"""
+    __tablename__ = 'configuration'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    training_levels = db.Column(db.Text)  # JSON string
+    injuries = db.Column(db.Text)  # JSON string
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

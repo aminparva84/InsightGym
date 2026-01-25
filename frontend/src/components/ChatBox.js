@@ -74,7 +74,7 @@ const ChatBox = () => {
   };
 
   return (
-    <div className="chatbox-container" dir={i18n.language === 'fa' ? 'rtl' : 'ltr'}>
+    <div className="chatbox-container" dir="ltr">
       <div className="chatbox-header">
         <h3>{i18n.language === 'fa' ? 'چت با AI' : 'Chat with AI'}</h3>
       </div>

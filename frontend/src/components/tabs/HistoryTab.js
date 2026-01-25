@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import ProgressTrend from './ProgressTrend';
 import './HistoryTab.css';
 
-const HistoryTab = () => {
+const HistoryTab = ({ showOnlyMessages = false }) => {
   const { t, i18n } = useTranslation();
   const { user, loading: authLoading } = useAuth();
   const [exercises, setExercises] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
-  const [activeView, setActiveView] = useState('exercises');
+  const [activeView, setActiveView] = useState(showOnlyMessages ? 'chat' : 'exercises');
   const [loading, setLoading] = useState(true);
 
   // Get auth token
@@ -61,30 +62,43 @@ const HistoryTab = () => {
 
   return (
     <div className="history-tab">
-      <div className="history-tabs">
-        <button
-          type="button"
-          className={`history-tab-btn ${activeView === 'exercises' ? 'active' : ''}`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setActiveView('exercises');
-          }}
-        >
-          {t('exerciseHistory')}
-        </button>
-        <button
-          type="button"
-          className={`history-tab-btn ${activeView === 'chat' ? 'active' : ''}`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setActiveView('chat');
-          }}
-        >
-          {t('chatHistory')}
-        </button>
-      </div>
+      {!showOnlyMessages && (
+        <div className="history-tabs">
+          <button
+            type="button"
+            className={`history-tab-btn ${activeView === 'exercises' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setActiveView('exercises');
+            }}
+          >
+            {t('exerciseHistory')}
+          </button>
+          <button
+            type="button"
+            className={`history-tab-btn ${activeView === 'chat' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setActiveView('chat');
+            }}
+          >
+            {t('chatHistory')}
+          </button>
+          <button
+            type="button"
+            className={`history-tab-btn ${activeView === 'progress' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setActiveView('progress');
+            }}
+          >
+            {i18n.language === 'fa' ? 'روند تغییرات' : 'Progress Trend'}
+          </button>
+        </div>
+      )}
 
       {activeView === 'exercises' && (
         <div className="history-content">
@@ -145,6 +159,10 @@ const HistoryTab = () => {
             </div>
           )}
         </div>
+      )}
+
+      {activeView === 'progress' && (
+        <ProgressTrend />
       )}
     </div>
   );

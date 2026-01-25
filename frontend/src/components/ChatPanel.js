@@ -266,7 +266,7 @@ const ChatPanel = ({ onClose }) => {
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="welcome-message">
-            <div className="action-suggestions" dir={i18n.language === 'fa' ? 'rtl' : 'ltr'}>
+            <div className="action-suggestions" dir="ltr">
               <h4>{i18n.language === 'fa' ? 'می‌توانم در موارد زیر کمک کنم:' : 'I can help you with:'}</h4>
               <div className="action-buttons">
                 <button 

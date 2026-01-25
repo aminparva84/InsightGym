@@ -127,6 +127,7 @@ const ProfileTab = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [userRole, setUserRole] = useState(null);
 
   // Get auth token
   const getAuthToken = () => {
@@ -196,6 +197,21 @@ const ProfileTab = () => {
       } 
     };
   };
+
+  useEffect(() => {
+    // Check user role
+    const checkRole = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/admin/check-admin');
+        setUserRole(response.data.role || 'member');
+      } catch (error) {
+        setUserRole('member');
+      }
+    };
+    if (user) {
+      checkRole();
+    }
+  }, [user]);
 
   useEffect(() => {
     // Wait for auth to finish loading before loading profile
@@ -309,7 +325,14 @@ const ProfileTab = () => {
         weight: (rawData.weight !== undefined && rawData.weight !== null) ? rawData.weight : null,
         height: (rawData.height !== undefined && rawData.height !== null) ? rawData.height : null,
         gender: rawData.gender || '',
+        account_type: rawData.account_type || '',
         training_level: rawData.training_level || '',
+        chest_circumference: (rawData.chest_circumference !== undefined && rawData.chest_circumference !== null) ? rawData.chest_circumference : null,
+        waist_circumference: (rawData.waist_circumference !== undefined && rawData.waist_circumference !== null) ? rawData.waist_circumference : null,
+        abdomen_circumference: (rawData.abdomen_circumference !== undefined && rawData.abdomen_circumference !== null) ? rawData.abdomen_circumference : null,
+        arm_circumference: (rawData.arm_circumference !== undefined && rawData.arm_circumference !== null) ? rawData.arm_circumference : null,
+        hip_circumference: (rawData.hip_circumference !== undefined && rawData.hip_circumference !== null) ? rawData.hip_circumference : null,
+        thigh_circumference: (rawData.thigh_circumference !== undefined && rawData.thigh_circumference !== null) ? rawData.thigh_circumference : null,
         exercise_history_years: (rawData.exercise_history_years !== undefined && rawData.exercise_history_years !== null) ? rawData.exercise_history_years : null,
         exercise_history_description: rawData.exercise_history_description || '',
         fitness_goals: (() => {
@@ -401,6 +424,7 @@ const ProfileTab = () => {
           weight: null,
           height: null,
           gender: '',
+          account_type: '',
           training_level: '',
           exercise_history_years: null,
           exercise_history_description: '',
@@ -409,6 +433,12 @@ const ProfileTab = () => {
           injury_details: '',
           medical_conditions: [],
           medical_condition_details: '',
+          chest_circumference: null,
+          waist_circumference: null,
+          abdomen_circumference: null,
+          arm_circumference: null,
+          hip_circumference: null,
+          thigh_circumference: null,
           equipment_access: [],
           gym_access: false,
           home_equipment: [],
@@ -442,6 +472,7 @@ const ProfileTab = () => {
           weight: null,
           height: null,
           gender: '',
+          account_type: '',
           training_level: '',
           exercise_history_years: null,
           exercise_history_description: '',
@@ -450,6 +481,12 @@ const ProfileTab = () => {
           injury_details: '',
           medical_conditions: [],
           medical_condition_details: '',
+          chest_circumference: null,
+          waist_circumference: null,
+          abdomen_circumference: null,
+          arm_circumference: null,
+          hip_circumference: null,
+          thigh_circumference: null,
           equipment_access: [],
           gym_access: false,
           home_equipment: [],
@@ -466,6 +503,7 @@ const ProfileTab = () => {
           weight: null,
           height: null,
           gender: '',
+          account_type: '',
           training_level: '',
           exercise_history_years: null,
           exercise_history_description: '',
@@ -474,6 +512,12 @@ const ProfileTab = () => {
           injury_details: '',
           medical_conditions: [],
           medical_condition_details: '',
+          chest_circumference: null,
+          waist_circumference: null,
+          abdomen_circumference: null,
+          arm_circumference: null,
+          hip_circumference: null,
+          thigh_circumference: null,
           equipment_access: [],
           gym_access: false,
           home_equipment: [],
@@ -512,6 +556,7 @@ const ProfileTab = () => {
         weight: null,
         height: null,
         gender: '',
+        account_type: '',
         training_level: '',
         exercise_history_years: null,
         exercise_history_description: '',
@@ -520,6 +565,12 @@ const ProfileTab = () => {
         injury_details: '',
         medical_conditions: [],
         medical_condition_details: '',
+        chest_circumference: null,
+        waist_circumference: null,
+        abdomen_circumference: null,
+        arm_circumference: null,
+        hip_circumference: null,
+        thigh_circumference: null,
         equipment_access: [],
         gym_access: false,
         home_equipment: [],
@@ -541,6 +592,7 @@ const ProfileTab = () => {
         weight: null,
         height: null,
         gender: '',
+        account_type: '',
         training_level: '',
         exercise_history_years: null,
         exercise_history_description: '',
@@ -549,6 +601,12 @@ const ProfileTab = () => {
         injury_details: '',
         medical_conditions: [],
         medical_condition_details: '',
+        chest_circumference: null,
+        waist_circumference: null,
+        abdomen_circumference: null,
+        arm_circumference: null,
+        hip_circumference: null,
+        thigh_circumference: null,
         equipment_access: [],
         gym_access: false,
         home_equipment: [],
@@ -631,6 +689,24 @@ const ProfileTab = () => {
       setEditing(false);
       setProfileImage(null);
       await loadProfile();
+      
+      // If assistant, check if profile is now complete and reload page to show assistant dashboard
+      if (userRole === 'assistant') {
+        try {
+          const profileCheck = await axios.get('http://localhost:5000/api/admin/check-profile-complete', getAxiosConfig());
+          if (profileCheck.data.profile_complete) {
+            alert(i18n.language === 'fa' 
+              ? 'پروفایل با موفقیت به‌روزرسانی شد. در حال بارگذاری مجدد...' 
+              : 'Profile updated successfully. Reloading...');
+            // Reload to show assistant dashboard
+            window.location.reload();
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking profile completion:', error);
+        }
+      }
+      
       alert(i18n.language === 'fa' ? 'پروفایل با موفقیت به‌روزرسانی شد' : 'Profile updated successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -670,7 +746,7 @@ const ProfileTab = () => {
   ];
 
   return (
-    <div className="profile-tab" dir={i18n.language === 'fa' ? 'rtl' : 'ltr'}>
+    <div className="profile-tab" dir="ltr">
       <div className="profile-header">
         <h2>{i18n.language === 'fa' ? 'پروفایل کاربری' : 'User Profile'}</h2>
         {!editing && (
@@ -765,6 +841,21 @@ const ProfileTab = () => {
               </select>
             </div>
             <div className="form-group">
+              <label>{i18n.language === 'fa' ? 'نوع حساب کاربری' : 'Account Type'}</label>
+              <select
+                name="account_type"
+                value={profile?.account_type || ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+              >
+                {editing && <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>}
+                {!editing && !profile?.account_type && <option value=""></option>}
+                <option value="assistant">{i18n.language === 'fa' ? 'دستیار' : 'Assistant'}</option>
+                <option value="admin">{i18n.language === 'fa' ? 'مدیر' : 'Admin'}</option>
+                <option value="member">{i18n.language === 'fa' ? 'عضو' : 'Member'}</option>
+              </select>
+            </div>
+            <div className="form-group">
               <label>{i18n.language === 'fa' ? 'وزن (کیلوگرم)' : 'Weight (kg)'}</label>
               <input
                 type="number"
@@ -799,6 +890,108 @@ const ProfileTab = () => {
               language={i18n.language}
             />
           )}
+        </div>
+
+        {/* Body Measurements */}
+        <div className="profile-section">
+          <h3>{i18n.language === 'fa' ? 'اندازه‌گیری بدن' : 'Body Measurements'}</h3>
+          <p className="section-description" style={{ color: '#000000', marginBottom: '1rem', fontSize: '0.9rem' }}>
+            {i18n.language === 'fa' 
+              ? 'اندازه‌های بدن بر حسب سانتی‌متر'
+              : 'Body measurements in centimeters'}
+          </p>
+          <div className="form-grid">
+            <div className="form-group">
+              <label>{i18n.language === 'fa' ? 'دور سینه (سانتی‌متر)' : 'Chest Circumference (cm)'}</label>
+              <p className="measurement-description" style={{ color: '#000000', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: '0.5rem', opacity: 0.8, fontStyle: 'italic' }}>
+                {i18n.language === 'fa' ? 'دور برجسته ترین قسمت سینه' : 'Circumference of the most prominent part of the chest'}
+              </p>
+              <input
+                type="number"
+                name="chest_circumference"
+                value={profile?.chest_circumference ?? ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                min="0"
+                step="0.1"
+              />
+            </div>
+            <div className="form-group">
+              <label>{i18n.language === 'fa' ? 'دور کمر (سانتی‌متر)' : 'Waist Circumference (cm)'}</label>
+              <p className="measurement-description" style={{ color: '#000000', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: '0.5rem', opacity: 0.8, fontStyle: 'italic' }}>
+                {i18n.language === 'fa' ? 'دور باریک ترین قسمت کمر' : 'Circumference of the narrowest part of the waist'}
+              </p>
+              <input
+                type="number"
+                name="waist_circumference"
+                value={profile?.waist_circumference ?? ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                min="0"
+                step="0.1"
+              />
+            </div>
+            <div className="form-group">
+              <label>{i18n.language === 'fa' ? 'دور شکم (سانتی‌متر)' : 'Abdomen Circumference (cm)'}</label>
+              <p className="measurement-description" style={{ color: '#000000', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: '0.5rem', opacity: 0.8, fontStyle: 'italic' }}>
+                {i18n.language === 'fa' ? 'دور برجسته ترین قسمت شکم' : 'Circumference of the most prominent part of the abdomen'}
+              </p>
+              <input
+                type="number"
+                name="abdomen_circumference"
+                value={profile?.abdomen_circumference ?? ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                min="0"
+                step="0.1"
+              />
+            </div>
+            <div className="form-group">
+              <label>{i18n.language === 'fa' ? 'دور بازو (سانتی‌متر)' : 'Arm Circumference (cm)'}</label>
+              <p className="measurement-description" style={{ color: '#000000', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: '0.5rem', opacity: 0.8, fontStyle: 'italic' }}>
+                {i18n.language === 'fa' ? 'دور برجسته ترین قسمت بازو' : 'Circumference of the most prominent part of the arm'}
+              </p>
+              <input
+                type="number"
+                name="arm_circumference"
+                value={profile?.arm_circumference ?? ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                min="0"
+                step="0.1"
+              />
+            </div>
+            <div className="form-group">
+              <label>{i18n.language === 'fa' ? 'دور باسن (سانتی‌متر)' : 'Hip Circumference (cm)'}</label>
+              <p className="measurement-description" style={{ color: '#000000', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: '0.5rem', opacity: 0.8, fontStyle: 'italic' }}>
+                {i18n.language === 'fa' ? 'دور برجسته ترین قسمت باسن' : 'Circumference of the most prominent part of the hip'}
+              </p>
+              <input
+                type="number"
+                name="hip_circumference"
+                value={profile?.hip_circumference ?? ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                min="0"
+                step="0.1"
+              />
+            </div>
+            <div className="form-group">
+              <label>{i18n.language === 'fa' ? 'دور ران (سانتی‌متر)' : 'Thigh Circumference (cm)'}</label>
+              <p className="measurement-description" style={{ color: '#000000', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: '0.5rem', opacity: 0.8, fontStyle: 'italic' }}>
+                {i18n.language === 'fa' ? 'دور برجسته ترین قسمت ران' : 'Circumference of the most prominent part of the thigh'}
+              </p>
+              <input
+                type="number"
+                name="thigh_circumference"
+                value={profile?.thigh_circumference ?? ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                min="0"
+                step="0.1"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Training Information */}

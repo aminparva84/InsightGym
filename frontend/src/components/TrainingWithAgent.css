@@ -1,13 +1,14 @@
 .training-with-agent {
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-primary-200);
   border-radius: 12px;
   padding: 1.5rem;
   height: calc(100vh - 710px);
   min-height: 200px;
   overflow: hidden;
+  box-shadow: var(--shadow-md);
 }
 
 .training-with-agent-header {
@@ -16,30 +17,33 @@
   align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-primary-200);
 }
 
 .training-with-agent-header h3 {
   margin: 0;
-  color: #000000;
+  color: var(--color-primary-800);
   font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .new-meeting-btn {
   padding: 0.5rem 1rem;
-  background-color: #F6F3C2;
+  background: var(--gradient-accent);
   border: none;
   border-radius: 8px;
-  color: #000000;
+  color: var(--color-white);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: var(--shadow-accent);
 }
 
 .new-meeting-btn:hover {
-  background-color: #e8e4a8;
+  background: linear-gradient(135deg, var(--color-accent-600) 0%, var(--color-accent-500) 100%);
   transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
 }
 
 /* Meeting Modal Styles */
@@ -58,11 +62,11 @@
 }
 
 .meeting-modal-content {
-  background-color: #ffffff;
+  background-color: var(--color-white);
   border-radius: 12px;
   width: 100%;
   max-width: 600px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -74,22 +78,23 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  background-color: #F6F3C2;
-  border-bottom: 1px solid #e0e0e0;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%);
+  border-bottom: 1px solid var(--color-secondary-500);
   border-radius: 12px 12px 0 0;
 }
 
 .meeting-modal-header h3 {
   margin: 0;
-  color: #000000;
+  color: var(--color-primary-800);
   font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .modal-close-btn {
   background: none;
   border: none;
   font-size: 2rem;
-  color: #000000;
+  color: var(--color-primary-800);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -103,7 +108,8 @@
 }
 
 .modal-close-btn:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(30, 41, 59, 0.1);
+  color: var(--color-error);
 }
 
 .meeting-form {
@@ -130,7 +136,7 @@
 .meeting-form label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #000000;
+  color: var(--color-primary-800);
   font-weight: 500;
   font-size: 0.9rem;
 }
@@ -139,19 +145,19 @@
 .meeting-form textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-primary-200);
   border-radius: 8px;
   font-size: 1rem;
-  background-color: #ffffff;
-  color: #000000;
+  background-color: var(--color-white);
+  color: var(--color-primary-800);
   box-sizing: border-box;
 }
 
 .meeting-form input:focus,
 .meeting-form textarea:focus {
   outline: none;
-  border-color: #F6F3C2;
-  box-shadow: 0 0 0 2px rgba(246, 243, 194, 0.2);
+  border-color: var(--color-secondary-500);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
 }
 
 .form-actions {
@@ -172,22 +178,26 @@
 }
 
 .submit-btn {
-  background-color: #F6F3C2;
-  color: #000000;
+  background: var(--gradient-accent);
+  color: var(--color-white);
+  box-shadow: var(--shadow-accent);
 }
 
 .submit-btn:hover {
-  background-color: #e8e4a8;
+  background: linear-gradient(135deg, var(--color-accent-600) 0%, var(--color-accent-500) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
 }
 
 .cancel-btn {
-  background-color: #ffffff;
-  color: #000000;
-  border: 1px solid #e0e0e0;
+  background-color: var(--color-white);
+  color: var(--color-primary-800);
+  border: 1px solid var(--color-primary-200);
 }
 
 .cancel-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-300);
 }
 
 .meetings-list {
@@ -203,19 +213,20 @@
 .no-meetings {
   text-align: center;
   padding: 2rem;
-  color: #666;
+  color: var(--color-primary-600);
 }
 
 .meeting-card {
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-primary-200);
   border-radius: 8px;
   padding: 1rem;
   transition: all 0.3s ease;
 }
 
 .meeting-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-secondary-500);
 }
 
 .meeting-header {
@@ -233,12 +244,12 @@
 
 .meeting-date {
   font-weight: 600;
-  color: #000000;
+  color: var(--color-primary-800);
   font-size: 1rem;
 }
 
 .meeting-time {
-  color: #666;
+  color: var(--color-primary-600);
   font-size: 0.9rem;
 }
 
@@ -270,16 +281,16 @@
 }
 
 .meeting-duration {
-  color: #666;
+  color: var(--color-primary-600);
   font-size: 0.9rem;
   margin: 0.5rem 0;
 }
 
 .meeting-notes {
-  color: #000000;
+  color: var(--color-primary-800);
   margin: 0.5rem 0;
   padding: 0.5rem;
-  background-color: #f8f9fa;
+  background-color: var(--color-primary-50);
   border-radius: 4px;
   font-size: 0.9rem;
 }
@@ -323,12 +334,15 @@
 }
 
 .edit-btn {
-  background-color: #F6F3C2;
-  color: #000000;
+  background: var(--gradient-accent);
+  color: var(--color-white);
+  box-shadow: var(--shadow-accent);
 }
 
 .edit-btn:hover {
-  background-color: #e8e4a8;
+  background: linear-gradient(135deg, var(--color-accent-600) 0%, var(--color-accent-500) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
 }
 
 .delete-btn {

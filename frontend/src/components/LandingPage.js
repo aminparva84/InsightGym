@@ -15,20 +15,62 @@ const LandingPage = () => {
   const [showTrainingProgramsModal, setShowTrainingProgramsModal] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
+  // Function to aggressively prevent scroll
+  const preventScroll = () => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+
   useEffect(() => {
+    // Only reset scroll position on mount (not blocking user scroll)
+    preventScroll();
+    
+    // Reset scroll after a few delays to catch any automatic scrolls on mount
+    const timeouts = [
+      setTimeout(preventScroll, 0),
+      setTimeout(preventScroll, 10),
+      setTimeout(preventScroll, 50),
+      setTimeout(preventScroll, 100)
+    ];
+    
+    // Use requestAnimationFrame to ensure it happens after render
+    requestAnimationFrame(() => {
+      preventScroll();
+      requestAnimationFrame(preventScroll);
+    });
+    
+    // Track scroll for header styling (don't prevent user scrolling)
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
 
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
   }, []);
+
+  // Reset scroll when user state changes (e.g., after login) - only reset, don't block
+  useEffect(() => {
+    // Only reset scroll once when user state changes, not continuously
+    const timeout = setTimeout(() => {
+      preventScroll();
+    }, 0);
+    
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [user]);
 
   const changeLanguage = () => {
     const newLang = i18n.language === 'fa' ? 'en' : 'fa';
     i18n.changeLanguage(newLang);
     document.documentElement.lang = newLang;
-    document.documentElement.dir = newLang === 'fa' ? 'rtl' : 'ltr';
+    // Keep direction as LTR for consistent alignment
+    document.documentElement.dir = 'ltr';
   };
 
   const handleLoginClick = () => {

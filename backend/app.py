@@ -131,9 +131,13 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     language = db.Column(db.String(10), default='fa')  # 'fa' for Farsi, 'en' for English
+    role = db.Column(db.String(20), default='member')  # 'admin', 'assistant', 'member'
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # For members assigned to assistants/admins
     
     exercises = db.relationship('UserExercise', backref='user', lazy=True, cascade='all, delete-orphan')
     chat_history = db.relationship('ChatHistory', backref='user', lazy=True, cascade='all, delete-orphan')
+    # Relationships for member assignments
+    assigned_members = db.relationship('User', backref=db.backref('assigned_by', remote_side=[id]), lazy=True)
     # NutritionPlan relationship will be configured after models are imported
 
 class UserExercise(db.Model):
@@ -205,11 +209,16 @@ def register():
         return jsonify({'error': 'Email already exists'}), 400
     
     try:
+        # Only members can signup - admin and assistants are created by admin
+        # Force role to 'member' regardless of account_type in registration
+        role = 'member'
+        
         user = User(
             username=username,
             email=email,
             password_hash=generate_password_hash(password),
-            language=language
+            language=language,
+            role=role
         )
         db.session.add(user)
         db.session.flush()  # Get user ID
@@ -228,9 +237,16 @@ def register():
                     weight=profile_data.get('weight'),
                     height=profile_data.get('height'),
                     gender=profile_data.get('gender'),
+                    account_type=profile_data.get('account_type'),
                     training_level=profile_data.get('training_level'),
                     exercise_history_years=profile_data.get('exercise_history_years'),
                     exercise_history_description=profile_data.get('exercise_history_description'),
+                    chest_circumference=profile_data.get('chest_circumference'),
+                    waist_circumference=profile_data.get('waist_circumference'),
+                    abdomen_circumference=profile_data.get('abdomen_circumference'),
+                    arm_circumference=profile_data.get('arm_circumference'),
+                    hip_circumference=profile_data.get('hip_circumference'),
+                    thigh_circumference=profile_data.get('thigh_circumference'),
                     gym_access=profile_data.get('gym_access', False),
                     workout_days_per_week=profile_data.get('workout_days_per_week', 3),
                     preferred_workout_time=profile_data.get('preferred_workout_time'),
@@ -469,6 +485,7 @@ def get_user():
         'username': user.username,
         'email': user.email,
         'language': user.language,
+        'role': user.role if hasattr(user, 'role') else 'member',
         'profile': profile_data
     }), 200
 
@@ -536,6 +553,7 @@ def user_profile():
                     'weight': profile.weight,
                     'height': profile.height,
                     'gender': profile.gender or '',
+                    'account_type': profile.account_type or '',
                     'training_level': profile.training_level or '',
                     'fitness_goals': fitness_goals,
                     'injuries': injuries,
@@ -544,6 +562,12 @@ def user_profile():
                     'medical_condition_details': profile.medical_condition_details or '',
                     'exercise_history_years': profile.exercise_history_years,
                     'exercise_history_description': profile.exercise_history_description or '',
+                    'chest_circumference': profile.chest_circumference,
+                    'waist_circumference': profile.waist_circumference,
+                    'abdomen_circumference': profile.abdomen_circumference,
+                    'arm_circumference': profile.arm_circumference,
+                    'hip_circumference': profile.hip_circumference,
+                    'thigh_circumference': profile.thigh_circumference,
                     'equipment_access': equipment_access,
                     'gym_access': profile.gym_access if profile.gym_access is not None else False,
                     'home_equipment': home_equipment,
@@ -587,8 +611,24 @@ def user_profile():
                 profile.height = data['height']
             if 'gender' in data:
                 profile.gender = data['gender']
+            if 'account_type' in data:
+                profile.account_type = data['account_type']
             if 'training_level' in data:
                 profile.training_level = data['training_level']
+            
+            # Update body measurements
+            if 'chest_circumference' in data:
+                profile.chest_circumference = data['chest_circumference']
+            if 'waist_circumference' in data:
+                profile.waist_circumference = data['waist_circumference']
+            if 'abdomen_circumference' in data:
+                profile.abdomen_circumference = data['abdomen_circumference']
+            if 'arm_circumference' in data:
+                profile.arm_circumference = data['arm_circumference']
+            if 'hip_circumference' in data:
+                profile.hip_circumference = data['hip_circumference']
+            if 'thigh_circumference' in data:
+                profile.thigh_circumference = data['thigh_circumference']
             
             # Update JSON fields
             if 'fitness_goals' in data:
@@ -1594,6 +1634,69 @@ def get_training_programs():
     except Exception as e:
         import traceback
         print(f"Error getting training programs: {e}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/progress/upload-analysis', methods=['POST'])
+@jwt_required()
+def upload_progress_analysis():
+    """Upload muscle/fat analysis file (PDF or image) for AI extraction"""
+    try:
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
+            return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
+        
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        progress_entry_id = request.form.get('progress_entry_id')
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Validate file type
+        allowed_extensions = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        if file_ext not in allowed_extensions:
+            return jsonify({'error': 'Invalid file type. Allowed: PDF, PNG, JPG, JPEG, GIF'}), 400
+        
+        # Save file
+        upload_folder = os.path.join(os.path.dirname(__file__), 'uploads', 'progress_analysis')
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        filename = secure_filename(f"{user_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
+        filepath = os.path.join(upload_folder, filename)
+        file.save(filepath)
+        
+        # TODO: Add AI extraction here - for now, just save the file
+        # In the future, this would:
+        # 1. Extract text/data from PDF or image using OCR/AI
+        # 2. Parse muscle mass and body fat percentage
+        # 3. Update the ProgressEntry with extracted data
+        
+        # If progress_entry_id provided, update it
+        if progress_entry_id:
+            try:
+                from models_workout_log import ProgressEntry
+                entry = db.session.query(ProgressEntry).filter_by(id=progress_entry_id, user_id=user_id).first()
+                if entry:
+                    # Store file path in form_notes for now (or create a new field)
+                    # For now, we'll just note that analysis was uploaded
+                    pass
+            except Exception as e:
+                print(f"Error updating progress entry: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'File uploaded successfully. Analysis will be processed.',
+            'filename': filename
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        print(f"Error uploading analysis file: {e}")
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 

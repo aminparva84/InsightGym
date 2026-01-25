@@ -11,13 +11,13 @@ import './RegistrationForm.css';
 const RegistrationForm = ({ onComplete }) => {
   const { t, i18n } = useTranslation();
   const { register } = useAuth();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const stepContainerRef = useRef(null);
 
-  // Step 0: Account Type Selection
-  const [accountType, setAccountType] = useState('');
+  // Account type is always 'member' for registration
+  const accountType = 'member';
 
   // Step 1: Basic Account Info
   const [username, setUsername] = useState('');
@@ -37,13 +37,21 @@ const RegistrationForm = ({ onComplete }) => {
   // Step 3: Training Goals
   const [fitnessGoals, setFitnessGoals] = useState([]);
 
-  // Step 4: Limitations & Injuries
+  // Step 4: Body Measurements
+  const [chestCircumference, setChestCircumference] = useState('');
+  const [waistCircumference, setWaistCircumference] = useState('');
+  const [abdomenCircumference, setAbdomenCircumference] = useState('');
+  const [armCircumference, setArmCircumference] = useState('');
+  const [hipCircumference, setHipCircumference] = useState('');
+  const [thighCircumference, setThighCircumference] = useState('');
+
+  // Step 5: Limitations & Injuries
   const [injuries, setInjuries] = useState([]);
   const [injuryDetails, setInjuryDetails] = useState('');
   const [medicalConditions, setMedicalConditions] = useState([]);
   const [medicalConditionDetails, setMedicalConditionDetails] = useState('');
 
-  // Step 5: Training Conditions
+  // Step 6: Training Conditions
   const [gymAccess, setGymAccess] = useState(false);
   const [equipmentAccess, setEquipmentAccess] = useState([]);
   const [homeEquipment, setHomeEquipment] = useState([]);
@@ -77,16 +85,6 @@ const RegistrationForm = ({ onComplete }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Step 0: Account type selection
-    if (step === 0) {
-      if (!accountType) {
-        setError(i18n.language === 'fa' ? 'لطفاً نوع حساب کاربری خود را انتخاب کنید' : 'Please select your account type');
-        return;
-      }
-      handleStepChange(step + 1);
-      return;
-    }
-    
     if (step < 6) {
       handleStepChange(step + 1);
       return;
@@ -111,6 +109,12 @@ const RegistrationForm = ({ onComplete }) => {
       exercise_history_years: exerciseHistoryYears ? parseInt(exerciseHistoryYears) : null,
       exercise_history_description: exerciseHistoryDescription,
       fitness_goals: fitnessGoals,
+      chest_circumference: chestCircumference ? parseFloat(chestCircumference) : null,
+      waist_circumference: waistCircumference ? parseFloat(waistCircumference) : null,
+      abdomen_circumference: abdomenCircumference ? parseFloat(abdomenCircumference) : null,
+      arm_circumference: armCircumference ? parseFloat(armCircumference) : null,
+      hip_circumference: hipCircumference ? parseFloat(hipCircumference) : null,
+      thigh_circumference: thighCircumference ? parseFloat(thighCircumference) : null,
       injuries: injuries,
       injury_details: injuryDetails,
       medical_conditions: medicalConditions,
@@ -132,54 +136,6 @@ const RegistrationForm = ({ onComplete }) => {
     }
   };
 
-  const renderStep0 = () => (
-    <div className="registration-step">
-      <h3>{i18n.language === 'fa' ? 'نوع حساب کاربری' : 'Account Type'}</h3>
-      <p className="step-description">
-        {i18n.language === 'fa' 
-          ? 'لطفاً نوع حساب کاربری خود را انتخاب کنید'
-          : 'Please select your account type'}
-      </p>
-      <div className="account-type-selection">
-        <label className={`account-type-option ${accountType === 'trainer' ? 'selected' : ''}`}>
-          <input
-            type="radio"
-            name="accountType"
-            value="trainer"
-            checked={accountType === 'trainer'}
-            onChange={(e) => setAccountType(e.target.value)}
-            required
-          />
-          <div className="account-type-content">
-            <span className="account-type-title">{i18n.language === 'fa' ? 'مربی' : 'Trainer'}</span>
-            <span className="account-type-description">
-              {i18n.language === 'fa' 
-                ? 'من یک مربی هستم و می‌خواهم برنامه‌های تمرینی برای دیگران ایجاد کنم'
-                : 'I am a trainer and want to create training programs for others'}
-            </span>
-          </div>
-        </label>
-        <label className={`account-type-option ${accountType === 'member' ? 'selected' : ''}`}>
-          <input
-            type="radio"
-            name="accountType"
-            value="member"
-            checked={accountType === 'member'}
-            onChange={(e) => setAccountType(e.target.value)}
-            required
-          />
-          <div className="account-type-content">
-            <span className="account-type-title">{i18n.language === 'fa' ? 'عضو' : 'Member'}</span>
-            <span className="account-type-description">
-              {i18n.language === 'fa' 
-                ? 'من می‌خواهم تمرین کنم و برنامه‌های تمرینی دریافت کنم'
-                : 'I want to train and receive training programs'}
-            </span>
-          </div>
-        </label>
-      </div>
-    </div>
-  );
 
   const renderStep1 = () => (
     <div className="registration-step">
@@ -357,6 +313,131 @@ const RegistrationForm = ({ onComplete }) => {
 
   const renderStep4 = () => (
     <div className="registration-step">
+      <h3>{i18n.language === 'fa' ? 'اندازه‌گیری بدن' : 'Body Measurements'}</h3>
+      <p className="step-description">
+        {i18n.language === 'fa' 
+          ? 'لطفاً اندازه‌های بدن خود را وارد کنید (بر حسب سانتی‌متر)'
+          : 'Please enter your body measurements (in centimeters)'}
+      </p>
+      
+      <div className="form-group">
+        <label>
+          {i18n.language === 'fa' ? 'دور سینه (سانتی‌متر)' : 'Chest Circumference (cm)'}
+        </label>
+        <p className="measurement-description">
+          {i18n.language === 'fa' 
+            ? 'دور برجسته ترین قسمت سینه'
+            : 'Circumference of the most prominent part of the chest'}
+        </p>
+        <input
+          type="number"
+          value={chestCircumference}
+          onChange={(e) => setChestCircumference(e.target.value)}
+          min="0"
+          step="0.1"
+          placeholder={i18n.language === 'fa' ? 'مثال: 95.5' : 'e.g., 95.5'}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>
+          {i18n.language === 'fa' ? 'دور کمر (سانتی‌متر)' : 'Waist Circumference (cm)'}
+        </label>
+        <p className="measurement-description">
+          {i18n.language === 'fa' 
+            ? 'دور باریک ترین قسمت کمر'
+            : 'Circumference of the narrowest part of the waist'}
+        </p>
+        <input
+          type="number"
+          value={waistCircumference}
+          onChange={(e) => setWaistCircumference(e.target.value)}
+          min="0"
+          step="0.1"
+          placeholder={i18n.language === 'fa' ? 'مثال: 80.0' : 'e.g., 80.0'}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>
+          {i18n.language === 'fa' ? 'دور شکم (سانتی‌متر)' : 'Abdomen Circumference (cm)'}
+        </label>
+        <p className="measurement-description">
+          {i18n.language === 'fa' 
+            ? 'دور برجسته ترین قسمت شکم'
+            : 'Circumference of the most prominent part of the abdomen'}
+        </p>
+        <input
+          type="number"
+          value={abdomenCircumference}
+          onChange={(e) => setAbdomenCircumference(e.target.value)}
+          min="0"
+          step="0.1"
+          placeholder={i18n.language === 'fa' ? 'مثال: 90.0' : 'e.g., 90.0'}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>
+          {i18n.language === 'fa' ? 'دور بازو (سانتی‌متر)' : 'Arm Circumference (cm)'}
+        </label>
+        <p className="measurement-description">
+          {i18n.language === 'fa' 
+            ? 'دور برجسته ترین قسمت بازو'
+            : 'Circumference of the most prominent part of the arm'}
+        </p>
+        <input
+          type="number"
+          value={armCircumference}
+          onChange={(e) => setArmCircumference(e.target.value)}
+          min="0"
+          step="0.1"
+          placeholder={i18n.language === 'fa' ? 'مثال: 35.5' : 'e.g., 35.5'}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>
+          {i18n.language === 'fa' ? 'دور باسن (سانتی‌متر)' : 'Hip Circumference (cm)'}
+        </label>
+        <p className="measurement-description">
+          {i18n.language === 'fa' 
+            ? 'دور برجسته ترین قسمت باسن'
+            : 'Circumference of the most prominent part of the hip'}
+        </p>
+        <input
+          type="number"
+          value={hipCircumference}
+          onChange={(e) => setHipCircumference(e.target.value)}
+          min="0"
+          step="0.1"
+          placeholder={i18n.language === 'fa' ? 'مثال: 100.0' : 'e.g., 100.0'}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>
+          {i18n.language === 'fa' ? 'دور ران (سانتی‌متر)' : 'Thigh Circumference (cm)'}
+        </label>
+        <p className="measurement-description">
+          {i18n.language === 'fa' 
+            ? 'دور برجسته ترین قسمت ران'
+            : 'Circumference of the most prominent part of the thigh'}
+        </p>
+        <input
+          type="number"
+          value={thighCircumference}
+          onChange={(e) => setThighCircumference(e.target.value)}
+          min="0"
+          step="0.1"
+          placeholder={i18n.language === 'fa' ? 'مثال: 60.0' : 'e.g., 60.0'}
+        />
+      </div>
+    </div>
+  );
+
+  const renderStep5 = () => (
+    <div className="registration-step">
       <h3>{i18n.language === 'fa' ? 'محدودیت‌ها و آسیب‌ها' : 'Limitations & Injuries'}</h3>
       <p className="step-description">
         {i18n.language === 'fa' 
@@ -470,7 +551,7 @@ const RegistrationForm = ({ onComplete }) => {
     </div>
   );
 
-  const renderStep5 = () => (
+  const renderStep6 = () => (
     <div className="registration-step">
       <h3>{i18n.language === 'fa' ? 'شرایط تمرینی' : 'Training Conditions'}</h3>
       
@@ -590,10 +671,10 @@ const RegistrationForm = ({ onComplete }) => {
     <div className="registration-form-container">
       <div className="registration-progress">
         <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${((step + 1) / 6) * 100}%` }}></div>
+          <div className="progress-fill" style={{ width: `${(step / 6) * 100}%` }}></div>
         </div>
         <div className="progress-steps">
-          {[0, 1, 2, 3, 4, 5].map(s => (
+          {[1, 2, 3, 4, 5, 6].map(s => (
             <div
               key={s}
               className={`progress-step ${s <= step ? 'active' : ''} ${s < step ? 'clickable' : ''}`}
@@ -608,7 +689,7 @@ const RegistrationForm = ({ onComplete }) => {
                 opacity: s > step ? 0.5 : 1
               }}
             >
-              {s + 1}
+              {s}
             </div>
           ))}
         </div>
@@ -618,16 +699,16 @@ const RegistrationForm = ({ onComplete }) => {
         {error && <div className="error-message">{error}</div>}
 
         <div ref={stepContainerRef}>
-          {step === 0 && renderStep0()}
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
           {step === 4 && renderStep4()}
           {step === 5 && renderStep5()}
+          {step === 6 && renderStep6()}
         </div>
 
         <div className="form-actions">
-          {step > 0 && (
+          {step > 1 && (
             <button type="button" className="btn-secondary" onClick={() => handleStepChange(step - 1)}>
               {i18n.language === 'fa' ? 'قبلی' : 'Previous'}
             </button>
@@ -635,7 +716,7 @@ const RegistrationForm = ({ onComplete }) => {
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading
               ? t('loading')
-              : step === 5
+              : step === 6
               ? (i18n.language === 'fa' ? 'ثبت نام و تکمیل' : 'Register & Complete')
               : (i18n.language === 'fa' ? 'بعدی' : 'Next')}
           </button>
