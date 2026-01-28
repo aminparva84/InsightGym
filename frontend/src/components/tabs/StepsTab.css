@@ -1,0 +1,143 @@
+.steps-tab {
+  padding: 1.5rem 2rem;
+  background-color: #fff;
+  max-width: 560px;
+}
+
+.steps-header {
+  margin-bottom: 1.5rem;
+}
+
+.steps-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+  color: #000;
+  font-weight: 600;
+}
+
+.steps-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.steps-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.steps-today-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  border: 1px solid #a5d6a7;
+  margin-bottom: 2rem;
+}
+
+.steps-today-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.steps-today-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1b5e20;
+  margin: 0.25rem 0;
+}
+
+.steps-source {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: #388e3c;
+}
+
+.steps-manual-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.steps-manual-form label {
+  font-size: 0.95rem;
+  color: #333;
+  width: 100%;
+}
+
+.steps-manual-form input {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #a5d6a7;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.steps-manual-form button {
+  padding: 0.6rem 1.25rem;
+  background: #2e7d32;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.steps-manual-form button:hover:not(:disabled) {
+  background: #1b5e20;
+}
+
+.steps-manual-form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.steps-device-error {
+  margin: 0.75rem 0 0 0;
+  font-size: 0.9rem;
+  color: #c62828;
+}
+
+.steps-history h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: #000;
+  font-weight: 600;
+}
+
+.steps-no-history {
+  color: #666;
+  margin: 0;
+}
+
+.steps-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.steps-history-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #f5f5f5;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.steps-history-date {
+  color: #333;
+}
+
+.steps-history-steps {
+  font-weight: 600;
+  color: #1b5e20;
+}

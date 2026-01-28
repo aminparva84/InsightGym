@@ -2,7 +2,7 @@
 API endpoints for Workout Log and Adaptive Feedback
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from models import Exercise
@@ -128,16 +128,22 @@ def log_progress():
         user_id = get_jwt_identity()
         data = request.get_json()
         
+        # Get db instance from current_app to ensure proper Flask app context
+        current_db = current_app.extensions['sqlalchemy']
+        
         # Update user profile weight if provided
         if data.get('weight_kg'):
             try:
+                # Import UserProfile inside the route to ensure proper app context
                 from models import UserProfile
-                profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
+                profile = current_db.session.query(UserProfile).filter_by(user_id=user_id).first()
                 if profile:
                     profile.weight = data.get('weight_kg')
-                    db.session.flush()  # Save but don't commit yet
+                    current_db.session.flush()  # Save but don't commit yet
             except Exception as e:
+                import traceback
                 print(f"Error updating user profile weight: {e}")
+                print(traceback.format_exc())
         
         progress = ProgressEntry(
             user_id=user_id,
@@ -156,8 +162,8 @@ def log_progress():
             muscle_mass_kg=data.get('muscle_mass_kg')
         )
         
-        db.session.add(progress)
-        db.session.commit()
+        current_db.session.add(progress)
+        current_db.session.commit()
         
         return jsonify({
             'success': True,
@@ -165,7 +171,11 @@ def log_progress():
         }), 201
         
     except Exception as e:
-        db.session.rollback()
+        try:
+            current_db = current_app.extensions['sqlalchemy']
+            current_db.session.rollback()
+        except:
+            pass
         return jsonify({'error': str(e)}), 500
 
 @workout_log_bp.route('/progress', methods=['GET'])
@@ -174,9 +184,10 @@ def get_progress():
     """Get user's progress history"""
     try:
         user_id = get_jwt_identity()
+        current_db = current_app.extensions['sqlalchemy']
         
         limit = request.args.get('limit', 30, type=int)
-        entries = ProgressEntry.query.filter_by(user_id=user_id)\
+        entries = current_db.session.query(ProgressEntry).filter_by(user_id=user_id)\
             .order_by(ProgressEntry.recorded_at.desc()).limit(limit).all()
         
         return jsonify({

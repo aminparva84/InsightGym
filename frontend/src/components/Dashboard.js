@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import ProfileTab from './tabs/ProfileTab';
-import AdminTab from './tabs/AdminTab';
 import AssistantDashboard from './tabs/AssistantDashboard';
 import MembersListTab from './tabs/MembersListTab';
 import InPersonSessionsTab from './tabs/InPersonSessionsTab';
+import BreakRequestsTab from './tabs/BreakRequestsTab';
 import MembersProgramsTab from './tabs/MembersProgramsTab';
 import TrainingLevelsInfoTab from './tabs/TrainingLevelsInfoTab';
+import ExerciseLibraryTab from './tabs/ExerciseLibraryTab';
+import SiteSettingsTab from './tabs/SiteSettingsTab';
 import HistoryTab from './tabs/HistoryTab';
 import NutritionTab from './tabs/NutritionTab';
 import TrainingProgramTab from './tabs/TrainingProgramTab';
+import StepsTab from './tabs/StepsTab';
 import OnlineLab from './tabs/OnlineLab';
 import PsychologyTest from './tabs/PsychologyTest';
+import MembersAndAssistantsManagementTab from './tabs/MembersAndAssistantsManagementTab';
+import BreakRequestModal from './BreakRequestModal';
 import ChatBox from './ChatBox';
 import TrainingWithAgent from './TrainingWithAgent';
 import './Dashboard.css';
@@ -23,10 +28,20 @@ const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('profile');
   const [userRole, setUserRole] = useState(null);
   const [profileComplete, setProfileComplete] = useState(true);
+  const [breakRequestModalOpen, setBreakRequestModalOpen] = useState(false);
   
+  useEffect(() => {
+    // Check for tab query parameter
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     // Check user role and profile completion
     const checkRole = async () => {
@@ -73,10 +88,10 @@ const Dashboard = () => {
     if (userRole === 'admin') {
       // Admin tabs
       return [
-        { id: 'admin', label: i18n.language === 'fa' ? 'دستیاران' : 'Assistants', icon: '👥' },
-        { id: 'members-list', label: i18n.language === 'fa' ? 'لیست اعضا' : 'Members List', icon: '👥' },
+        { id: 'members-assistants-management', label: i18n.language === 'fa' ? 'مدیریت اعضا و دستیاران' : 'Members and Assistants Management', icon: '👥' },
         { id: 'training-levels', label: i18n.language === 'fa' ? 'اطلاعات سطح‌های تمرینی' : 'Training Levels Info', icon: '📊' },
-        { id: 'message-history', label: i18n.language === 'fa' ? 'تاریخچه پیام‌ها' : 'Message History', icon: '💬' },
+        { id: 'exercise-library', label: i18n.language === 'fa' ? 'کتابخانه تمرینات' : 'Exercise Library', icon: '📚' },
+        { id: 'site-settings', label: i18n.language === 'fa' ? 'تنظیمات سایت' : 'Site Settings', icon: '⚙️' },
         { id: 'members-programs', label: i18n.language === 'fa' ? 'برنامه اعضا' : 'Members Programs', icon: '📋' }
       ];
     } else if (userRole === 'assistant') {
@@ -88,6 +103,7 @@ const Dashboard = () => {
       } else {
         return [
           { id: 'members-list', label: i18n.language === 'fa' ? 'لیست اعضا' : 'Members List', icon: '👥' },
+          { id: 'break-requests', label: i18n.language === 'fa' ? 'درخواست استراحت' : 'Break Requests', icon: '⏸️' },
           { id: 'in-person-sessions', label: i18n.language === 'fa' ? 'تاریخچه جلسات حضوری' : 'In-Person Sessions', icon: '📅' },
           { id: 'members-programs', label: i18n.language === 'fa' ? 'برنامه اعضا' : 'Members Programs', icon: '📋' },
           { id: 'message-history', label: i18n.language === 'fa' ? 'تاریخچه پیام‌ها' : 'Message History', icon: '💬' }
@@ -97,6 +113,7 @@ const Dashboard = () => {
       // Regular members see profile tab and base tabs
       const baseTabs = [
         { id: 'history', label: t('history'), icon: '📊' },
+        { id: 'steps', label: i18n.language === 'fa' ? 'شمارش قدم' : 'Steps', icon: '👟' },
         { id: 'nutrition', label: t('nutrition'), icon: '🥗' },
         { id: 'training-program', label: i18n.language === 'fa' ? 'برنامه تمرینی' : 'Training Program', icon: '💪' },
         { id: 'online-lab', label: i18n.language === 'fa' ? 'آزمایشگاه آنلاین' : 'Online Laboratory', icon: '🔬' },
@@ -114,7 +131,7 @@ const Dashboard = () => {
   // Set default active tab based on role
   useEffect(() => {
     if (userRole === 'admin' && activeTab === 'profile') {
-      setActiveTab('admin');
+      setActiveTab('members-assistants-management');
     } else if (userRole === 'assistant' && activeTab === 'profile' && profileComplete) {
       setActiveTab('members-list');
     } else if (userRole === 'assistant' && activeTab === 'assistant-dashboard') {
@@ -136,6 +153,16 @@ const Dashboard = () => {
           
           {/* Left side - Language toggle and Logout */}
           <div className="topbar-actions">
+            {userRole === 'member' && (
+              <button
+                type="button"
+                className="topbar-break-request-btn"
+                onClick={() => setBreakRequestModalOpen(true)}
+                title={i18n.language === 'fa' ? 'درخواست استراحت' : 'Request a break'}
+              >
+                {i18n.language === 'fa' ? 'استراحت' : 'Break'}
+              </button>
+            )}
             <button
               type="button"
               className={`lang-toggle ${i18n.language === 'fa' ? 'fa-active' : 'en-active'}`}
@@ -184,22 +211,30 @@ const Dashboard = () => {
 
             <div className="tab-content">
               {activeTab === 'profile' && <ProfileTab />}
-              {activeTab === 'admin' && <AdminTab />}
+              {activeTab === 'members-assistants-management' && <MembersAndAssistantsManagementTab />}
               {activeTab === 'assistant-dashboard' && <AssistantDashboard />}
               {activeTab === 'members-list' && <MembersListTab />}
               {activeTab === 'in-person-sessions' && <InPersonSessionsTab />}
               {activeTab === 'members-programs' && <MembersProgramsTab />}
               {activeTab === 'training-levels' && <TrainingLevelsInfoTab />}
+              {activeTab === 'exercise-library' && <ExerciseLibraryTab />}
+              {activeTab === 'site-settings' && <SiteSettingsTab />}
               {activeTab === 'message-history' && <HistoryTab showOnlyMessages={true} />}
               {activeTab === 'history' && <HistoryTab />}
               {activeTab === 'nutrition' && <NutritionTab />}
               {activeTab === 'training-program' && <TrainingProgramTab />}
+              {activeTab === 'steps' && <StepsTab />}
+              {activeTab === 'break-requests' && <BreakRequestsTab />}
               {activeTab === 'online-lab' && <OnlineLab />}
               {activeTab === 'psychology-test' && <PsychologyTest />}
             </div>
           </div>
         </div>
       </div>
+      <BreakRequestModal
+        isOpen={breakRequestModalOpen}
+        onClose={() => setBreakRequestModalOpen(false)}
+      />
     </div>
   );
 };

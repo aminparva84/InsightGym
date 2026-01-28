@@ -17,6 +17,8 @@ const AdminTab = () => {
   const [showAssistantForm, setShowAssistantForm] = useState(false);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState(null);
+  const [editingAssistant, setEditingAssistant] = useState(null);
+  const [assistantEditFormData, setAssistantEditFormData] = useState(null);
   const [assistantFormData, setAssistantFormData] = useState({
     username: '',
     email: '',
@@ -66,6 +68,92 @@ const AdminTab = () => {
     } catch (error) {
       console.error('Error fetching assistants:', error);
       alert(i18n.language === 'fa' ? 'خطا در دریافت لیست دستیاران' : 'Error fetching assistants');
+    }
+  };
+
+  const fetchAssistantDetails = async (assistantId) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/admin/assistants/${assistantId}`, getAxiosConfig());
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching assistant details:', error);
+      return null;
+    }
+  };
+
+  const handleEditAssistant = async (assistant) => {
+    setEditingAssistant(assistant);
+    const full = await fetchAssistantDetails(assistant.id);
+    if (full) {
+      const profile = full.profile || {};
+      setAssistantEditFormData({
+        username: full.username || '',
+        email: full.email || '',
+        password: '',
+        language: full.language || 'fa',
+        age: profile.age ?? '',
+        weight: profile.weight ?? '',
+        height: profile.height ?? '',
+        gender: profile.gender || '',
+        training_level: profile.training_level || '',
+        chest_circumference: profile.chest_circumference ?? '',
+        waist_circumference: profile.waist_circumference ?? '',
+        abdomen_circumference: profile.abdomen_circumference ?? '',
+        arm_circumference: profile.arm_circumference ?? '',
+        hip_circumference: profile.hip_circumference ?? '',
+        thigh_circumference: profile.thigh_circumference ?? '',
+        certifications: profile.certifications || '',
+        qualifications: profile.qualifications || '',
+        years_of_experience: profile.years_of_experience ?? '',
+        specialization: profile.specialization || '',
+        education: profile.education || '',
+        bio: profile.bio || ''
+      });
+    } else {
+      setEditingAssistant(null);
+    }
+  };
+
+  const handleSaveAssistantEdit = async () => {
+    if (!editingAssistant) return;
+    try {
+      const payload = {
+        username: assistantEditFormData.username,
+        email: assistantEditFormData.email,
+        language: assistantEditFormData.language
+      };
+      if (assistantEditFormData.password && assistantEditFormData.password.trim()) {
+        payload.password = assistantEditFormData.password.trim();
+      }
+      payload.profile = {
+        age: assistantEditFormData.age ? parseInt(assistantEditFormData.age) : null,
+        weight: assistantEditFormData.weight ? parseFloat(assistantEditFormData.weight) : null,
+        height: assistantEditFormData.height ? parseFloat(assistantEditFormData.height) : null,
+        gender: assistantEditFormData.gender || '',
+        training_level: assistantEditFormData.training_level || '',
+        chest_circumference: assistantEditFormData.chest_circumference ? parseFloat(assistantEditFormData.chest_circumference) : null,
+        waist_circumference: assistantEditFormData.waist_circumference ? parseFloat(assistantEditFormData.waist_circumference) : null,
+        abdomen_circumference: assistantEditFormData.abdomen_circumference ? parseFloat(assistantEditFormData.abdomen_circumference) : null,
+        arm_circumference: assistantEditFormData.arm_circumference ? parseFloat(assistantEditFormData.arm_circumference) : null,
+        hip_circumference: assistantEditFormData.hip_circumference ? parseFloat(assistantEditFormData.hip_circumference) : null,
+        thigh_circumference: assistantEditFormData.thigh_circumference ? parseFloat(assistantEditFormData.thigh_circumference) : null,
+        certifications: assistantEditFormData.certifications || '',
+        qualifications: assistantEditFormData.qualifications || '',
+        years_of_experience: assistantEditFormData.years_of_experience ? parseInt(assistantEditFormData.years_of_experience) : null,
+        specialization: assistantEditFormData.specialization || '',
+        education: assistantEditFormData.education || '',
+        bio: assistantEditFormData.bio || ''
+      };
+      await axios.put(`http://localhost:5000/api/admin/assistants/${editingAssistant.id}`, payload, getAxiosConfig());
+      alert(i18n.language === 'fa' ? 'دستیار به‌روزرسانی شد' : 'Assistant updated');
+      setEditingAssistant(null);
+      setAssistantEditFormData(null);
+      fetchAssistants();
+    } catch (error) {
+      console.error('Error updating assistant:', error);
+      alert(i18n.language === 'fa'
+        ? `خطا در به‌روزرسانی: ${error.response?.data?.error || error.message}`
+        : `Error updating: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -419,6 +507,7 @@ const AdminTab = () => {
                     <th>{i18n.language === 'fa' ? 'ایمیل' : 'Email'}</th>
                     <th>{i18n.language === 'fa' ? 'تعداد اعضای تخصیص یافته' : 'Assigned Members'}</th>
                     <th>{i18n.language === 'fa' ? 'وضعیت پروفایل' : 'Profile Status'}</th>
+                    <th>{i18n.language === 'fa' ? 'ویرایش' : 'Edit'}</th>
                     <th>{i18n.language === 'fa' ? 'حذف' : 'Delete'}</th>
                   </tr>
                 </thead>
@@ -431,6 +520,15 @@ const AdminTab = () => {
                       <td>{assistant.profile_complete 
                         ? (i18n.language === 'fa' ? 'تکمیل شده' : 'Complete')
                         : (i18n.language === 'fa' ? 'ناقص' : 'Incomplete')}
+                      </td>
+                      <td>
+                        <button 
+                          type="button"
+                          className="btn-edit"
+                          onClick={() => handleEditAssistant(assistant)}
+                        >
+                          {i18n.language === 'fa' ? 'ویرایش' : 'Edit'}
+                        </button>
                       </td>
                       <td>
                         <button 
@@ -507,6 +605,236 @@ const AdminTab = () => {
                       }}
                     >
                       {i18n.language === 'fa' ? 'بستن' : 'Close'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Assistant Modal */}
+            {editingAssistant && assistantEditFormData && (
+              <div className="admin-form-overlay">
+                <div className="admin-form-container" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                  <div className="form-header-with-close">
+                    <h3>{i18n.language === 'fa' ? `ویرایش دستیار: ${editingAssistant.username}` : `Edit Assistant: ${editingAssistant.username}`}</h3>
+                    <button
+                      type="button"
+                      className="close-form-btn"
+                      onClick={() => { setEditingAssistant(null); setAssistantEditFormData(null); }}
+                      aria-label={i18n.language === 'fa' ? 'بستن' : 'Close'}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="form-group">
+                    <label>{i18n.language === 'fa' ? 'نام کاربری *' : 'Username *'}</label>
+                    <input
+                      type="text"
+                      value={assistantEditFormData.username}
+                      onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, username: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{i18n.language === 'fa' ? 'ایمیل *' : 'Email *'}</label>
+                    <input
+                      type="email"
+                      value={assistantEditFormData.email}
+                      onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{i18n.language === 'fa' ? 'رمز عبور جدید (خالی = بدون تغییر)' : 'New password (leave blank to keep)'}</label>
+                    <input
+                      type="password"
+                      value={assistantEditFormData.password}
+                      onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, password: e.target.value })}
+                      minLength={6}
+                      placeholder={i18n.language === 'fa' ? 'خالی بگذارید تا تغییر نکند' : 'Leave blank to keep current'}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{i18n.language === 'fa' ? 'زبان' : 'Language'}</label>
+                    <select
+                      value={assistantEditFormData.language}
+                      onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, language: e.target.value })}
+                    >
+                      <option value="fa">فارسی</option>
+                      <option value="en">English</option>
+                    </select>
+                  </div>
+                  <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', color: 'var(--color-primary-800)', fontSize: '1.1rem', fontWeight: '600' }}>
+                    {i18n.language === 'fa' ? 'اطلاعات شخصی' : 'Personal Information'}
+                  </h4>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'سن' : 'Age'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.age}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, age: e.target.value })}
+                        min="1"
+                        max="120"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'جنسیت' : 'Gender'}</label>
+                      <select
+                        value={assistantEditFormData.gender}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, gender: e.target.value })}
+                      >
+                        <option value="">{i18n.language === 'fa' ? 'انتخاب کنید' : 'Select'}</option>
+                        <option value="male">{i18n.language === 'fa' ? 'مرد' : 'Male'}</option>
+                        <option value="female">{i18n.language === 'fa' ? 'زن' : 'Female'}</option>
+                        <option value="other">{i18n.language === 'fa' ? 'سایر' : 'Other'}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <h4 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--color-primary-800)', fontSize: '1.1rem', fontWeight: '600' }}>
+                    {i18n.language === 'fa' ? 'اطلاعات حرفه‌ای مربی' : 'Trainer Professional Details'}
+                  </h4>
+                  <div className="form-group">
+                    <label>{i18n.language === 'fa' ? 'گواهینامه‌ها' : 'Certifications'}</label>
+                    <textarea
+                      value={assistantEditFormData.certifications}
+                      onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, certifications: e.target.value })}
+                      rows="2"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{i18n.language === 'fa' ? 'مدارک و صلاحیت‌ها' : 'Qualifications'}</label>
+                    <textarea
+                      value={assistantEditFormData.qualifications}
+                      onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, qualifications: e.target.value })}
+                      rows="2"
+                    />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'سال‌های تجربه' : 'Years of Experience'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.years_of_experience}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, years_of_experience: e.target.value })}
+                        min="0"
+                        max="50"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'تخصص' : 'Specialization'}</label>
+                      <input
+                        type="text"
+                        value={assistantEditFormData.specialization}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, specialization: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>{i18n.language === 'fa' ? 'تحصیلات' : 'Education'}</label>
+                    <input
+                      type="text"
+                      value={assistantEditFormData.education}
+                      onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, education: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{i18n.language === 'fa' ? 'بیوگرافی' : 'Bio'}</label>
+                    <textarea
+                      value={assistantEditFormData.bio}
+                      onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, bio: e.target.value })}
+                      rows="4"
+                    />
+                  </div>
+                  <h4 style={{ marginTop: '2rem', marginBottom: '1rem', color: 'var(--color-primary-800)', fontSize: '1.1rem', fontWeight: '600' }}>
+                    {i18n.language === 'fa' ? 'اندازه‌گیری بدن (سانتی‌متر)' : 'Body Measurements (cm)'}
+                  </h4>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'وزن' : 'Weight'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.weight}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, weight: e.target.value })}
+                        step="0.1"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'قد' : 'Height'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.height}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, height: e.target.value })}
+                        step="0.1"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'دور سینه' : 'Chest'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.chest_circumference}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, chest_circumference: e.target.value })}
+                        step="0.1"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'دور کمر' : 'Waist'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.waist_circumference}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, waist_circumference: e.target.value })}
+                        step="0.1"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'دور شکم' : 'Abdomen'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.abdomen_circumference}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, abdomen_circumference: e.target.value })}
+                        step="0.1"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'دور بازو' : 'Arm'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.arm_circumference}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, arm_circumference: e.target.value })}
+                        step="0.1"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'دور باسن' : 'Hip'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.hip_circumference}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, hip_circumference: e.target.value })}
+                        step="0.1"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>{i18n.language === 'fa' ? 'دور ران' : 'Thigh'}</label>
+                      <input
+                        type="number"
+                        value={assistantEditFormData.thigh_circumference}
+                        onChange={(e) => setAssistantEditFormData({ ...assistantEditFormData, thigh_circumference: e.target.value })}
+                        step="0.1"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="btn-primary" onClick={handleSaveAssistantEdit}>
+                      {i18n.language === 'fa' ? 'ذخیره' : 'Save'}
+                    </button>
+                    <button type="button" className="btn-secondary" onClick={() => { setEditingAssistant(null); setAssistantEditFormData(null); }}>
+                      {i18n.language === 'fa' ? 'لغو' : 'Cancel'}
                     </button>
                   </div>
                 </div>

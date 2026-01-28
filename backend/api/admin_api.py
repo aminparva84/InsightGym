@@ -106,6 +106,7 @@ def get_exercise(exercise_id):
 @jwt_required()
 def create_exercise():
     """Create a new exercise"""
+    db = get_db()
     Exercise = get_exercise_model()
     user_id = get_jwt_identity()
     
@@ -403,6 +404,115 @@ def create_assistant():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+@admin_bp.route('/assistants/<int:assistant_id>', methods=['GET'])
+@jwt_required()
+def get_assistant(assistant_id):
+    """Get single assistant with full profile (admin only)"""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    User = get_user_model()
+    UserProfile = get_userprofile_model()
+    assistant = db.session.query(User).filter_by(id=assistant_id, role='assistant').first()
+    if not assistant:
+        return jsonify({'error': 'Assistant not found'}), 404
+    profile = db.session.query(UserProfile).filter_by(user_id=assistant_id).first()
+    out = {
+        'id': assistant.id,
+        'username': assistant.username,
+        'email': assistant.email,
+        'language': getattr(assistant, 'language', 'fa') or 'fa',
+        'profile': None
+    }
+    if profile:
+        out['profile'] = {
+            'age': profile.age,
+            'weight': profile.weight,
+            'height': profile.height,
+            'gender': profile.gender or '',
+            'training_level': profile.training_level or '',
+            'chest_circumference': profile.chest_circumference,
+            'waist_circumference': profile.waist_circumference,
+            'abdomen_circumference': profile.abdomen_circumference,
+            'arm_circumference': profile.arm_circumference,
+            'hip_circumference': profile.hip_circumference,
+            'thigh_circumference': profile.thigh_circumference,
+            'fitness_goals': profile.get_fitness_goals(),
+            'injuries': profile.get_injuries(),
+            'injury_details': profile.injury_details or '',
+            'medical_conditions': profile.get_medical_conditions(),
+            'medical_condition_details': profile.medical_condition_details or '',
+            'exercise_history_years': profile.exercise_history_years,
+            'exercise_history_description': profile.exercise_history_description or '',
+            'equipment_access': profile.get_equipment_access(),
+            'gym_access': profile.gym_access or False,
+            'home_equipment': profile.get_home_equipment(),
+            'preferred_workout_time': profile.preferred_workout_time or '',
+            'workout_days_per_week': profile.workout_days_per_week,
+            'preferred_intensity': profile.preferred_intensity or '',
+            'certifications': profile.certifications or '',
+            'qualifications': profile.qualifications or '',
+            'years_of_experience': profile.years_of_experience,
+            'specialization': profile.specialization or '',
+            'education': profile.education or '',
+            'bio': profile.bio or ''
+        }
+    return jsonify(out), 200
+
+@admin_bp.route('/assistants/<int:assistant_id>', methods=['PUT'])
+@jwt_required()
+def update_assistant(assistant_id):
+    """Update assistant account and profile (admin only)"""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    User = get_user_model()
+    UserProfile = get_userprofile_model()
+    assistant = db.session.query(User).filter_by(id=assistant_id, role='assistant').first()
+    if not assistant:
+        return jsonify({'error': 'Assistant not found'}), 404
+    data = request.get_json() or {}
+    if 'username' in data and data['username']:
+        existing = db.session.query(User).filter(User.username == data['username'], User.id != assistant_id).first()
+        if existing:
+            return jsonify({'error': 'Username already taken'}), 400
+        assistant.username = data['username']
+    if 'email' in data and data['email']:
+        import re
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', data['email']):
+            return jsonify({'error': 'Invalid email format'}), 400
+        existing = db.session.query(User).filter(User.email == data['email'], User.id != assistant_id).first()
+        if existing:
+            return jsonify({'error': 'Email already taken'}), 400
+        assistant.email = data['email']
+    if 'language' in data:
+        assistant.language = data['language'] or 'fa'
+    if 'password' in data and data.get('password'):
+        assistant.password_hash = generate_password_hash(data['password'])
+    profile_data = data.get('profile', {})
+    if profile_data is not None:
+        profile = db.session.query(UserProfile).filter_by(user_id=assistant_id).first()
+        if not profile:
+            profile = UserProfile(user_id=assistant_id, account_type='assistant')
+            db.session.add(profile)
+        for key, value in profile_data.items():
+            if hasattr(profile, key):
+                if key in ['fitness_goals', 'injuries', 'medical_conditions', 'equipment_access', 'home_equipment']:
+                    if hasattr(profile, f'set_{key}'):
+                        getattr(profile, f'set_{key}')(value)
+                    else:
+                        setattr(profile, key, json.dumps(value) if isinstance(value, list) else value)
+                else:
+                    setattr(profile, key, value)
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Assistant updated successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
 @admin_bp.route('/assistants/<int:assistant_id>', methods=['DELETE'])
 @jwt_required()
 def delete_assistant(assistant_id):
@@ -572,6 +682,45 @@ def update_member_profile(member_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+@admin_bp.route('/members/<int:member_id>', methods=['PUT'])
+@jwt_required()
+def update_member(member_id):
+    """Update member account info (username, email) - admin only"""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    User = get_user_model()
+    member = db.session.query(User).filter_by(id=member_id, role='member').first()
+    if not member:
+        return jsonify({'error': 'Member not found'}), 404
+    data = request.get_json() or {}
+    if 'username' in data and data['username']:
+        existing = db.session.query(User).filter(User.username == data['username'], User.id != member_id).first()
+        if existing:
+            return jsonify({'error': 'Username already taken'}), 400
+        member.username = data['username']
+    if 'email' in data and data['email']:
+        import re
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', data['email']):
+            return jsonify({'error': 'Invalid email format'}), 400
+        existing = db.session.query(User).filter(User.email == data['email'], User.id != member_id).first()
+        if existing:
+            return jsonify({'error': 'Email already taken'}), 400
+        member.email = data['email']
+    if 'language' in data:
+        member.language = data['language'] or 'fa'
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Member updated successfully',
+            'username': member.username,
+            'email': member.email
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
 @admin_bp.route('/members/<int:member_id>', methods=['DELETE'])
 @jwt_required()
 def delete_member(member_id):
@@ -689,27 +838,60 @@ def get_configuration():
     from models import Configuration
     config = db.session.query(Configuration).first()
     
+    def _default_purposes():
+        return {
+            'lose_weight': {'sessions_per_week': '', 'sets_per_action': '', 'reps_per_action': '', 'training_focus_fa': '', 'training_focus_en': '', 'break_between_sets': ''},
+            'gain_weight': {'sessions_per_week': '', 'sets_per_action': '', 'reps_per_action': '', 'training_focus_fa': '', 'training_focus_en': '', 'break_between_sets': ''},
+            'gain_muscle': {'sessions_per_week': '', 'sets_per_action': '', 'reps_per_action': '', 'training_focus_fa': '', 'training_focus_en': '', 'break_between_sets': ''},
+            'shape_fitting': {'sessions_per_week': '', 'sets_per_action': '', 'reps_per_action': '', 'training_focus_fa': '', 'training_focus_en': '', 'break_between_sets': ''}
+        }
+
+    def _default_level():
+        return {'description_fa': '', 'description_en': '', 'goals': [], 'purposes': _default_purposes()}
+
+    default_training_levels = {
+        'beginner': _default_level(),
+        'intermediate': _default_level(),
+        'advanced': _default_level()
+    }
+
     if config:
+        raw_levels = json.loads(config.training_levels) if config.training_levels else {}
+        training_levels_out = {}
+        for level_key in ('beginner', 'intermediate', 'advanced'):
+            stored = raw_levels.get(level_key) or {}
+            merged = {
+                'description_fa': stored.get('description_fa', ''),
+                'description_en': stored.get('description_en', ''),
+                'goals': stored.get('goals') if isinstance(stored.get('goals'), list) else [],
+                'purposes': {}
+            }
+            default_p = _default_purposes()
+            for purpose_key, default_purpose in default_p.items():
+                stored_p = (stored.get('purposes') or {}).get(purpose_key) or {}
+                merged['purposes'][purpose_key] = {**default_purpose, **stored_p}
+            training_levels_out[level_key] = merged
+        raw_injuries = json.loads(config.injuries) if config.injuries else {}
+        injury_keys = ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle']
+        injuries_out = {}
+        for key in injury_keys:
+            stored = raw_injuries.get(key) or {}
+            merged = {
+                'purposes_fa': stored.get('purposes_fa', '') or stored.get('description_fa', ''),
+                'purposes_en': stored.get('purposes_en', '') or stored.get('description_en', ''),
+                'allowed_movements': stored.get('allowed_movements') if isinstance(stored.get('allowed_movements'), list) else [],
+                'forbidden_movements': stored.get('forbidden_movements') if isinstance(stored.get('forbidden_movements'), list) else []
+            }
+            injuries_out[key] = merged
         return jsonify({
-            'training_levels': json.loads(config.training_levels) if config.training_levels else {},
-            'injuries': json.loads(config.injuries) if config.injuries else {}
+            'training_levels': training_levels_out,
+            'injuries': injuries_out
         }), 200
     else:
-        # Return empty defaults
+        _default_injury = lambda: {'purposes_fa': '', 'purposes_en': '', 'allowed_movements': [], 'forbidden_movements': []}
         return jsonify({
-            'training_levels': {
-                'beginner': {'description_fa': '', 'description_en': ''},
-                'intermediate': {'description_fa': '', 'description_en': ''},
-                'advanced': {'description_fa': '', 'description_en': ''}
-            },
-            'injuries': {
-                'knee': {'description_fa': '', 'description_en': '', 'prevention_fa': '', 'prevention_en': ''},
-                'shoulder': {'description_fa': '', 'description_en': '', 'prevention_fa': '', 'prevention_en': ''},
-                'lower_back': {'description_fa': '', 'description_en': '', 'prevention_fa': '', 'prevention_en': ''},
-                'neck': {'description_fa': '', 'description_en': '', 'prevention_fa': '', 'prevention_en': ''},
-                'wrist': {'description_fa': '', 'description_en': '', 'prevention_fa': '', 'prevention_en': ''},
-                'ankle': {'description_fa': '', 'description_en': '', 'prevention_fa': '', 'prevention_en': ''}
-            }
+            'training_levels': default_training_levels,
+            'injuries': {k: _default_injury() for k in ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle']}
         }), 200
 
 @admin_bp.route('/config', methods=['POST'])
@@ -777,6 +959,215 @@ def check_profile_complete():
         'profile_complete': profile_complete,
         'message': 'Profile complete' if profile_complete else 'Profile incomplete'
     }), 200
+
+
+# ==================== Break Requests (admin/assistant) ====================
+
+@admin_bp.route('/break-requests', methods=['GET'])
+@jwt_required()
+def list_break_requests():
+    """List break requests: admin sees all, assistant sees only from their assigned members."""
+    db = get_db()
+    User = get_user_model()
+    user_id = get_jwt_identity()
+    user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+    user = db.session.get(User, user_id_int)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.role not in ('admin', 'assistant'):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    from models import BreakRequest
+    if user.role == 'admin':
+        query = db.session.query(BreakRequest).order_by(BreakRequest.created_at.desc())
+    else:
+        member_ids = [m.id for m in db.session.query(User).filter_by(role='member', assigned_to=user_id_int).all()]
+        if not member_ids:
+            return jsonify([]), 200
+        query = db.session.query(BreakRequest).filter(
+            BreakRequest.user_id.in_(member_ids)
+        ).order_by(BreakRequest.created_at.desc())
+
+    status_filter = request.args.get('status')
+    if status_filter in ('pending', 'seen', 'accepted', 'denied'):
+        query = query.filter_by(status=status_filter)
+
+    requests_list = query.limit(100).all()
+    out = []
+    for br in requests_list:
+        member = db.session.get(User, br.user_id)
+        out.append({
+            'id': br.id,
+            'user_id': br.user_id,
+            'username': member.username if member else None,
+            'message': br.message,
+            'status': br.status,
+            'created_at': br.created_at.isoformat() if br.created_at else None,
+            'seen_at': br.seen_at.isoformat() if br.seen_at else None,
+            'responded_at': br.responded_at.isoformat() if br.responded_at else None,
+            'response_message': br.response_message,
+        })
+    return jsonify(out), 200
+
+
+@admin_bp.route('/break-requests/<int:request_id>/seen', methods=['PATCH'])
+@jwt_required()
+def mark_break_request_seen(request_id):
+    """Mark a break request as seen (admin or assistant who can see it)."""
+    db = get_db()
+    User = get_user_model()
+    user_id = get_jwt_identity()
+    user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+    user = db.session.get(User, user_id_int)
+    if not user or user.role not in ('admin', 'assistant'):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    from models import BreakRequest
+    br = db.session.query(BreakRequest).filter_by(id=request_id).first()
+    if not br:
+        return jsonify({'error': 'Break request not found'}), 404
+    if user.role == 'assistant':
+        member = db.session.get(User, br.user_id)
+        if not member or member.assigned_to != user_id_int:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+    from datetime import datetime
+    br.status = 'seen'
+    br.seen_at = datetime.utcnow()
+    try:
+        db.session.commit()
+        return jsonify({
+            'id': br.id,
+            'status': br.status,
+            'seen_at': br.seen_at.isoformat() if br.seen_at else None,
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/break-requests/<int:request_id>/respond', methods=['PATCH'])
+@jwt_required()
+def respond_break_request(request_id):
+    """Accept or deny a break request (admin or assistant who can see it)."""
+    db = get_db()
+    User = get_user_model()
+    user_id = get_jwt_identity()
+    user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+    user = db.session.get(User, user_id_int)
+    if not user or user.role not in ('admin', 'assistant'):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    from models import BreakRequest
+    from datetime import datetime
+
+    br = db.session.query(BreakRequest).filter_by(id=request_id).first()
+    if not br:
+        return jsonify({'error': 'Break request not found'}), 404
+    if user.role == 'assistant':
+        member = db.session.get(User, br.user_id)
+        if not member or member.assigned_to != user_id_int:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+    data = request.get_json() or {}
+    action = (data.get('action') or '').strip().lower()
+    if action not in ('accept', 'deny'):
+        return jsonify({'error': 'action must be "accept" or "deny"'}), 400
+
+    response_message = (data.get('message') or data.get('response_message') or '').strip() or None
+
+    br.status = 'accepted' if action == 'accept' else 'denied'
+    br.responded_at = datetime.utcnow()
+    br.response_message = response_message
+    if not br.seen_at:
+        br.seen_at = br.responded_at
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'id': br.id,
+            'status': br.status,
+            'responded_at': br.responded_at.isoformat() if br.responded_at else None,
+            'response_message': br.response_message,
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== Site Settings (website info) ====================
+
+@admin_bp.route('/site-settings', methods=['GET'])
+@jwt_required()
+def get_site_settings():
+    """Get site settings (admin only)."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from models import SiteSettings
+    row = db.session.query(SiteSettings).first()
+    if not row:
+        return jsonify({
+            'contact_email': '',
+            'contact_phone': '',
+            'address_fa': '',
+            'address_en': '',
+            'app_description_fa': '',
+            'app_description_en': '',
+            'instagram_url': '',
+            'telegram_url': '',
+            'whatsapp_url': '',
+            'twitter_url': '',
+            'facebook_url': '',
+            'linkedin_url': '',
+            'youtube_url': '',
+            'copyright_text': ''
+        }), 200
+    return jsonify({
+        'contact_email': row.contact_email or '',
+        'contact_phone': row.contact_phone or '',
+        'address_fa': row.address_fa or '',
+        'address_en': row.address_en or '',
+        'app_description_fa': row.app_description_fa or '',
+        'app_description_en': row.app_description_en or '',
+        'instagram_url': row.instagram_url or '',
+        'telegram_url': row.telegram_url or '',
+        'whatsapp_url': row.whatsapp_url or '',
+        'twitter_url': row.twitter_url or '',
+        'facebook_url': row.facebook_url or '',
+        'linkedin_url': row.linkedin_url or '',
+        'youtube_url': row.youtube_url or '',
+        'copyright_text': row.copyright_text or ''
+    }), 200
+
+
+@admin_bp.route('/site-settings', methods=['PUT'])
+@jwt_required()
+def update_site_settings():
+    """Update site settings (admin only)."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json() or {}
+    from models import SiteSettings
+    row = db.session.query(SiteSettings).first()
+    if not row:
+        row = SiteSettings()
+        db.session.add(row)
+    for key in ('contact_email', 'contact_phone', 'address_fa', 'address_en',
+                'app_description_fa', 'app_description_en',
+                'instagram_url', 'telegram_url', 'whatsapp_url', 'twitter_url',
+                'facebook_url', 'linkedin_url', 'youtube_url', 'copyright_text'):
+        if key in data and data[key] is not None:
+            setattr(row, key, (data[key] or '').strip() if isinstance(data[key], str) else data[key])
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Site settings saved successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
 
 
 

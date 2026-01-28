@@ -8,8 +8,10 @@ const TrainingProgramTab = () => {
   const { t, i18n } = useTranslation();
   const { user, loading: authLoading } = useAuth();
   const [programs, setPrograms] = useState([]);
+  const [weeklyGoals, setWeeklyGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedSessions, setExpandedSessions] = useState(new Set());
+  const [goalUpdating, setGoalUpdating] = useState(new Set());
 
   const getAuthToken = () => {
     return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
@@ -23,10 +25,37 @@ const TrainingProgramTab = () => {
   useEffect(() => {
     if (!authLoading && user) {
       loadPrograms();
+      loadWeeklyGoals();
     } else if (!authLoading && !user) {
       setLoading(false);
     }
   }, [authLoading, user]);
+
+  const loadWeeklyGoals = async () => {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const config = getAxiosConfig();
+      const response = await axios.get('http://localhost:5000/api/member/weekly-goals?language=' + (i18n.language || 'fa'), config);
+      setWeeklyGoals(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('Error loading weekly goals:', err);
+      setWeeklyGoals([]);
+    }
+  };
+
+  const toggleGoalComplete = async (goalId, currentCompleted) => {
+    setGoalUpdating(prev => new Set(prev).add(goalId));
+    try {
+      const config = getAxiosConfig();
+      await axios.patch('http://localhost:5000/api/member/weekly-goals/' + goalId, { completed: !currentCompleted }, { ...config, headers: { ...config.headers, 'Content-Type': 'application/json' } });
+      setWeeklyGoals(prev => prev.map(g => g.id === goalId ? { ...g, completed: !currentCompleted, completed_at: !currentCompleted ? new Date().toISOString() : null } : g));
+    } catch (err) {
+      console.error('Error updating goal:', err);
+    } finally {
+      setGoalUpdating(prev => { const s = new Set(prev); s.delete(goalId); return s; });
+    }
+  };
 
   const loadPrograms = async () => {
     const token = getAuthToken();
@@ -92,6 +121,33 @@ const TrainingProgramTab = () => {
       </div>
 
       <div className="training-program-content">
+        {weeklyGoals.length > 0 && (
+          <div className="weekly-goals-section">
+            <h3>{i18n.language === 'fa' ? 'اهداف هفتگی' : 'Weekly Goals'}</h3>
+            <p className="weekly-goals-desc">{i18n.language === 'fa' ? 'اهداف کوچک هر هفته برنامه خود را علامت بزنید.' : 'Check off your mini goals for each week.'}</p>
+            <ul className="weekly-goals-list">
+              {weeklyGoals.map((goal) => (
+                <li key={goal.id} className={`weekly-goal-item ${goal.completed ? 'completed' : ''}`}>
+                  <button
+                    type="button"
+                    className="weekly-goal-check"
+                    onClick={() => !goalUpdating.has(goal.id) && toggleGoalComplete(goal.id, goal.completed)}
+                    disabled={goalUpdating.has(goal.id)}
+                    aria-label={goal.completed ? (i18n.language === 'fa' ? 'علامت انجام' : 'Mark incomplete') : (i18n.language === 'fa' ? 'انجام شد' : 'Mark complete')}
+                  >
+                    {goalUpdating.has(goal.id) ? '…' : (goal.completed ? '✓' : '○')}
+                  </button>
+                  <div className="weekly-goal-body">
+                    <span className="weekly-goal-title">{goal.goal_title}</span>
+                    {goal.training_program_name && (
+                      <span className="weekly-goal-program">{goal.training_program_name}</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {programs.length === 0 ? (
           <div className="no-programs">
             <p>{i18n.language === 'fa' ? 'هنوز برنامه تمرینی برای شما ایجاد نشده است.' : 'No training program has been created for you yet.'}</p>

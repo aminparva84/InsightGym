@@ -53,9 +53,9 @@ const ProgressTrend = () => {
       ]);
       
       setUserProfile(profileRes.data);
-      if (progressRes.data.success) {
-        setProgressEntries(progressRes.data.progress_entries || []);
-      }
+      // Accept progress entries from 200 response (success key or progress_entries array)
+      const entries = progressRes.data?.progress_entries ?? progressRes.data;
+      setProgressEntries(Array.isArray(entries) ? entries : []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -228,32 +228,41 @@ const ProgressTrend = () => {
       return <p className="no-data-message">{i18n.language === 'fa' ? 'داده‌ای برای نمایش وجود ندارد' : 'No data to display'}</p>;
     }
 
-    const maxValue = Math.max(...data.map(d => d[valueKey] || 0));
-    const minValue = Math.min(...data.map(d => d[valueKey] || 0));
+    // For a single point, duplicate it so the polyline draws a visible horizontal segment
+    const chartData = data.length === 1 ? [data[0], { ...data[0], [labelKey]: data[0][labelKey] }] : data;
+    const n = chartData.length;
+    const step = n > 1 ? (n - 1) : 1;
+
+    const maxValue = Math.max(...chartData.map(d => Number(d[valueKey]) || 0));
+    const minValue = Math.min(...chartData.map(d => Number(d[valueKey]) || 0));
     const range = maxValue - minValue || 1;
+
+    const getPoint = (d, i) => {
+      const x = (i / step) * 700 + 50;
+      const val = Number(d[valueKey]) || minValue;
+      const y = 250 - ((val - minValue) / range) * 200;
+      return { x, y };
+    };
+
+    const pointsStr = chartData.map((d, i) => getPoint(d, i)).map(p => `${p.x},${p.y}`).join(' ');
 
     return (
       <div className="simple-chart">
-        <svg viewBox="0 0 800 300" className="chart-svg">
+        <svg viewBox="0 0 800 300" className="chart-svg" preserveAspectRatio="xMidYMid meet">
           <polyline
             fill="none"
             stroke="#06b6d4"
             strokeWidth="3"
-            points={data.map((d, i) => {
-              const x = (i / (data.length - 1 || 1)) * 700 + 50;
-              const y = 250 - ((d[valueKey] - minValue) / range) * 200;
-              return `${x},${y}`;
-            }).join(' ')}
+            points={pointsStr}
           />
           {data.map((d, i) => {
-            const x = (i / (data.length - 1 || 1)) * 700 + 50;
-            const y = 250 - ((d[valueKey] - minValue) / range) * 200;
+            const { x, y } = getPoint(d, i);
             return (
               <circle
                 key={i}
                 cx={x}
                 cy={y}
-                r="4"
+                r="5"
                 fill="#06b6d4"
               />
             );

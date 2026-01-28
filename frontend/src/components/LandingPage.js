@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import AuthModal from './AuthModal';
 import TrainingProgramsModal from './TrainingProgramsModal';
 import BannerChat from './BannerChat';
+import axios from 'axios';
 import './LandingPage.css';
 
 const LandingPage = () => {
@@ -14,6 +15,9 @@ const LandingPage = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showTrainingProgramsModal, setShowTrainingProgramsModal] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [hasTrainingProgram, setHasTrainingProgram] = useState(false);
+  const [checkingProgram, setCheckingProgram] = useState(false);
+  const [siteSettings, setSiteSettings] = useState(null);
 
   // Function to aggressively prevent scroll
   const preventScroll = () => {
@@ -63,6 +67,57 @@ const LandingPage = () => {
     return () => {
       clearTimeout(timeout);
     };
+  }, [user]);
+
+  // Fetch site settings for footer (contact, social)
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/site-settings');
+        setSiteSettings(response.data || {});
+      } catch (error) {
+        console.error('Error fetching site settings:', error);
+        setSiteSettings({});
+      }
+    };
+    fetchSiteSettings();
+  }, []);
+
+  // Check if user has a training program
+  useEffect(() => {
+    const checkTrainingProgram = async () => {
+      if (!user) {
+        setHasTrainingProgram(false);
+        return;
+      }
+
+      setCheckingProgram(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setHasTrainingProgram(false);
+          setCheckingProgram(false);
+          return;
+        }
+
+        const response = await axios.get('http://localhost:5000/api/training-programs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+          setHasTrainingProgram(true);
+        } else {
+          setHasTrainingProgram(false);
+        }
+      } catch (error) {
+        console.error('Error checking training program:', error);
+        setHasTrainingProgram(false);
+      } finally {
+        setCheckingProgram(false);
+      }
+    };
+
+    checkTrainingProgram();
   }, [user]);
 
   const changeLanguage = () => {
@@ -286,9 +341,22 @@ const LandingPage = () => {
           {user ? (
             <button 
               className="lets-start-btn"
-              onClick={() => setShowTrainingProgramsModal(true)}
+              onClick={() => {
+                if (hasTrainingProgram) {
+                  navigate('/dashboard?tab=training-program');
+                } else {
+                  setShowTrainingProgramsModal(true);
+                }
+              }}
+              disabled={checkingProgram}
             >
-              {t('buyTrainingProgramme')}
+              {checkingProgram 
+                ? (i18n.language === 'fa' ? 'در حال بررسی...' : 'Checking...')
+                : (hasTrainingProgram 
+                    ? (i18n.language === 'fa' ? 'مشاهده برنامه تمرینی' : 'See the Training Programme')
+                    : t('buyTrainingProgramme')
+                  )
+              }
             </button>
           ) : (
             <button 
@@ -308,9 +376,10 @@ const LandingPage = () => {
             <div className="footer-section">
               <h4 className="footer-title">{t('appName')}</h4>
               <p className="footer-description">
-                {i18n.language === 'fa'
-                  ? 'پلتفرم جامع تناسب اندام با هوش مصنوعی'
-                  : 'Comprehensive fitness platform powered by AI'
+                {(siteSettings && (i18n.language === 'fa' ? siteSettings.app_description_fa : siteSettings.app_description_en)) ||
+                  (i18n.language === 'fa'
+                    ? 'پلتفرم جامع تناسب اندام با هوش مصنوعی'
+                    : 'Comprehensive fitness platform powered by AI')
                 }
               </p>
             </div>
@@ -341,22 +410,88 @@ const LandingPage = () => {
               </h4>
               <ul className="footer-links">
                 <li>
-                  <a href="mailto:info@insightgym.com" className="footer-link">
-                    info@insightgym.com
+                  <a href={`mailto:${(siteSettings?.contact_email || 'info@insightgym.com').trim()}`} className="footer-link">
+                    {(siteSettings?.contact_email || 'info@insightgym.com').trim() || 'info@insightgym.com'}
                   </a>
                 </li>
                 <li>
-                  <a href="tel:+1234567890" className="footer-link">
-                    {i18n.language === 'fa' ? '+98 123 456 7890' : '+1 (234) 567-890'}
+                  <a href={`tel:${(siteSettings?.contact_phone || '+1234567890').replace(/\s/g, '')}`} className="footer-link">
+                    {siteSettings?.contact_phone?.trim() || (i18n.language === 'fa' ? '+98 123 456 7890' : '+1 (234) 567-890')}
                   </a>
                 </li>
+                {siteSettings?.address_fa?.trim() && i18n.language === 'fa' && (
+                  <li className="footer-address">{siteSettings.address_fa}</li>
+                )}
+                {siteSettings?.address_en?.trim() && i18n.language !== 'fa' && (
+                  <li className="footer-address">{siteSettings.address_en}</li>
+                )}
               </ul>
             </div>
+
+            {(siteSettings?.instagram_url || siteSettings?.telegram_url || siteSettings?.whatsapp_url ||
+              siteSettings?.twitter_url || siteSettings?.facebook_url || siteSettings?.linkedin_url || siteSettings?.youtube_url) && (
+              <div className="footer-section footer-social-section">
+                <h4 className="footer-links-title">
+                  {i18n.language === 'fa' ? 'شبکه‌های اجتماعی' : 'Social Media'}
+                </h4>
+                <ul className="footer-social-links">
+                  {siteSettings.instagram_url && (
+                    <li>
+                      <a href={siteSettings.instagram_url} target="_blank" rel="noopener noreferrer" className="footer-social-link" title="Instagram" aria-label="Instagram">
+                        <span className="footer-social-icon">📷</span> Instagram
+                      </a>
+                    </li>
+                  )}
+                  {siteSettings.telegram_url && (
+                    <li>
+                      <a href={siteSettings.telegram_url} target="_blank" rel="noopener noreferrer" className="footer-social-link" title="Telegram" aria-label="Telegram">
+                        <span className="footer-social-icon">✈️</span> Telegram
+                      </a>
+                    </li>
+                  )}
+                  {siteSettings.whatsapp_url && (
+                    <li>
+                      <a href={siteSettings.whatsapp_url} target="_blank" rel="noopener noreferrer" className="footer-social-link" title="WhatsApp" aria-label="WhatsApp">
+                        <span className="footer-social-icon">💬</span> WhatsApp
+                      </a>
+                    </li>
+                  )}
+                  {siteSettings.twitter_url && (
+                    <li>
+                      <a href={siteSettings.twitter_url} target="_blank" rel="noopener noreferrer" className="footer-social-link" title="Twitter" aria-label="Twitter">
+                        <span className="footer-social-icon">𝕏</span> Twitter
+                      </a>
+                    </li>
+                  )}
+                  {siteSettings.facebook_url && (
+                    <li>
+                      <a href={siteSettings.facebook_url} target="_blank" rel="noopener noreferrer" className="footer-social-link" title="Facebook" aria-label="Facebook">
+                        <span className="footer-social-icon">f</span> Facebook
+                      </a>
+                    </li>
+                  )}
+                  {siteSettings.linkedin_url && (
+                    <li>
+                      <a href={siteSettings.linkedin_url} target="_blank" rel="noopener noreferrer" className="footer-social-link" title="LinkedIn" aria-label="LinkedIn">
+                        <span className="footer-social-icon">in</span> LinkedIn
+                      </a>
+                    </li>
+                  )}
+                  {siteSettings.youtube_url && (
+                    <li>
+                      <a href={siteSettings.youtube_url} target="_blank" rel="noopener noreferrer" className="footer-social-link" title="YouTube" aria-label="YouTube">
+                        <span className="footer-social-icon">▶</span> YouTube
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="footer-bottom">
             <p className="footer-copyright">
-              © {new Date().getFullYear()} {t('appName')}. {t('copyright')}
+              © {new Date().getFullYear()} {t('appName')}. {siteSettings?.copyright_text || t('copyright')}
             </p>
           </div>
         </div>

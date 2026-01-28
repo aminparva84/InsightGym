@@ -347,7 +347,8 @@ def login():
                             'id': user.id,
                             'username': user.username,
                             'email': user.email,
-                            'language': user.language
+                            'language': user.language,
+                            'role': user.role
                         }
                     }), 200
                 else:
@@ -1568,6 +1569,66 @@ def generate_ai_response(message, user_id, language, local_time=None):
 def health():
     return jsonify({'status': 'healthy'}), 200
 
+
+@app.route('/api/site-settings', methods=['GET'])
+def get_site_settings_public():
+    """Public endpoint: get website contact and social info for footer (no auth)."""
+    try:
+        from models import SiteSettings
+        row = db.session.query(SiteSettings).first()
+        if not row:
+            return jsonify({
+                'contact_email': '',
+                'contact_phone': '',
+                'address_fa': '',
+                'address_en': '',
+                'app_description_fa': '',
+                'app_description_en': '',
+                'instagram_url': '',
+                'telegram_url': '',
+                'whatsapp_url': '',
+                'twitter_url': '',
+                'facebook_url': '',
+                'linkedin_url': '',
+                'youtube_url': '',
+                'copyright_text': ''
+            }), 200
+        return jsonify({
+            'contact_email': row.contact_email or '',
+            'contact_phone': row.contact_phone or '',
+            'address_fa': row.address_fa or '',
+            'address_en': row.address_en or '',
+            'app_description_fa': row.app_description_fa or '',
+            'app_description_en': row.app_description_en or '',
+            'instagram_url': row.instagram_url or '',
+            'telegram_url': row.telegram_url or '',
+            'whatsapp_url': row.whatsapp_url or '',
+            'twitter_url': row.twitter_url or '',
+            'facebook_url': row.facebook_url or '',
+            'linkedin_url': row.linkedin_url or '',
+            'youtube_url': row.youtube_url or '',
+            'copyright_text': row.copyright_text or ''
+        }), 200
+    except Exception as e:
+        print(f"Error get_site_settings_public: {e}")
+        return jsonify({
+            'contact_email': '',
+            'contact_phone': '',
+            'address_fa': '',
+            'address_en': '',
+            'app_description_fa': '',
+            'app_description_en': '',
+            'instagram_url': '',
+            'telegram_url': '',
+            'whatsapp_url': '',
+            'twitter_url': '',
+            'facebook_url': '',
+            'linkedin_url': '',
+            'youtube_url': '',
+            'copyright_text': ''
+        }), 200
+
+
 # Register blueprints
 try:
     from api.workout_plan_api import workout_plan_bp
@@ -1596,6 +1657,11 @@ except ImportError:
 try:
     from api.exercise_library_api import exercise_library_bp
     app.register_blueprint(exercise_library_bp)
+except ImportError:
+    pass
+try:
+    from api.member_api import member_bp
+    app.register_blueprint(member_bp)
 except ImportError:
     pass
 
@@ -1702,6 +1768,11 @@ def upload_progress_analysis():
 
 if __name__ == '__main__':
     with app.app_context():
+        # Ensure SiteSettings (and other models) are registered before create_all
+        try:
+            from models import SiteSettings  # noqa: F401
+        except ImportError:
+            pass
         db.create_all()
         # Import additional models to ensure tables are created
         try:

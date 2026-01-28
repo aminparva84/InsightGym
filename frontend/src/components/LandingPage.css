@@ -80,6 +80,8 @@ html {
   color: var(--color-primary-800);
   position: relative;
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
@@ -92,13 +94,14 @@ html {
   left: 0;
   right: 0;
   z-index: 1000;
-  padding: 1rem 2rem;
+  padding: 1rem clamp(1rem, 2rem, 4vw);
   transition: all 0.3s ease;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   background: rgba(255, 255, 255, 0.85);
   border-bottom: 1px solid rgba(30, 41, 59, 0.1);
   box-shadow: var(--shadow-md);
+  max-width: 100%;
 }
 
 .landing-header.scrolled {
@@ -108,11 +111,14 @@ html {
 }
 
 .header-container {
-  max-width: 1400px;
+  max-width: min(1400px, 100%);
+  width: 100%;
+  min-width: 0;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 0.5rem;
 }
 
 .header-title {
@@ -139,6 +145,8 @@ html {
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 /* Language Toggle Button */
@@ -295,10 +303,12 @@ html {
    ============================================ */
 .landing-content {
   max-width: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
   position: relative;
   padding-top: 80px; /* Space for fixed header */
+  overflow-x: hidden;
 }
 
 /* ============================================
@@ -309,6 +319,7 @@ html {
   flex-direction: row;
   min-height: 450px;
   width: 100%;
+  max-width: 100%;
   background: var(--gradient-hero);
   position: relative;
   overflow: hidden;
@@ -331,24 +342,25 @@ html {
 /* Left Side - Text and Chatbox */
 .banner-left {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 2rem 3rem;
+  padding: 2rem clamp(1rem, 3rem, 4vw);
   position: relative;
   z-index: 1;
 }
 
 .banner-text-container {
   width: 100%;
-  max-width: 600px;
+  max-width: min(600px, 100%);
   text-align: center;
   margin-bottom: 1.5rem;
 }
 
 .banner-title {
-  font-size: 2.8rem;
+  font-size: clamp(1.4rem, 5vw, 2.8rem);
   font-weight: 800;
   color: #ffffff;
   margin: 0;
@@ -359,6 +371,8 @@ html {
   gap: 0.3rem;
   justify-content: center;
   align-items: center;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .banner-title-line {
@@ -393,7 +407,7 @@ html {
 /* Chatbox Wrapper */
 .banner-chatbox-wrapper {
   width: 100%;
-  max-width: 600px;
+  max-width: min(600px, 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -436,17 +450,20 @@ html {
 /* Right Side - Gym Image */
 .banner-right {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 2rem clamp(1rem, 2rem, 4vw);
   position: relative;
   z-index: 1;
 }
 
 .banner-image-container {
   width: 100%;
+  max-width: 100%;
   height: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -467,19 +484,24 @@ html {
    Feature Cards Section
    ============================================ */
 .features-section {
-  padding: 5rem 2rem;
+  padding: 5rem clamp(1rem, 2rem, 4vw);
   background: var(--color-white);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .features-container {
-  max-width: 1400px;
+  max-width: min(1400px, 100%);
+  width: 100%;
   margin: 0 auto;
 }
 
 .feature-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
   gap: 2rem;
+  min-width: 0;
 }
 
 .feature-card {
@@ -493,6 +515,7 @@ html {
   box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
+  min-width: 0;
 }
 
 .feature-card::before {
@@ -559,13 +582,17 @@ html {
    About Section
    ============================================ */
 .about-section {
-  padding: 5rem 2rem;
+  padding: 5rem clamp(1rem, 2rem, 4vw);
   background: linear-gradient(180deg, var(--color-primary-50) 0%, var(--color-white) 100%);
   scroll-margin-top: 80px; /* Account for fixed header */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .about-container {
-  max-width: 1000px;
+  max-width: min(1000px, 100%);
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -583,9 +610,11 @@ html {
 .about-content {
   background: var(--color-white);
   border-radius: 20px;
-  padding: 3rem;
+  padding: clamp(1.5rem, 3rem, 4vw);
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-primary-200);
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .about-text {
@@ -632,8 +661,11 @@ html {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 4rem 2rem;
+  padding: 4rem clamp(1rem, 2rem, 4vw);
   background: linear-gradient(180deg, var(--color-white) 0%, var(--color-primary-50) 100%);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .lets-start-btn {
@@ -684,20 +716,25 @@ html {
 .landing-footer {
   background: linear-gradient(135deg, var(--color-primary-900) 0%, var(--color-primary-800) 100%);
   color: var(--color-white);
-  padding: 3rem 2rem 1.5rem;
+  padding: 3rem clamp(1rem, 2rem, 4vw) 1.5rem;
   margin-top: 2rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .footer-container {
-  max-width: 1400px;
+  max-width: min(1400px, 100%);
+  width: 100%;
   margin: 0 auto;
 }
 
 .footer-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
   gap: 3rem;
   margin-bottom: 2rem;
+  min-width: 0;
 }
 
 .footer-section {
@@ -763,6 +800,45 @@ html {
   font-size: 0.9rem;
   color: var(--color-primary-500);
   margin: 0;
+}
+
+.footer-address {
+  color: var(--color-primary-300);
+  font-size: 0.95rem;
+  list-style: none;
+}
+
+.footer-social-section {
+  /* same as .footer-section */
+}
+
+.footer-social-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+.footer-social-link {
+  color: var(--color-primary-300);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.footer-social-link:hover {
+  color: var(--color-secondary-400);
+  text-decoration: none;
+}
+
+.footer-social-icon {
+  font-size: 1rem;
+  opacity: 0.9;
 }
 
 /* ============================================

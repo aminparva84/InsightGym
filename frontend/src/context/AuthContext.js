@@ -282,7 +282,7 @@ export const AuthProvider = ({ children }) => {
         // fetchUser will be called on page reload if needed
         // This prevents any race conditions or immediate failures from clearing the user
         
-        return { success: true };
+        return { success: true, user: userData };
       } else {
         console.error('No access_token in response:', response.data);
         return { success: false, error: 'No token received from server' };

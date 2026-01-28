@@ -1,0 +1,38 @@
+"""
+Migration: Add responded_at and response_message to break_requests for accept/deny.
+Run with: python migrate_break_respond.py
+"""
+
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from app import app, db
+from sqlalchemy import text
+
+
+def migrate():
+    with app.app_context():
+        try:
+            result = db.session.execute(text("PRAGMA table_info(break_requests)"))
+            existing = [row[1] for row in result.fetchall()]
+            if 'responded_at' not in existing:
+                db.session.execute(text("ALTER TABLE break_requests ADD COLUMN responded_at DATETIME"))
+                db.session.commit()
+                print("[OK] Added responded_at to break_requests")
+            else:
+                print("[OK] responded_at already exists")
+            if 'response_message' not in existing:
+                db.session.execute(text("ALTER TABLE break_requests ADD COLUMN response_message TEXT"))
+                db.session.commit()
+                print("[OK] Added response_message to break_requests")
+            else:
+                print("[OK] response_message already exists")
+        except Exception as e:
+            db.session.rollback()
+            print(f"[ERROR] {e}")
+            raise
+
+
+if __name__ == '__main__':
+    migrate()

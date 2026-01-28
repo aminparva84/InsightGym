@@ -389,6 +389,68 @@ class TrainingProgram(db.Model):
             'sessions': self.get_sessions()
         }
 
+class MemberWeeklyGoal(db.Model):
+    """Weekly mini-goals for members on a training plan (e.g. 1 month = 4 weekly goals)"""
+    __tablename__ = 'member_weekly_goals'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    training_program_id = db.Column(db.Integer, db.ForeignKey('training_programs.id'), nullable=False)
+    week_number = db.Column(db.Integer, nullable=False)  # 1..duration_weeks
+    
+    goal_title_fa = db.Column(db.String(200))
+    goal_title_en = db.Column(db.String(200))
+    goal_description_fa = db.Column(db.Text)
+    goal_description_en = db.Column(db.Text)
+    
+    completed = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'training_program_id', 'week_number', name='uq_member_program_week'),
+    )
+
+
+class DailySteps(db.Model):
+    """Daily step count per user - from device (mobile) or manual entry"""
+    __tablename__ = 'daily_steps'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)  # date only
+    steps = db.Column(db.Integer, default=0, nullable=False)
+    source = db.Column(db.String(20), default='manual')  # 'manual' or 'device'
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'date', name='uq_user_date_steps'),
+    )
+
+
+class BreakRequest(db.Model):
+    """Member break request - notifies admin or assigned assistant"""
+    __tablename__ = 'break_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # member who requested
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default='pending')  # 'pending', 'seen', 'accepted', 'denied'
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    seen_at = db.Column(db.DateTime, nullable=True)
+    responded_at = db.Column(db.DateTime, nullable=True)
+    response_message = db.Column(db.Text, nullable=True)  # optional note from admin/assistant when accepting or denying
+    
+    __table_args__ = (
+        db.Index('idx_break_requests_status', 'status'),
+    )
+
+
 class Configuration(db.Model):
     """Configuration for training levels and injuries"""
     __tablename__ = 'configuration'
@@ -396,6 +458,29 @@ class Configuration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     training_levels = db.Column(db.Text)  # JSON string
     injuries = db.Column(db.Text)  # JSON string
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SiteSettings(db.Model):
+    """Website info editable by admin: contact, social links, etc. Single row (singleton)."""
+    __tablename__ = 'site_settings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    contact_email = db.Column(db.String(255))
+    contact_phone = db.Column(db.String(100))
+    address_fa = db.Column(db.String(500))
+    address_en = db.Column(db.String(500))
+    app_description_fa = db.Column(db.String(500))
+    app_description_en = db.Column(db.String(500))
+    instagram_url = db.Column(db.String(500))
+    telegram_url = db.Column(db.String(500))
+    whatsapp_url = db.Column(db.String(500))
+    twitter_url = db.Column(db.String(500))
+    facebook_url = db.Column(db.String(500))
+    linkedin_url = db.Column(db.String(500))
+    youtube_url = db.Column(db.String(500))
+    copyright_text = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

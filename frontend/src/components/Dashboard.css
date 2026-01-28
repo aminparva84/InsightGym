@@ -75,6 +75,9 @@
   background-color: var(--color-white);
   color: var(--color-primary-800);
   padding-top: 80px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Dashboard Topbar - Matching Landing Page Theme */
@@ -83,22 +86,28 @@
   top: 0;
   left: 0;
   right: 0;
+  width: 100%;
+  max-width: 100%;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  padding: 1rem 2rem;
+  padding: 1rem clamp(1rem, 2rem, 4vw);
   z-index: 1000;
   box-shadow: var(--shadow-md);
   border-bottom: 1px solid rgba(30, 41, 59, 0.1);
   transition: all 0.3s ease;
+  overflow-x: hidden;
 }
 
 .topbar-container {
-  max-width: 1400px;
+  max-width: min(1400px, 100%);
+  width: 100%;
+  min-width: 0;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 0.5rem;
 }
 
 .topbar-title {
@@ -231,6 +240,23 @@
   font-weight: 500;
 }
 
+.topbar-break-request-btn {
+  padding: 0.5rem 1rem;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.topbar-break-request-btn:hover {
+  background: rgba(245, 158, 11, 0.25);
+  color: var(--color-warning);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
 .topbar-logout-btn {
   padding: 0.6rem 1.5rem;
   background: rgba(239, 68, 68, 0.1);
@@ -253,17 +279,22 @@
 }
 
 .dashboard-content {
-  max-width: 1600px;
+  max-width: min(1600px, 100%);
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
+  padding-left: clamp(1rem, 2rem, 4vw);
+  padding-right: clamp(1rem, 2rem, 4vw);
   background-color: var(--color-white);
+  overflow-x: hidden;
 }
 
 .dashboard-layout {
   display: grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
   gap: 2rem;
   align-items: start;
+  min-width: 0; /* allow grid children to shrink below content size */
 }
 
 .dashboard-left {
@@ -279,6 +310,7 @@
 .dashboard-right {
   display: flex;
   flex-direction: column;
+  min-width: 0; /* allow shrinking so tab content doesn't overflow */
 }
 
 .tabs-container {
@@ -350,10 +382,12 @@
   background-color: var(--color-white);
   border: 1px solid var(--color-primary-200);
   border-radius: 12px;
-  padding: 2rem;
+  padding: clamp(1rem, 2rem, 4vw);
   min-height: 500px;
   color: var(--color-primary-800);
   box-shadow: var(--shadow-md);
+  min-width: 0;
+  overflow-x: auto; /* scroll inside tab if content is wide (e.g. tables) */
 }
 
 .tab-content * {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import RegistrationForm from './RegistrationForm';
 import './AuthModal.css';
@@ -7,6 +8,7 @@ import './AuthModal.css';
 const AuthModal = ({ isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'signup'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -31,6 +33,12 @@ const AuthModal = ({ isOpen, onClose }) => {
       setUsername('');
       setPassword('');
       setError('');
+      
+      // Check if user is admin and redirect to dashboard
+      if (result.user && result.user.role === 'admin') {
+        navigate('/dashboard');
+      }
+      // If not admin, stay on landing page (default behavior)
     }
   };
 
