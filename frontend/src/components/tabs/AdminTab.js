@@ -1,21 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
 import './AdminTab.css';
 
 const AdminTab = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const API_BASE = getApiBase();
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
   
   // Members state
-  const [members, setMembers] = useState([]);
   const [assistants, setAssistants] = useState([]);
-  const [editingMember, setEditingMember] = useState(null);
-  const [memberFormData, setMemberFormData] = useState({});
   const [showAssistantForm, setShowAssistantForm] = useState(false);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState(null);
@@ -41,19 +35,15 @@ const AdminTab = () => {
   });
 
 
-  useEffect(() => {
-    fetchAssistants();
-  }, []);
-
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const localToken = localStorage.getItem('token');
     if (localToken && localToken.trim() !== '') {
       return localToken.trim();
     }
     return null;
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return {
       headers: {
@@ -61,9 +51,9 @@ const AdminTab = () => {
         'Content-Type': 'application/json'
       }
     };
-  };
+  }, [getAuthToken]);
 
-  const fetchAssistants = async () => {
+  const fetchAssistants = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE}/api/admin/assistants`, getAxiosConfig());
       setAssistants(response.data);
@@ -71,7 +61,11 @@ const AdminTab = () => {
       console.error('Error fetching assistants:', error);
       alert(i18n.language === 'fa' ? 'خطا در دریافت لیست دستیاران' : 'Error fetching assistants');
     }
-  };
+  }, [API_BASE, getAxiosConfig, i18n.language]);
+
+  useEffect(() => {
+    fetchAssistants();
+  }, [fetchAssistants]);
 
   const fetchAssistantDetails = async (assistantId) => {
     try {
@@ -193,7 +187,7 @@ const AdminTab = () => {
         };
       }
       
-      const response = await axios.post(`${API_BASE}/api/admin/assistants`, data, getAxiosConfig());
+      await axios.post(`${API_BASE}/api/admin/assistants`, data, getAxiosConfig());
       
       // Show credentials modal
       setCreatedCredentials({

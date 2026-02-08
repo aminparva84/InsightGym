@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -34,16 +34,16 @@ const TrainingProgramTab = () => {
   const [cancellingProgramId, setCancellingProgramId] = useState(null);
   const [showOtherDaysByProgram, setShowOtherDaysByProgram] = useState({});
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
-  };
+  }, [getAuthToken]);
 
-  const loadSessionPhases = async () => {
+  const loadSessionPhases = useCallback(async () => {
     const token = getAuthToken();
     if (!token) return;
     try {
@@ -59,7 +59,7 @@ const TrainingProgramTab = () => {
     } catch (err) {
       console.error('Error loading session phases:', err);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -70,9 +70,9 @@ const TrainingProgramTab = () => {
     } else if (!authLoading && !user) {
       setLoading(false);
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, loadPrograms, loadWeeklyGoals, loadTrainingProgress, loadSessionPhases]);
 
-  const loadTrainingProgress = async () => {
+  const loadTrainingProgress = useCallback(async () => {
     const token = getAuthToken();
     if (!token) return;
     try {
@@ -84,9 +84,9 @@ const TrainingProgramTab = () => {
     } catch (err) {
       console.error('Error loading training progress:', err);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig]);
 
-  const loadActionNotes = async (programId) => {
+  const loadActionNotes = useCallback(async (programId) => {
     const token = getAuthToken();
     if (!token) return;
     try {
@@ -102,7 +102,7 @@ const TrainingProgramTab = () => {
     } catch (err) {
       console.error('Error loading action notes:', err);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig, i18n.language]);
 
   const progressKey = (programId, sessionIdx, exIdx) => `${programId}-${sessionIdx}-${exIdx}`;
 
@@ -141,7 +141,7 @@ const TrainingProgramTab = () => {
 
   const exerciseInfoKey = (nameFa, nameEn) => `${nameFa || ''}|${nameEn || ''}`;
 
-  const loadExerciseInfo = async (nameFa, nameEn) => {
+  const loadExerciseInfo = useCallback(async (nameFa, nameEn) => {
     const key = exerciseInfoKey(nameFa, nameEn);
     if (!key || key === '|' || exerciseInfoCache[key]) return;
     try {
@@ -155,7 +155,7 @@ const TrainingProgramTab = () => {
     } catch (err) {
       console.error('Error loading exercise info:', err);
     }
-  };
+  }, [API_BASE, exerciseInfoCache, getAxiosConfig, i18n.language]);
 
   useEffect(() => {
     if (!programs.length) return;
@@ -171,7 +171,7 @@ const TrainingProgramTab = () => {
         });
       });
     });
-  }, [programs, expandedSessions]);
+  }, [programs, expandedSessions, exerciseInfoCache, loadExerciseInfo]);
 
   useEffect(() => {
     if (!activeSessionStart?.session?.exercises?.length) return;
@@ -181,9 +181,9 @@ const TrainingProgramTab = () => {
       const key = exerciseInfoKey(nameFa, nameEn);
       if (key && key !== '|' && !exerciseInfoCache[key]) loadExerciseInfo(nameFa, nameEn);
     });
-  }, [activeSessionStart?.programId, activeSessionStart?.sessionIndex]);
+  }, [activeSessionStart, exerciseInfoCache, loadExerciseInfo]);
 
-  const loadWeeklyGoals = async () => {
+  const loadWeeklyGoals = useCallback(async () => {
     const token = getAuthToken();
     if (!token) return;
     try {
@@ -209,7 +209,7 @@ const TrainingProgramTab = () => {
       console.error('Error loading weekly goals:', err);
       setWeeklyGoals([]);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig, i18n.language]);
 
   const toggleGoalWeek = (weekNum) => {
     setExpandedGoalWeeks((prev) => {
@@ -256,7 +256,7 @@ const TrainingProgramTab = () => {
     }
   };
 
-  const loadPrograms = async () => {
+  const loadPrograms = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
       console.warn('No token found for loading training programs');
@@ -289,7 +289,7 @@ const TrainingProgramTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig, loadActionNotes]);
 
   const toggleSession = (programId, sessionIdx) => {
     const sessionKey = `${programId}-${sessionIdx}`;
@@ -398,30 +398,6 @@ const TrainingProgramTab = () => {
     const key = setDoneKey(programId, sessionIdx, exIdx);
     return completedSetsInSession[key] || new Set();
   };
-  const markSetDone = (programId, sessionIdx, exIdx, setNum, exercise, askPostSet, targetMuscle) => {
-    const key = setDoneKey(programId, sessionIdx, exIdx);
-    const completed = getCompletedSets(programId, sessionIdx, exIdx);
-    if (completed.has(setNum)) return;
-    if (askPostSet) {
-      setPostSetModal({ open: true, programId, sessionIdx, exIdx, exercise, setNumber: setNum, targetMuscle: targetMuscle || '' });
-      setPostSetAnswers({ how_was_it: '', which_muscle: '', was_hard: '' });
-      setPostSetFeedback('');
-      return;
-    }
-    setCompletedSetsInSession(prev => ({
-      ...prev,
-      [key]: new Set([...prev[key] || [], setNum]),
-    }));
-    const session = activeSessionStart?.session;
-    const exercises = session?.exercises || [];
-    const ex = exercises[exIdx];
-    const sets = ex?.sets || 1;
-    const newSet = new Set([...completed, setNum]);
-    if (newSet.size >= sets) {
-      toggleActionComplete(programId, sessionIdx, exIdx);
-    }
-  };
-
   const submitPostSetAndMarkDone = async () => {
     if (!postSetModal.open || !postSetModal.exercise) return;
     setPostSetLoading(true);

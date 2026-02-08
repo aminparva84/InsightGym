@@ -1,30 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
 import './AssistantDashboard.css';
 
 const AssistantDashboard = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const API_BASE = getApiBase();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberDetails, setMemberDetails] = useState(null);
 
-  useEffect(() => {
-    fetchAssignedMembers();
-  }, []);
-
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const localToken = localStorage.getItem('token');
     if (localToken && localToken.trim() !== '') {
       return localToken.trim();
     }
     return null;
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return {
       headers: {
@@ -32,9 +28,9 @@ const AssistantDashboard = () => {
         'Content-Type': 'application/json'
       }
     };
-  };
+  }, [getAuthToken]);
 
-  const fetchAssignedMembers = async () => {
+  const fetchAssignedMembers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE}/api/admin/members`, getAxiosConfig());
@@ -45,7 +41,11 @@ const AssistantDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAxiosConfig, i18n.language]);
+
+  useEffect(() => {
+    fetchAssignedMembers();
+  }, [fetchAssignedMembers]);
 
   const fetchMemberDetails = async (memberId) => {
     try {
@@ -56,12 +56,6 @@ const AssistantDashboard = () => {
       console.error('Error fetching member details:', error);
       alert(i18n.language === 'fa' ? 'خطا در دریافت جزئیات عضو' : 'Error fetching member details');
     }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString(i18n.language === 'fa' ? 'fa-IR' : 'en-US');
   };
 
   return (

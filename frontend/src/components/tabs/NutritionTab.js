@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -14,24 +14,16 @@ const NutritionTab = () => {
   const [loading, setLoading] = useState(true);
 
   // Get auth token
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
-  };
+  }, [getAuthToken]);
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      loadNutritionPlans();
-    } else if (!authLoading && !user) {
-      setLoading(false);
-    }
-  }, [planType, authLoading, user]);
-
-  const loadNutritionPlans = async () => {
+  const loadNutritionPlans = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
       console.warn('No token found for loading nutrition plans');
@@ -51,7 +43,15 @@ const NutritionTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig, planType]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadNutritionPlans();
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [authLoading, user, loadNutritionPlans]);
 
   const groupByDay = (plans) => {
     const grouped = {};

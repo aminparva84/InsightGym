@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -20,36 +20,37 @@ const WarmingCooldownTab = () => {
     ending_message_en: ''
   });
 
-  const getAuthToken = () => localStorage.getItem('token') || '';
-  const getAxiosConfig = () => ({
+  const getAuthToken = useCallback(() => localStorage.getItem('token') || '', []);
+  const getAxiosConfig = useCallback(() => ({
     headers: { Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' }
-  });
+  }), [getAuthToken]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_BASE}/api/admin/session-phases`, getAxiosConfig());
+      const d = res.data || {};
+      setData({
+        warming: d.warming && typeof d.warming === 'object'
+          ? { title_fa: d.warming.title_fa || '', title_en: d.warming.title_en || '', steps: Array.isArray(d.warming.steps) ? d.warming.steps.map(s => ({ ...defaultStep(), ...s })) : [] }
+          : defaultPhase(),
+        cooldown: d.cooldown && typeof d.cooldown === 'object'
+          ? { title_fa: d.cooldown.title_fa || '', title_en: d.cooldown.title_en || '', steps: Array.isArray(d.cooldown.steps) ? d.cooldown.steps.map(s => ({ ...defaultStep(), ...s })) : [] }
+          : defaultPhase(),
+        ending_message_fa: d.ending_message_fa || '',
+        ending_message_en: d.ending_message_en || ''
+      });
+    } catch (err) {
+      console.error('Error loading session phases:', err);
+      setData({ warming: defaultPhase(), cooldown: defaultPhase(), ending_message_fa: '', ending_message_en: '' });
+    } finally {
+      setLoading(false);
+    }
+  }, [getAxiosConfig]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get(`${API_BASE}/api/admin/session-phases`, getAxiosConfig());
-        const d = res.data || {};
-        setData({
-          warming: d.warming && typeof d.warming === 'object'
-            ? { title_fa: d.warming.title_fa || '', title_en: d.warming.title_en || '', steps: Array.isArray(d.warming.steps) ? d.warming.steps.map(s => ({ ...defaultStep(), ...s })) : [] }
-            : defaultPhase(),
-          cooldown: d.cooldown && typeof d.cooldown === 'object'
-            ? { title_fa: d.cooldown.title_fa || '', title_en: d.cooldown.title_en || '', steps: Array.isArray(d.cooldown.steps) ? d.cooldown.steps.map(s => ({ ...defaultStep(), ...s })) : [] }
-            : defaultPhase(),
-          ending_message_fa: d.ending_message_fa || '',
-          ending_message_en: d.ending_message_en || ''
-        });
-      } catch (err) {
-        console.error('Error loading session phases:', err);
-        setData({ warming: defaultPhase(), cooldown: defaultPhase(), ending_message_fa: '', ending_message_en: '' });
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const setWarming = (updater) => setData(prev => ({ ...prev, warming: updater(prev.warming) }));
   const setCooldown = (updater) => setData(prev => ({ ...prev, cooldown: updater(prev.cooldown) }));

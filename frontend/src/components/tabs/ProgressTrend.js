@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import './ProgressTrend.css';
 
 const ProgressTrend = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const API_BASE = getApiBase();
   const { user } = useAuth();
   const [userProfile, setUserProfile] = useState(null);
@@ -28,20 +28,16 @@ const ProgressTrend = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
-  };
+  }, [getAuthToken]);
 
-  useEffect(() => {
-    loadData();
-  }, [user]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
       setLoading(false);
@@ -63,7 +59,11 @@ const ProgressTrend = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig]);
+
+  useEffect(() => {
+    loadData();
+  }, [user, loadData]);
 
   const calculateBMI = (weight, height) => {
     if (!weight || !height) return null;

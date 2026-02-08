@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -43,13 +43,13 @@ const Dashboard = () => {
   const [notificationsError, setNotificationsError] = useState(null);
   const [trialStatus, setTrialStatus] = useState(null);
 
-  const getAuthToken = () => localStorage.getItem('token') || '';
-  const getAxiosConfig = () => {
+  const getAuthToken = useCallback(() => localStorage.getItem('token') || '', []);
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-  };
+  }, [getAuthToken]);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!user) return;
     try {
       setNotificationsLoading(true);
@@ -66,11 +66,11 @@ const Dashboard = () => {
     } finally {
       setNotificationsLoading(false);
     }
-  };
+  }, [API_BASE, i18n.language, user, getAxiosConfig]);
 
   useEffect(() => {
     if (user && userRole) loadNotifications();
-  }, [user, userRole]);
+  }, [user, userRole, loadNotifications]);
 
   useEffect(() => {
     if (!user || userRole !== 'member') return;
@@ -83,12 +83,12 @@ const Dashboard = () => {
       }
     };
     loadTrialStatus();
-  }, [user, userRole]);
+  }, [API_BASE, getAxiosConfig, user, userRole]);
 
   // Refetch notifications when opening the dropdown so the list is fresh
   useEffect(() => {
     if (notificationsOpen && user) loadNotifications();
-  }, [notificationsOpen]);
+  }, [notificationsOpen, user, loadNotifications]);
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
@@ -177,7 +177,7 @@ const Dashboard = () => {
     if (user) {
       checkRole();
     }
-  }, [user]);
+  }, [API_BASE, user]);
 
   const changeLanguage = () => {
     const newLang = i18n.language === 'fa' ? 'en' : 'fa';
@@ -243,7 +243,7 @@ const Dashboard = () => {
     } else if (userRole === 'assistant' && activeTab === 'assistant-dashboard') {
       setActiveTab('members-list');
     }
-  }, [userRole, profileComplete]);
+  }, [userRole, profileComplete, activeTab]);
 
   return (
     <div className="dashboard">

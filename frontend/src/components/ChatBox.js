@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -8,7 +8,7 @@ import './ChatBox.css';
 const API_BASE = getApiBase();
 
 const ChatBox = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -18,7 +18,6 @@ const ChatBox = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyView, setHistoryView] = useState('list');
   const [conversationsList, setConversationsList] = useState([]);
-  const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [selectedConversationMessages, setSelectedConversationMessages] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [renamingSessionId, setRenamingSessionId] = useState(null);
@@ -26,20 +25,14 @@ const ChatBox = () => {
   const [renameSaving, setRenameSaving] = useState(false);
   const messagesContainerRef = useRef(null);
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadChatHistory();
-    }
-  }, [user]);
+  }, [getAuthToken]);
 
   useEffect(() => {
     scrollToBottom();
@@ -52,7 +45,7 @@ const ChatBox = () => {
     });
   };
 
-  const mapHistoryToMessages = (raw) => {
+  const mapHistoryToMessages = useCallback((raw) => {
     if (!Array.isArray(raw)) return [];
     const mapped = [];
     for (const item of raw) {
@@ -60,9 +53,9 @@ const ChatBox = () => {
       if (item.response != null) mapped.push({ role: 'assistant', content: item.response });
     }
     return mapped;
-  };
+  }, []);
 
-  const loadChatHistory = async () => {
+  const loadChatHistory = useCallback(async () => {
     try {
       const convRes = await axios.get(`${API_BASE}/api/chat/conversations`, getAxiosConfig());
       const convs = convRes.data && Array.isArray(convRes.data) ? convRes.data : [];
@@ -81,7 +74,13 @@ const ChatBox = () => {
       setMessages([]);
       setCurrentSessionId(null);
     }
-  };
+  }, [API_BASE, getAxiosConfig, mapHistoryToMessages]);
+
+  useEffect(() => {
+    if (user) {
+      loadChatHistory();
+    }
+  }, [user, loadChatHistory]);
 
   const startNewConversation = () => {
     setMessages([]);

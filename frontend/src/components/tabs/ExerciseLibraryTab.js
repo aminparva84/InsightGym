@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -61,18 +61,18 @@ const ExerciseLibraryTab = () => {
   const [editingExercise, setEditingExercise] = useState(null);
   const [formData, setFormData] = useState(defaultExerciseForm());
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const t = localStorage.getItem('token');
     return t && t.trim() ? t.trim() : null;
-  };
-  const getAxiosConfig = () => ({
+  }, []);
+  const getAxiosConfig = useCallback(() => ({
     headers: {
       Authorization: `Bearer ${getAuthToken()}`,
       'Content-Type': 'application/json'
     }
-  });
+  }), [getAuthToken]);
 
-  const fetchExercises = async () => {
+  const fetchExercises = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({ page: String(page), per_page: '20' });
@@ -91,11 +91,11 @@ const ExerciseLibraryTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, categoryFilter, getAxiosConfig, i18n.language, levelFilter, page]);
 
   useEffect(() => {
     fetchExercises();
-  }, [page, categoryFilter, levelFilter]);
+  }, [fetchExercises]);
 
   const handleArrayChange = (field, value, checked) => {
     const arr = Array.isArray(formData[field]) ? [...formData[field]] : [];

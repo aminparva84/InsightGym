@@ -1,36 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import './InPersonSessionsTab.css';
 
 const InPersonSessionsTab = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchSessions();
-  }, []);
-
-  const getAuthToken = () => {
-    const localToken = localStorage.getItem('token');
-    if (localToken && localToken.trim() !== '') {
-      return localToken.trim();
-    }
-    return null;
-  };
-
-  const getAxiosConfig = () => {
-    const token = getAuthToken();
-    return {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    };
-  };
-
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
       // TODO: Replace with actual API endpoint when available
@@ -42,7 +19,11 @@ const InPersonSessionsTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   return (
     <div className="in-person-sessions-tab" dir="ltr">

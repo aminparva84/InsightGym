@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import './PsychologyTest.css';
 
 const PsychologyTest = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const [activeTest, setActiveTest] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});

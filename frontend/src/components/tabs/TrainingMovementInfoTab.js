@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -24,25 +24,18 @@ const TrainingMovementInfoTab = () => {
     ask_post_set_questions: false,
   });
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const t = localStorage.getItem('token');
     return t && t.trim() ? t.trim() : null;
-  };
+  }, []);
 
-  const getAxiosConfig = () => ({
+  const getAxiosConfig = useCallback(() => ({
     headers: {
       Authorization: `Bearer ${getAuthToken()}`,
       'Content-Type': 'application/json',
     },
-  });
-
-  useEffect(() => {
-    loadExercises();
-  }, [page, search]);
+  }), [getAuthToken]);
 
   useEffect(() => {
     if (selectedExercise) {
@@ -60,22 +53,19 @@ const TrainingMovementInfoTab = () => {
     }
   }, [selectedExercise]);
 
-  const loadExercises = async () => {
+  const loadExercises = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({ page: String(page), per_page: '100' });
+      const params = new URLSearchParams({ page: '1', per_page: '100' });
+      if (search) params.set('search', search);
       const res = await axios.get(
         `${API_BASE}/api/admin/exercises?${params}`,
         getAxiosConfig()
       );
       const list = res.data?.exercises || [];
-      const totalCount = res.data?.total ?? list.length;
-      const pages = res.data?.pages ?? 1;
       setExercises(list);
-      setTotal(totalCount);
-      setTotalPages(pages);
-      if (!selectedExercise && list.length) {
-        setSelectedExercise(list[0]);
+      if (list.length) {
+        setSelectedExercise((prev) => prev || list[0]);
       }
     } catch (err) {
       console.error('Error loading exercises:', err);
@@ -83,7 +73,11 @@ const TrainingMovementInfoTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAxiosConfig, search]);
+
+  useEffect(() => {
+    loadExercises();
+  }, [loadExercises]);
 
   const handleSave = async () => {
     if (!selectedExercise?.id) return;

@@ -108,7 +108,7 @@ const LandingPage = () => {
     };
 
     checkTrainingProgram();
-  }, [user]);
+  }, [API_BASE, user]);
 
   useEffect(() => {
     document.documentElement.lang = i18n.language;

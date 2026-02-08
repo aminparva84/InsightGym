@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../services/apiBase';
@@ -21,13 +21,13 @@ const TrainerInbox = () => {
   const [respondingId, setRespondingId] = useState(null);
   const messagesContainerRef = useRef(null);
 
-  const getAuthToken = () => localStorage.getItem('token') || '';
-  const getAxiosConfig = () => {
+  const getAuthToken = useCallback(() => localStorage.getItem('token') || '', []);
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
-  };
+  }, [getAuthToken]);
 
-  const loadProgressCheckRequests = async () => {
+  const loadProgressCheckRequests = useCallback(async () => {
     setLoadingProgressRequests(true);
     try {
       const res = await axios.get(`${ADMIN_BASE}/progress-check-requests?status=pending`, getAxiosConfig());
@@ -37,7 +37,7 @@ const TrainerInbox = () => {
     } finally {
       setLoadingProgressRequests(false);
     }
-  };
+  }, [ADMIN_BASE, getAxiosConfig]);
 
   const respondProgressCheck = async (reqId, action) => {
     setRespondingId(reqId);
@@ -51,7 +51,7 @@ const TrainerInbox = () => {
     }
   };
 
-  const loadThreads = async () => {
+  const loadThreads = useCallback(async () => {
     setLoadingThreads(true);
     try {
       const res = await axios.get(API_BASE, getAxiosConfig());
@@ -75,7 +75,7 @@ const TrainerInbox = () => {
     } finally {
       setLoadingThreads(false);
     }
-  };
+  }, [API_BASE, ADMIN_BASE, getAxiosConfig]);
 
   const loadThread = async (memberId, username) => {
     if (!memberId) return;
@@ -97,7 +97,7 @@ const TrainerInbox = () => {
   useEffect(() => {
     loadThreads();
     loadProgressCheckRequests();
-  }, []);
+  }, [loadThreads, loadProgressCheckRequests]);
 
   useEffect(() => {
     const el = messagesContainerRef.current;

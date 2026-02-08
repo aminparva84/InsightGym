@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import './TrainingWithAgent.css';
 
 const TrainingWithAgent = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const API_BASE = getApiBase();
   const { user } = useAuth();
   const [meetings, setMeetings] = useState([]);
@@ -21,22 +21,16 @@ const TrainingWithAgent = () => {
   });
   const [editingMeeting, setEditingMeeting] = useState(null);
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
-  };
+  }, [getAuthToken]);
 
-  useEffect(() => {
-    if (user) {
-      loadMeetings();
-    }
-  }, [user]);
-
-  const loadMeetings = async () => {
+  const loadMeetings = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
       setLoading(false);
@@ -52,7 +46,13 @@ const TrainingWithAgent = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig]);
+
+  useEffect(() => {
+    if (user) {
+      loadMeetings();
+    }
+  }, [user, loadMeetings]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

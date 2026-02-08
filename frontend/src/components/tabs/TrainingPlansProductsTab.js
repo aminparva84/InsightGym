@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -31,27 +31,28 @@ const TrainingPlansProductsTab = () => {
   const [basePrograms, setBasePrograms] = useState(DEFAULT_BASE);
   const [packages, setPackages] = useState(DEFAULT_PACKAGES);
 
-  const getAuthToken = () => localStorage.getItem('token') || '';
-  const getAxiosConfig = () => ({
+  const getAuthToken = useCallback(() => localStorage.getItem('token') || '', []);
+  const getAxiosConfig = useCallback(() => ({
     headers: { Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' }
-  });
+  }), [getAuthToken]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_BASE}/api/admin/training-plans-products`, getAxiosConfig());
+      const d = res.data || {};
+      if (Array.isArray(d.basePrograms) && d.basePrograms.length > 0) setBasePrograms(d.basePrograms);
+      if (Array.isArray(d.packages) && d.packages.length > 0) setPackages(d.packages);
+    } catch (err) {
+      console.error('Error loading training plans/products:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [getAxiosConfig]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get(`${API_BASE}/api/admin/training-plans-products`, getAxiosConfig());
-        const d = res.data || {};
-        if (Array.isArray(d.basePrograms) && d.basePrograms.length > 0) setBasePrograms(d.basePrograms);
-        if (Array.isArray(d.packages) && d.packages.length > 0) setPackages(d.packages);
-      } catch (err) {
-        console.error('Error loading training plans/products:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleSave = async () => {
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
@@ -39,7 +39,7 @@ const homeEquipmentOptions = [
 ];
 
 const MembersListTab = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const API_BASE = getApiBase();
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
@@ -49,15 +49,15 @@ const MembersListTab = () => {
   const [memberFormData, setMemberFormData] = useState({});
   const [userRole, setUserRole] = useState(null);
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const localToken = localStorage.getItem('token');
     if (localToken && localToken.trim() !== '') {
       return localToken.trim();
     }
     return null;
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return {
       headers: {
@@ -65,9 +65,9 @@ const MembersListTab = () => {
         'Content-Type': 'application/json'
       }
     };
-  };
+  }, [getAuthToken]);
 
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE}/api/admin/members`, getAxiosConfig());
@@ -78,18 +78,18 @@ const MembersListTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAxiosConfig, i18n.language]);
 
-  const fetchAssistants = async () => {
+  const fetchAssistants = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE}/api/admin/assistants`, getAxiosConfig());
       setAssistants(response.data);
     } catch (error) {
       console.error('Error fetching assistants:', error);
     }
-  };
+  }, [API_BASE, getAxiosConfig]);
 
-  const checkUserRole = async () => {
+  const checkUserRole = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE}/api/admin/check-admin`, getAxiosConfig());
       setUserRole(response.data.role || 'member');
@@ -97,13 +97,13 @@ const MembersListTab = () => {
       console.error('Error checking user role:', error);
       setUserRole('member');
     }
-  };
+  }, [API_BASE, getAxiosConfig]);
 
   useEffect(() => {
     checkUserRole();
     fetchMembers();
     fetchAssistants();
-  }, []);
+  }, [checkUserRole, fetchMembers, fetchAssistants]);
 
   const handleAssignMember = async (memberId, assistantId) => {
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -16,24 +16,16 @@ const HistoryTab = ({ showOnlyMessages = false }) => {
   const [loading, setLoading] = useState(true);
 
   // Get auth token
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
-  };
+  }, [getAuthToken]);
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      loadData();
-    } else if (!authLoading && !user) {
-      setLoading(false);
-    }
-  }, [authLoading, user]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
       console.warn('No token found for loading history');
@@ -56,7 +48,15 @@ const HistoryTab = ({ showOnlyMessages = false }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadData();
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [authLoading, user, loadData]);
 
   if (loading) {
     return <div className="loading">{t('loading')}...</div>;

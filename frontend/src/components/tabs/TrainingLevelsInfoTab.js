@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -77,7 +77,7 @@ const normalizeInjury = (stored) => {
 };
 
 const TrainingLevelsInfoTab = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const lang = i18n.language === 'fa' ? 'fa' : 'en';
   const [trainingLevels, setTrainingLevels] = useState({
     beginner: defaultLevel(),
@@ -93,19 +93,15 @@ const TrainingLevelsInfoTab = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchConfiguration();
-  }, []);
-
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const localToken = localStorage.getItem('token');
     if (localToken && localToken.trim() !== '') {
       return localToken.trim();
     }
     return null;
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return {
       headers: {
@@ -113,9 +109,9 @@ const TrainingLevelsInfoTab = () => {
         'Content-Type': 'application/json'
       }
     };
-  };
+  }, [getAuthToken]);
 
-  const fetchConfiguration = async () => {
+  const fetchConfiguration = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${getApiBase()}/api/admin/config`, getAxiosConfig());
@@ -140,7 +136,11 @@ const TrainingLevelsInfoTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAxiosConfig]);
+
+  useEffect(() => {
+    fetchConfiguration();
+  }, [fetchConfiguration]);
 
   const addGoal = (level) => {
     const goals = Array.isArray(trainingLevels[level].goals) ? [...trainingLevels[level].goals] : [];

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -27,18 +27,18 @@ const SiteSettingsTab = () => {
     copyright_text: ''
   });
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const t = localStorage.getItem('token');
     return t && t.trim() ? t.trim() : null;
-  };
-  const getAxiosConfig = () => ({
+  }, []);
+  const getAxiosConfig = useCallback(() => ({
     headers: {
       Authorization: `Bearer ${getAuthToken()}`,
       'Content-Type': 'application/json'
     }
-  });
+  }), [getAuthToken]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE}/api/admin/site-settings`, getAxiosConfig());
@@ -64,11 +64,11 @@ const SiteSettingsTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAxiosConfig, i18n.language]);
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

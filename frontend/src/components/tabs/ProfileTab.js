@@ -120,7 +120,7 @@ const BMICalculator = ({ weight, height, gender, language }) => {
 };
 
 const ProfileTab = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);

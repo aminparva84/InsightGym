@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
@@ -6,10 +6,9 @@ import { getApiBase } from '../../services/apiBase';
 import './OnlineLab.css';
 
 const OnlineLab = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const API_BASE = getApiBase();
   const { user } = useAuth();
-  const [userProfile, setUserProfile] = useState(null);
   const [activeSection, setActiveSection] = useState('bmi');
   const [loading, setLoading] = useState(true);
 
@@ -23,20 +22,16 @@ const OnlineLab = () => {
   const [frameData, setFrameData] = useState({ height: '', wrist: '', gender: '' });
   const [bmrData, setBmrData] = useState({ age: '', weight: '', height: '', gender: '', activity_level: 'sedentary' });
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return localStorage.getItem('token') || axios.defaults.headers.common['Authorization']?.replace('Bearer ', '');
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return token ? { headers: { 'Authorization': `Bearer ${token}` } } : {};
-  };
+  }, [getAuthToken]);
 
-  useEffect(() => {
-    loadUserProfile();
-  }, [user]);
-
-  const loadUserProfile = async () => {
+  const loadUserProfile = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
       setLoading(false);
@@ -45,7 +40,6 @@ const OnlineLab = () => {
 
     try {
       const response = await axios.get(`${API_BASE}/api/user/profile`, getAxiosConfig());
-      setUserProfile(response.data);
       
       // Pre-fill forms with user data
       if (response.data) {
@@ -62,7 +56,11 @@ const OnlineLab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAuthToken, getAxiosConfig]);
+
+  useEffect(() => {
+    loadUserProfile();
+  }, [user, loadUserProfile]);
 
   // 1. BMI Calculator
   const calculateBMI = () => {

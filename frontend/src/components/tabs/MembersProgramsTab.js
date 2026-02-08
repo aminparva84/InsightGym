@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -18,12 +18,12 @@ const MembersProgramsTab = () => {
   const [saving, setSaving] = useState(false);
   const [voiceUploading, setVoiceUploading] = useState(null);
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const t = localStorage.getItem('token');
     return t && t.trim() ? t.trim() : null;
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     return {
       headers: {
@@ -31,33 +31,19 @@ const MembersProgramsTab = () => {
         'Content-Type': 'application/json',
       },
     };
-  };
+  }, [getAuthToken]);
 
-  useEffect(() => {
-    loadPrograms();
-  }, []);
-
-  useEffect(() => {
-    if (selectedProgram) {
-      loadActionNotes(selectedProgram.id);
-      setProgramDetail(selectedProgram);
-    } else {
-      setProgramDetail(null);
-      setActionNotes([]);
-      setNotesDirty({});
-    }
-  }, [selectedProgram]);
-
-  const loadPrograms = async () => {
+  const loadPrograms = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(
         `${API_BASE}/api/admin/programs?language=${i18n.language || 'fa'}`,
         getAxiosConfig()
       );
-      setPrograms(Array.isArray(res.data) ? res.data : []);
-      if (!selectedProgram && res.data?.length) {
-        setSelectedProgram(res.data[0]);
+      const list = Array.isArray(res.data) ? res.data : [];
+      setPrograms(list);
+      if (list.length) {
+        setSelectedProgram((prev) => prev || list[0]);
       }
     } catch (err) {
       console.error('Error loading programs:', err);
@@ -65,9 +51,9 @@ const MembersProgramsTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, getAxiosConfig, i18n.language]);
 
-  const loadActionNotes = async (programId) => {
+  const loadActionNotes = useCallback(async (programId) => {
     if (!programId) return;
     try {
       const res = await axios.get(
@@ -90,7 +76,22 @@ const MembersProgramsTab = () => {
       console.error('Error loading action notes:', err);
       setActionNotes([]);
     }
-  };
+  }, [API_BASE, getAxiosConfig, i18n.language]);
+
+  useEffect(() => {
+    if (selectedProgram) {
+      loadActionNotes(selectedProgram.id);
+      setProgramDetail(selectedProgram);
+    } else {
+      setProgramDetail(null);
+      setActionNotes([]);
+      setNotesDirty({});
+    }
+  }, [selectedProgram, loadActionNotes]);
+
+  useEffect(() => {
+    loadPrograms();
+  }, [loadPrograms]);
 
   const noteKey = (sessionIdx, exIdx) => `${sessionIdx}-${exIdx}`;
 

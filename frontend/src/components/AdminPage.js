@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -7,7 +7,7 @@ import { getApiBase } from '../services/apiBase';
 import './AdminPage.css';
 
 const AdminPage = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const API_BASE = getApiBase();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -58,22 +58,7 @@ const AdminPage = () => {
     ankle: { description_fa: '', description_en: '', prevention_fa: '', prevention_en: '' }
   });
 
-  useEffect(() => {
-    checkAdmin();
-  }, []);
-
-  useEffect(() => {
-    if (isAdmin) {
-      if (activeTab === 'assistants') {
-        fetchAssistants();
-      } else if (activeTab === 'members') {
-        fetchAssistants(); // Load assistants first for the dropdown
-        fetchMembers();
-      }
-    }
-  }, [isAdmin, activeTab]);
-
-  const checkAdmin = async () => {
+  const checkAdmin = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE}/api/admin/check-admin`);
       setIsAdmin(response.data.is_admin);
@@ -87,9 +72,9 @@ const AdminPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, i18n.language, navigate]);
 
-  const fetchAssistants = async () => {
+  const fetchAssistants = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE}/api/admin/assistants`);
       setAssistants(response.data);
@@ -97,9 +82,9 @@ const AdminPage = () => {
       console.error('Error fetching assistants:', error);
       alert(i18n.language === 'fa' ? 'خطا در دریافت لیست دستیاران' : 'Error fetching assistants');
     }
-  };
+  }, [API_BASE, i18n.language]);
 
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE}/api/admin/members`);
       setMembers(response.data);
@@ -107,7 +92,22 @@ const AdminPage = () => {
       console.error('Error fetching members:', error);
       alert(i18n.language === 'fa' ? 'خطا در دریافت لیست اعضا' : 'Error fetching members');
     }
-  };
+  }, [API_BASE, i18n.language]);
+
+  useEffect(() => {
+    checkAdmin();
+  }, [checkAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      if (activeTab === 'assistants') {
+        fetchAssistants();
+      } else if (activeTab === 'members') {
+        fetchAssistants();
+        fetchMembers();
+      }
+    }
+  }, [isAdmin, activeTab, fetchAssistants, fetchMembers]);
 
   const handleCreateAssistant = async (e) => {
     e.preventDefault();

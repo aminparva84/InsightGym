@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../services/apiBase';
@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import './BannerChat.css';
 
 const BannerChat = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const API_BASE = getApiBase();
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -16,7 +16,6 @@ const BannerChat = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyView, setHistoryView] = useState('list'); // 'list' | 'detail'
   const [conversationsList, setConversationsList] = useState([]);
-  const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [selectedConversationMessages, setSelectedConversationMessages] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [renamingSessionId, setRenamingSessionId] = useState(null);
@@ -24,7 +23,7 @@ const BannerChat = () => {
   const [renameSaving, setRenameSaving] = useState(false);
   const messagesContainerRef = useRef(null);
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const localToken = localStorage.getItem('token');
     if (localToken && localToken.trim() !== '') {
       return localToken.trim();
@@ -34,9 +33,9 @@ const BannerChat = () => {
       return authHeader.replace('Bearer ', '').trim();
     }
     return null;
-  };
+  }, []);
 
-  const getAxiosConfig = () => {
+  const getAxiosConfig = useCallback(() => {
     const token = getAuthToken();
     if (!token) {
       return {};
@@ -62,13 +61,7 @@ const BannerChat = () => {
         'Authorization': `Bearer ${cleanToken}`
       }
     };
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadChatHistory();
-    }
-  }, [user]);
+  }, [getAuthToken]);
 
   useEffect(() => {
     scrollToBottom();
@@ -81,7 +74,7 @@ const BannerChat = () => {
     });
   };
 
-  const mapHistoryToMessages = (raw) => {
+  const mapHistoryToMessages = useCallback((raw) => {
     if (!Array.isArray(raw)) return [];
     const mapped = [];
     for (const item of raw) {
@@ -89,9 +82,9 @@ const BannerChat = () => {
       if (item.response != null) mapped.push({ role: 'assistant', content: item.response });
     }
     return mapped;
-  };
+  }, []);
 
-  const loadChatHistory = async () => {
+  const loadChatHistory = useCallback(async () => {
     try {
       const convRes = await axios.get(`${API_BASE}/api/chat/conversations`, getAxiosConfig());
       const convs = convRes.data && Array.isArray(convRes.data) ? convRes.data : [];
@@ -110,7 +103,13 @@ const BannerChat = () => {
       setMessages([]);
       setCurrentSessionId(null);
     }
-  };
+  }, [API_BASE, getAxiosConfig, mapHistoryToMessages]);
+
+  useEffect(() => {
+    if (user) {
+      loadChatHistory();
+    }
+  }, [user, loadChatHistory]);
 
   const startNewConversation = () => {
     setMessages([]);

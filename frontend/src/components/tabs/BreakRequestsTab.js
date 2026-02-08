@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -20,7 +20,7 @@ const BreakRequestsTab = () => {
   const [respondMessage, setRespondMessage] = useState('');
   const [respondTargetId, setRespondTargetId] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = filter !== 'all' ? `?status=${filter}` : '';
@@ -32,11 +32,11 @@ const BreakRequestsTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
   useEffect(() => {
     load();
-  }, [filter]);
+  }, [load]);
 
   const respond = async (id, action, message = '') => {
     setActingId(id);

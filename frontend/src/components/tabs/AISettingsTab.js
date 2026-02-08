@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -24,18 +24,18 @@ const AISettingsTab = () => {
   const [kbSaving, setKbSaving] = useState(false);
   const [kbIndexing, setKbIndexing] = useState(false);
 
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const t = localStorage.getItem('token');
     return t && t.trim() ? t.trim() : null;
-  };
-  const getAxiosConfig = () => ({
+  }, []);
+  const getAxiosConfig = useCallback(() => ({
     headers: {
       Authorization: `Bearer ${getAuthToken()}`,
       'Content-Type': 'application/json',
     },
-  });
+  }), [getAuthToken]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_BASE}/api/admin/ai-settings`, getAxiosConfig());
@@ -47,18 +47,18 @@ const AISettingsTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAxiosConfig]);
 
-  const fetchKbStatus = async () => {
+  const fetchKbStatus = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/admin/website-kb/status`, getAxiosConfig());
       setKbStatus(res.data || null);
     } catch (err) {
       setKbStatus(null);
     }
-  };
+  }, [getAxiosConfig]);
 
-  const fetchKbSource = async () => {
+  const fetchKbSource = useCallback(async () => {
     try {
       setKbLoading(true);
       const res = await axios.get(`${API_BASE}/api/admin/website-kb/source`, getAxiosConfig());
@@ -68,13 +68,13 @@ const AISettingsTab = () => {
     } finally {
       setKbLoading(false);
     }
-  };
+  }, [getAxiosConfig]);
 
   useEffect(() => {
     fetchSettings();
     fetchKbStatus();
     fetchKbSource();
-  }, []);
+  }, [fetchSettings, fetchKbStatus, fetchKbSource]);
 
   const handleSaveKey = async (provider) => {
     const key = (keys[provider] || '').trim();
