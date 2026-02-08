@@ -1,156 +1,75 @@
 """
-Update profile using direct SQL to avoid model conflicts
+Update profile using Flask app context and SQLAlchemy.
+Works with PostgreSQL or SQLite via DATABASE_URL.
 """
 
-import sqlite3
-import os
 import json
+import os
 import sys
 import codecs
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Fix Windows console encoding
 if sys.platform == 'win32':
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
     sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
+from app import app, db, User
+from models import UserProfile
+
 def update_profile():
-    db_paths = [
-        'instance/raha_fitness.db',
-        'raha_fitness.db'
-    ]
-    
-    db_path = None
-    for path in db_paths:
-        if os.path.exists(path):
-            db_path = path
-            break
-    
-    if not db_path:
-        print("[ERROR] Database file not found")
-        return False
-    
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Find demo user
-        cursor.execute("SELECT id FROM user WHERE username = ?", ('demo',))
-        user = cursor.fetchone()
-        
+    with app.app_context():
+        try:
+            user = User.query.filter_by(username='demo').first()
+        except Exception as e:
+            print(f"[ERROR] Could not connect to database: {e}")
+            return False
         if not user:
             print("[ERROR] Demo user not found")
-            conn.close()
             return False
-        
-        user_id = user[0]
-        print(f"[INFO] Found demo user ID: {user_id}")
-        
-        # Check if profile exists
-        cursor.execute("SELECT id FROM user_profiles WHERE user_id = ?", (user_id,))
-        profile = cursor.fetchone()
-        
-        # Prepare profile data
-        profile_data = {
-            'age': 25,
-            'weight': 75.5,
-            'height': 175.0,
-            'gender': 'male',
-            'training_level': 'intermediate',
-            'fitness_goals': json.dumps(['weight_loss', 'muscle_gain'], ensure_ascii=False),
-            'injuries': json.dumps([], ensure_ascii=False),
-            'injury_details': '',
-            'medical_conditions': json.dumps([], ensure_ascii=False),
-            'medical_condition_details': '',
-            'exercise_history_years': 3,
-            'exercise_history_description': 'Regular gym workouts for 3 years',
-            'equipment_access': json.dumps(['machine', 'dumbbells', 'barbell'], ensure_ascii=False),
-            'gym_access': 1,  # SQLite uses 1 for True
-            'home_equipment': json.dumps([], ensure_ascii=False),
-            'preferred_workout_time': 'evening',
-            'workout_days_per_week': 4,
-            'preferred_intensity': 'medium'
-        }
-        
-        if profile:
-            # Update existing profile
-            print("[INFO] Updating existing profile...")
-            cursor.execute("""
-                UPDATE user_profiles SET
-                    age = ?, weight = ?, height = ?, gender = ?,
-                    training_level = ?, fitness_goals = ?, injuries = ?,
-                    injury_details = ?, medical_conditions = ?, medical_condition_details = ?,
-                    exercise_history_years = ?, exercise_history_description = ?,
-                    equipment_access = ?, gym_access = ?, home_equipment = ?,
-                    preferred_workout_time = ?, workout_days_per_week = ?,
-                    preferred_intensity = ?, updated_at = datetime('now')
-                WHERE user_id = ?
-            """, (
-                profile_data['age'], profile_data['weight'], profile_data['height'],
-                profile_data['gender'], profile_data['training_level'],
-                profile_data['fitness_goals'], profile_data['injuries'],
-                profile_data['injury_details'], profile_data['medical_conditions'],
-                profile_data['medical_condition_details'],
-                profile_data['exercise_history_years'],
-                profile_data['exercise_history_description'],
-                profile_data['equipment_access'], profile_data['gym_access'],
-                profile_data['home_equipment'], profile_data['preferred_workout_time'],
-                profile_data['workout_days_per_week'], profile_data['preferred_intensity'],
-                user_id
-            ))
-        else:
-            # Create new profile
+        print(f"[INFO] Found demo user ID: {user.id}")
+        profile = UserProfile.query.filter_by(user_id=user.id).first()
+        if not profile:
+            profile = UserProfile(user_id=user.id)
+            db.session.add(profile)
             print("[INFO] Creating new profile...")
-            cursor.execute("""
-                INSERT INTO user_profiles (
-                    user_id, age, weight, height, gender, training_level,
-                    fitness_goals, injuries, injury_details, medical_conditions,
-                    medical_condition_details, exercise_history_years,
-                    exercise_history_description, equipment_access, gym_access,
-                    home_equipment, preferred_workout_time, workout_days_per_week,
-                    preferred_intensity, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                user_id, profile_data['age'], profile_data['weight'],
-                profile_data['height'], profile_data['gender'],
-                profile_data['training_level'], profile_data['fitness_goals'],
-                profile_data['injuries'], profile_data['injury_details'],
-                profile_data['medical_conditions'],
-                profile_data['medical_condition_details'],
-                profile_data['exercise_history_years'],
-                profile_data['exercise_history_description'],
-                profile_data['equipment_access'], profile_data['gym_access'],
-                profile_data['home_equipment'], profile_data['preferred_workout_time'],
-                profile_data['workout_days_per_week'], profile_data['preferred_intensity']
-            ))
-        
-        conn.commit()
-        conn.close()
-        
+        else:
+            print("[INFO] Updating existing profile...")
+        profile.age = 25
+        profile.weight = 75.5
+        profile.height = 175.0
+        profile.gender = 'male'
+        profile.training_level = 'intermediate'
+        profile.set_fitness_goals(['weight_loss', 'muscle_gain'])
+        profile.set_injuries([])
+        profile.injury_details = ''
+        profile.medical_conditions = json.dumps([], ensure_ascii=False)
+        profile.medical_condition_details = ''
+        profile.exercise_history_years = 3
+        profile.exercise_history_description = 'Regular gym workouts for 3 years'
+        profile.set_equipment_access(['machine', 'dumbbells', 'barbell'])
+        profile.gym_access = True
+        profile.set_home_equipment([])
+        profile.preferred_workout_time = 'evening'
+        profile.workout_days_per_week = 4
+        profile.preferred_intensity = 'medium'
+        db.session.commit()
         print("\n" + "="*60)
         print("PROFILE UPDATED SUCCESSFULLY!")
         print("="*60)
-        print(f"\nProfile Details:")
-        print(f"  Age: {profile_data['age']}")
-        print(f"  Weight: {profile_data['weight']} kg")
-        print(f"  Height: {profile_data['height']} cm")
-        print(f"  Gender: {profile_data['gender']}")
-        print(f"  Training Level: {profile_data['training_level']}")
-        print(f"  Fitness Goals: {json.loads(profile_data['fitness_goals'])}")
-        print(f"  Gym Access: {bool(profile_data['gym_access'])}")
-        print(f"  Equipment: {json.loads(profile_data['equipment_access'])}")
-        print(f"  Workout Days: {profile_data['workout_days_per_week']}")
-        print(f"  Preferred Time: {profile_data['preferred_workout_time']}")
+        print("\nProfile Details:")
+        print(f"  Age: {profile.age}")
+        print(f"  Weight: {profile.weight} kg")
+        print(f"  Height: {profile.height} cm")
+        print(f"  Gender: {profile.gender}")
+        print(f"  Training Level: {profile.training_level}")
+        print(f"  Fitness Goals: {profile.get_fitness_goals()}")
+        print(f"  Gym Access: {profile.gym_access}")
+        print(f"  Equipment: {profile.get_equipment_access()}")
+        print(f"  Workout Days: {profile.workout_days_per_week}")
+        print(f"  Preferred Time: {profile.preferred_workout_time}")
         print("="*60)
         return True
-        
-    except Exception as e:
-        print(f"[ERROR] An error occurred: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
 
 if __name__ == '__main__':
     success = update_profile()
     sys.exit(0 if success else 1)
-
-

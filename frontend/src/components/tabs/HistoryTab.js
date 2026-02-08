@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import { useAuth } from '../../context/AuthContext';
 import ProgressTrend from './ProgressTrend';
 import './HistoryTab.css';
 
 const HistoryTab = ({ showOnlyMessages = false }) => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user, loading: authLoading } = useAuth();
   const [exercises, setExercises] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
@@ -41,8 +43,8 @@ const HistoryTab = ({ showOnlyMessages = false }) => {
 
     try {
       const [exercisesRes, chatRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/exercises', getAxiosConfig()),
-        axios.get('http://localhost:5000/api/chat/history', getAxiosConfig())
+        axios.get(`${API_BASE}/api/exercises`, getAxiosConfig()),
+        axios.get(`${API_BASE}/api/chat/history`, getAxiosConfig())
       ]);
       setExercises(exercisesRes.data);
       setChatHistory(chatRes.data);

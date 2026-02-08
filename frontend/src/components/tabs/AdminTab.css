@@ -79,13 +79,17 @@
 }
 
 .admin-tab-content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  margin-top: 0;
+  padding: 0 0 1rem 0;
   background: var(--color-white);
   border-radius: 0 0 8px 8px;
-  padding: 2rem;
   box-shadow: var(--shadow-md);
   min-height: 400px;
-  width: 100%;
-  margin-top: 0;
   order: 3;
 }
 
@@ -208,9 +212,12 @@
   color: var(--color-primary-800);
 }
 
-.members-list tr:hover,
-.assistants-list tr:hover {
+.members-list tr:hover {
   background: var(--color-primary-50);
+}
+
+.assistants-list tr:hover {
+  background: var(--color-white);
 }
 
 .members-list select {

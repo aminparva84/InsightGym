@@ -8,6 +8,142 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import './RegistrationForm.css';
 
+// Injury types (all 6 body locations)
+const INJURY_KEYS = ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle'];
+const INJURY_LABELS = {
+  knee: { fa: 'زانو', en: 'Knee' },
+  shoulder: { fa: 'شانه', en: 'Shoulder' },
+  lower_back: { fa: 'کمر', en: 'Lower Back' },
+  neck: { fa: 'گردن', en: 'Neck' },
+  wrist: { fa: 'مچ دست', en: 'Wrist' },
+  ankle: { fa: 'مچ پا', en: 'Ankle' }
+};
+
+// Follow-up questions per injury (FA + EN)
+const INJURY_QUESTIONS = {
+  knee: {
+    label: { fa: 'زانو', en: 'Knee' },
+    questions: [
+      { key: 'when_started', fa: 'از چه زمانی شروع شده؟', en: 'When did it start?', type: 'radio', options: [
+        { value: 'last_month', fa: 'ماه گذشته', en: 'Last month' },
+        { value: '3_6_months', fa: '۳ تا ۶ ماه پیش', en: '3–6 months ago' },
+        { value: '6_12_months', fa: '۶ تا ۱۲ ماه پیش', en: '6–12 months ago' },
+        { value: 'over_year', fa: 'بیش از یک سال', en: 'Over 1 year ago' }
+      ]},
+      { key: 'severity', fa: 'شدت درد یا محدودیت؟', en: 'Severity of pain or limitation?', type: 'radio', options: [
+        { value: 'mild', fa: 'خفیف', en: 'Mild' },
+        { value: 'moderate', fa: 'متوسط', en: 'Moderate' },
+        { value: 'severe', fa: 'شدید', en: 'Severe' }
+      ]},
+      { key: 'location', fa: 'درد در کدام قسمت زانو؟', en: 'Where is the knee pain?', type: 'radio', options: [
+        { value: 'front', fa: 'جلو', en: 'Front' },
+        { value: 'back', fa: 'پشت', en: 'Back' },
+        { value: 'inside', fa: 'داخل', en: 'Inside' },
+        { value: 'outside', fa: 'خارج', en: 'Outside' }
+      ]},
+      { key: 'pain_squat', fa: 'هنگام اسکوات درد داری؟', en: 'Do you have pain during squat?', type: 'yesno' },
+      { key: 'pain_stairs', fa: 'هنگام بالا رفتن از پله درد داری؟', en: 'Do you have pain when climbing stairs?', type: 'yesno' },
+      { key: 'surgery', fa: 'جراحی داشتی؟', en: 'Have you had surgery?', type: 'yesno' },
+      { key: 'clicking', fa: 'صدا یا قفل شدن زانو داری؟', en: 'Do you have clicking or locking of the knee?', type: 'yesno' }
+    ]
+  },
+  shoulder: {
+    label: { fa: 'شانه', en: 'Shoulder' },
+    questions: [
+      { key: 'when_started', fa: 'از چه زمانی شروع شده؟', en: 'When did it start?', type: 'radio', options: [
+        { value: 'last_month', fa: 'ماه گذشته', en: 'Last month' },
+        { value: '3_6_months', fa: '۳ تا ۶ ماه پیش', en: '3–6 months ago' },
+        { value: '6_12_months', fa: '۶ تا ۱۲ ماه پیش', en: '6–12 months ago' },
+        { value: 'over_year', fa: 'بیش از یک سال', en: 'Over 1 year ago' }
+      ]},
+      { key: 'severity', fa: 'شدت درد یا محدودیت؟', en: 'Severity?', type: 'radio', options: [
+        { value: 'mild', fa: 'خفیف', en: 'Mild' },
+        { value: 'moderate', fa: 'متوسط', en: 'Moderate' },
+        { value: 'severe', fa: 'شدید', en: 'Severe' }
+      ]},
+      { key: 'pain_raise_arm', fa: 'درد هنگام بالا بردن دست؟', en: 'Pain when raising your arm?', type: 'yesno' },
+      { key: 'pain_bench', fa: 'درد در پرس سینه یا سرشانه؟', en: 'Pain during bench press or overhead press?', type: 'yesno' },
+      { key: 'dislocation', fa: 'دررفتگی سابقه دارد؟', en: 'History of dislocation?', type: 'yesno' }
+    ]
+  },
+  lower_back: {
+    label: { fa: 'کمر', en: 'Lower Back' },
+    questions: [
+      { key: 'when_started', fa: 'از چه زمانی شروع شده؟', en: 'When did it start?', type: 'radio', options: [
+        { value: 'last_month', fa: 'ماه گذشته', en: 'Last month' },
+        { value: '3_6_months', fa: '۳ تا ۶ ماه پیش', en: '3–6 months ago' },
+        { value: '6_12_months', fa: '۶ تا ۱۲ ماه پیش', en: '6–12 months ago' },
+        { value: 'over_year', fa: 'بیش از یک سال', en: 'Over 1 year ago' }
+      ]},
+      { key: 'severity', fa: 'شدت درد یا محدودیت؟', en: 'Severity?', type: 'radio', options: [
+        { value: 'mild', fa: 'خفیف', en: 'Mild' },
+        { value: 'moderate', fa: 'متوسط', en: 'Moderate' },
+        { value: 'severe', fa: 'شدید', en: 'Severe' }
+      ]},
+      { key: 'disc', fa: 'دیسک داری؟', en: 'Do you have disc issue?', type: 'yesno' },
+      { key: 'lordosis', fa: 'گودی کمر؟', en: 'Excessive lower back curve (lordosis)?', type: 'yesno' },
+      { key: 'pain_bending', fa: 'درد هنگام خم شدن؟', en: 'Pain when bending?', type: 'yesno' },
+      { key: 'radiating', fa: 'درد تیرکشنده به پا؟', en: 'Radiating pain to the leg?', type: 'yesno' }
+    ]
+  },
+  neck: {
+    label: { fa: 'گردن', en: 'Neck' },
+    questions: [
+      { key: 'when_started', fa: 'از چه زمانی شروع شده؟', en: 'When did it start?', type: 'radio', options: [
+        { value: 'last_month', fa: 'ماه گذشته', en: 'Last month' },
+        { value: '3_6_months', fa: '۳ تا ۶ ماه پیش', en: '3–6 months ago' },
+        { value: '6_12_months', fa: '۶ تا ۱۲ ماه پیش', en: '6–12 months ago' },
+        { value: 'over_year', fa: 'بیش از یک سال', en: 'Over 1 year ago' }
+      ]},
+      { key: 'severity', fa: 'شدت درد یا محدودیت؟', en: 'Severity?', type: 'radio', options: [
+        { value: 'mild', fa: 'خفیف', en: 'Mild' },
+        { value: 'moderate', fa: 'متوسط', en: 'Moderate' },
+        { value: 'severe', fa: 'شدید', en: 'Severe' }
+      ]},
+      { key: 'pain_sitting', fa: 'درد هنگام نشستن طولانی؟', en: 'Pain during prolonged sitting?', type: 'yesno' },
+      { key: 'numbness_hand', fa: 'بی‌حسی دست؟', en: 'Numbness in hand?', type: 'yesno' },
+      { key: 'disc', fa: 'دیسک گردن؟', en: 'Neck disc issue?', type: 'yesno' }
+    ]
+  },
+  wrist: {
+    label: { fa: 'مچ دست', en: 'Wrist' },
+    questions: [
+      { key: 'when_started', fa: 'از چه زمانی شروع شده؟', en: 'When did it start?', type: 'radio', options: [
+        { value: 'last_month', fa: 'ماه گذشته', en: 'Last month' },
+        { value: '3_6_months', fa: '۳ تا ۶ ماه پیش', en: '3–6 months ago' },
+        { value: '6_12_months', fa: '۶ تا ۱۲ ماه پیش', en: '6–12 months ago' },
+        { value: 'over_year', fa: 'بیش از یک سال', en: 'Over 1 year ago' }
+      ]},
+      { key: 'severity', fa: 'شدت درد یا محدودیت؟', en: 'Severity?', type: 'radio', options: [
+        { value: 'mild', fa: 'خفیف', en: 'Mild' },
+        { value: 'moderate', fa: 'متوسط', en: 'Moderate' },
+        { value: 'severe', fa: 'شدید', en: 'Severe' }
+      ]},
+      { key: 'pain_pushup', fa: 'درد هنگام شنا؟', en: 'Pain during push-ups?', type: 'yesno' },
+      { key: 'weak_grip', fa: 'ضعف در گرفتن وزنه؟', en: 'Weakness when gripping weights?', type: 'yesno' }
+    ]
+  },
+  ankle: {
+    label: { fa: 'مچ پا', en: 'Ankle' },
+    questions: [
+      { key: 'when_started', fa: 'از چه زمانی شروع شده؟', en: 'When did it start?', type: 'radio', options: [
+        { value: 'last_month', fa: 'ماه گذشته', en: 'Last month' },
+        { value: '3_6_months', fa: '۳ تا ۶ ماه پیش', en: '3–6 months ago' },
+        { value: '6_12_months', fa: '۶ تا ۱۲ ماه پیش', en: '6–12 months ago' },
+        { value: 'over_year', fa: 'بیش از یک سال', en: 'Over 1 year ago' }
+      ]},
+      { key: 'severity', fa: 'شدت درد یا محدودیت؟', en: 'Severity?', type: 'radio', options: [
+        { value: 'mild', fa: 'خفیف', en: 'Mild' },
+        { value: 'moderate', fa: 'متوسط', en: 'Moderate' },
+        { value: 'severe', fa: 'شدید', en: 'Severe' }
+      ]},
+      { key: 'sprain_history', fa: 'پیچ‌خوردگی قبلی؟', en: 'Previous sprain?', type: 'yesno' },
+      { key: 'pain_running', fa: 'درد در دویدن؟', en: 'Pain when running?', type: 'yesno' },
+      { key: 'instability', fa: 'ناپایداری؟', en: 'Instability?', type: 'yesno' }
+    ]
+  }
+};
+
 const RegistrationForm = ({ onComplete }) => {
   const { t, i18n } = useTranslation();
   const { register } = useAuth();
@@ -48,8 +184,20 @@ const RegistrationForm = ({ onComplete }) => {
   // Step 5: Limitations & Injuries
   const [injuries, setInjuries] = useState([]);
   const [injuryDetails, setInjuryDetails] = useState('');
+  const [injuryQuestionAnswers, setInjuryQuestionAnswers] = useState(() => {
+    const o = {};
+    INJURY_KEYS.forEach(k => { o[k] = {}; });
+    return o;
+  });
   const [medicalConditions, setMedicalConditions] = useState([]);
   const [medicalConditionDetails, setMedicalConditionDetails] = useState('');
+
+  const setInjuryAnswer = (injuryKey, questionKey, value) => {
+    setInjuryQuestionAnswers(prev => ({
+      ...prev,
+      [injuryKey]: { ...(prev[injuryKey] || {}), [questionKey]: value }
+    }));
+  };
 
   // Step 6: Training Conditions
   const [gymAccess, setGymAccess] = useState(false);
@@ -99,6 +247,33 @@ const RegistrationForm = ({ onComplete }) => {
     setLoading(true);
     setError('');
 
+    // Build injury_details: free text + summary of injury follow-up answers
+    let injuryDetailsFinal = injuryDetails.trim();
+    if (injuries.length > 0) {
+      const fa = i18n.language === 'fa';
+      const parts = [];
+      injuries.forEach(injuryKey => {
+        const config = INJURY_QUESTIONS[injuryKey];
+        const answers = injuryQuestionAnswers[injuryKey] || {};
+        if (!config || Object.keys(answers).length === 0) return;
+        const label = config.label[fa ? 'fa' : 'en'];
+        const lines = [];
+        config.questions.forEach(q => {
+          const v = answers[q.key];
+          if (v === undefined || v === '') return;
+          const qText = q[fa ? 'fa' : 'en'];
+          let aText = v;
+          if (q.type === 'yesno') aText = v === 'yes' ? (fa ? 'بله' : 'Yes') : (fa ? 'خیر' : 'No');
+          else if (q.options) aText = (q.options.find(o => o.value === v) || {})[fa ? 'fa' : 'en'] || v;
+          lines.push(`${qText}: ${aText}`);
+        });
+        if (lines.length) parts.push(`[${label}]\n${lines.join('\n')}`);
+      });
+      if (parts.length) {
+        injuryDetailsFinal = (injuryDetailsFinal ? injuryDetailsFinal + '\n\n' : '') + parts.join('\n\n');
+      }
+    }
+
     const profileData = {
       account_type: accountType,
       age: age ? parseInt(age) : null,
@@ -116,7 +291,8 @@ const RegistrationForm = ({ onComplete }) => {
       hip_circumference: hipCircumference ? parseFloat(hipCircumference) : null,
       thigh_circumference: thighCircumference ? parseFloat(thighCircumference) : null,
       injuries: injuries,
-      injury_details: injuryDetails,
+      injury_details: injuryDetailsFinal,
+      injury_question_answers: injuryQuestionAnswers,
       medical_conditions: medicalConditions,
       medical_condition_details: medicalConditionDetails,
       gym_access: gymAccess,
@@ -436,81 +612,108 @@ const RegistrationForm = ({ onComplete }) => {
     </div>
   );
 
-  const renderStep5 = () => (
+  const renderStep5 = () => {
+    const fa = i18n.language === 'fa';
+    return (
     <div className="registration-step">
-      <h3>{i18n.language === 'fa' ? 'محدودیت‌ها و آسیب‌ها' : 'Limitations & Injuries'}</h3>
+      <h3>{fa ? 'محدودیت‌ها و آسیب‌ها' : 'Limitations & Injuries'}</h3>
       <p className="step-description">
-        {i18n.language === 'fa' 
+        {fa 
           ? 'لطفاً آسیب‌ها و محدودیت‌های خود را مشخص کنید تا برنامه‌های ایمن برای شما طراحی شود'
           : 'Please specify your injuries and limitations so we can create safe programs for you'}
       </p>
       
       <div className="form-group">
-        <label>{i18n.language === 'fa' ? 'آسیب‌ها' : 'Injuries'}</label>
+        <label>{fa ? 'آسیب‌ها' : 'Injuries'}</label>
         <div className="checkbox-group">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={injuries.includes('knee')}
-              onChange={() => toggleArrayItem(injuries, setInjuries, 'knee')}
-            />
-            <span>{i18n.language === 'fa' ? 'زانو' : 'Knee'}</span>
-          </label>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={injuries.includes('shoulder')}
-              onChange={() => toggleArrayItem(injuries, setInjuries, 'shoulder')}
-            />
-            <span>{i18n.language === 'fa' ? 'شانه' : 'Shoulder'}</span>
-          </label>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={injuries.includes('lower_back')}
-              onChange={() => toggleArrayItem(injuries, setInjuries, 'lower_back')}
-            />
-            <span>{i18n.language === 'fa' ? 'کمر' : 'Lower Back'}</span>
-          </label>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={injuries.includes('neck')}
-              onChange={() => toggleArrayItem(injuries, setInjuries, 'neck')}
-            />
-            <span>{i18n.language === 'fa' ? 'گردن' : 'Neck'}</span>
-          </label>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={injuries.includes('wrist')}
-              onChange={() => toggleArrayItem(injuries, setInjuries, 'wrist')}
-            />
-            <span>{i18n.language === 'fa' ? 'مچ دست' : 'Wrist'}</span>
-          </label>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={injuries.includes('ankle')}
-              onChange={() => toggleArrayItem(injuries, setInjuries, 'ankle')}
-            />
-            <span>{i18n.language === 'fa' ? 'مچ پا' : 'Ankle'}</span>
-          </label>
+          {INJURY_KEYS.map(key => (
+            <label key={key} className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={injuries.includes(key)}
+                onChange={() => toggleArrayItem(injuries, setInjuries, key)}
+              />
+              <span>{INJURY_LABELS[key] ? (fa ? INJURY_LABELS[key].fa : INJURY_LABELS[key].en) : key}</span>
+            </label>
+          ))}
         </div>
       </div>
 
+      {injuries.length > 0 && (
+        <div className="injury-questions-section">
+          <p className="step-description">{fa ? 'سوال‌های زیر را برای هر آسیب انتخاب‌شده پاسخ دهید.' : 'Please answer the following questions for each selected injury.'}</p>
+          {injuries.map(injuryKey => {
+            const config = INJURY_QUESTIONS[injuryKey];
+            if (!config) return null;
+            const label = config.label[fa ? 'fa' : 'en'];
+            const answers = injuryQuestionAnswers[injuryKey] || {};
+            return (
+              <div key={injuryKey} className="injury-question-block">
+                <h4 className="injury-question-title">{label}</h4>
+                {config.questions.map(q => {
+                  const qText = q[fa ? 'fa' : 'en'];
+                  const value = answers[q.key];
+                  return (
+                    <div key={q.key} className="form-group injury-question">
+                      <label>{qText}</label>
+                      {q.type === 'radio' && q.options && (
+                        <div className="checkbox-group injury-options">
+                          {q.options.map(opt => (
+                            <label key={opt.value} className="checkbox-label">
+                              <input
+                                type="radio"
+                                name={`${injuryKey}-${q.key}`}
+                                checked={value === opt.value}
+                                onChange={() => setInjuryAnswer(injuryKey, q.key, opt.value)}
+                              />
+                              <span>{fa ? opt.fa : opt.en}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {q.type === 'yesno' && (
+                        <div className="checkbox-group injury-options">
+                          <label className="checkbox-label">
+                            <input
+                              type="radio"
+                              name={`${injuryKey}-${q.key}`}
+                              checked={value === 'yes'}
+                              onChange={() => setInjuryAnswer(injuryKey, q.key, 'yes')}
+                            />
+                            <span>{fa ? 'بله' : 'Yes'}</span>
+                          </label>
+                          <label className="checkbox-label">
+                            <input
+                              type="radio"
+                              name={`${injuryKey}-${q.key}`}
+                              checked={value === 'no'}
+                              onChange={() => setInjuryAnswer(injuryKey, q.key, 'no')}
+                            />
+                            <span>{fa ? 'خیر' : 'No'}</span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="form-group">
-        <label>{i18n.language === 'fa' ? 'توضیحات آسیب' : 'Injury Details'}</label>
+        <label>{fa ? 'توضیحات آسیب' : 'Injury Details'}</label>
         <textarea
           value={injuryDetails}
           onChange={(e) => setInjuryDetails(e.target.value)}
           rows={3}
-          placeholder={i18n.language === 'fa' ? 'جزئیات آسیب‌های خود را شرح دهید...' : 'Describe your injuries in detail...'}
+          placeholder={fa ? 'جزئیات آسیب‌های خود را شرح دهید...' : 'Describe your injuries in detail...'}
         />
       </div>
 
       <div className="form-group">
-        <label>{i18n.language === 'fa' ? 'بیماری‌ها و شرایط پزشکی' : 'Medical Conditions'}</label>
+        <label>{fa ? 'بیماری‌ها و شرایط پزشکی' : 'Medical Conditions'}</label>
         <div className="checkbox-group">
           <label className="checkbox-label">
             <input
@@ -550,6 +753,7 @@ const RegistrationForm = ({ onComplete }) => {
       </div>
     </div>
   );
+  };
 
   const renderStep6 = () => (
     <div className="registration-step">

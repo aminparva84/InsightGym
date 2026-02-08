@@ -3,8 +3,9 @@
  */
 
 import axios from 'axios';
+import { getApiBase } from './apiBase';
 
-const BASE_URL = 'http://localhost:5000/api/workout-log';
+const BASE_URL = `${getApiBase()}/api/workout-log`;
 
 export interface WorkoutLogEntry {
   id?: number;

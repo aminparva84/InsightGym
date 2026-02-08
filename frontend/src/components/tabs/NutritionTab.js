@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import { useAuth } from '../../context/AuthContext';
 import './NutritionTab.css';
 
 const NutritionTab = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user, loading: authLoading } = useAuth();
   const [planType, setPlanType] = useState('2week');
   const [nutritionPlans, setNutritionPlans] = useState([]);
@@ -39,7 +41,7 @@ const NutritionTab = () => {
 
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/nutrition/plans?type=${planType}`, getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/nutrition/plans?type=${planType}`, getAxiosConfig());
       setNutritionPlans(response.data);
     } catch (error) {
       console.error('Error loading nutrition plans:', error);

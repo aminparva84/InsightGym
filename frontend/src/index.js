@@ -4,6 +4,9 @@ import './index.css';
 import App from './App';
 import './i18n/config';
 
+// Theme: unisex until user loads (then ThemeSync sets male/female from profile.gender)
+document.documentElement.setAttribute('data-theme', 'unisex');
+
 // Ensure direction is always LTR for consistent alignment
 document.documentElement.dir = 'ltr';
 document.body.dir = 'ltr';

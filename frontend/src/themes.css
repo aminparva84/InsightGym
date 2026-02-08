@@ -1,0 +1,224 @@
+/* ============================================
+   Sex-based theme overrides
+   Applied via data-theme on <html>: unisex | male | female
+   Unisex = not logged in or no gender; male/female from profile.gender
+   ============================================ */
+
+/* Unisex: neutral slate + orange + teal (default when not logged in) */
+html[data-theme="unisex"] {
+  /* Primary - Neutral Slate */
+  --color-primary-900: #0f172a;
+  --color-primary-800: #1e293b;
+  --color-primary-700: #334155;
+  --color-primary-600: #475569;
+  --color-primary-500: #64748b;
+  --color-primary-400: #94a3b8;
+  --color-primary-300: #cbd5e1;
+  --color-primary-200: #e2e8f0;
+  --color-primary-100: #f1f5f9;
+  --color-primary-50: #f8fafc;
+  /* Accent - Sky */
+  --color-accent-600: #0284c7;
+  --color-accent-500: #0ea5e9;
+  --color-accent-400: #38bdf8;
+  --color-accent-300: #7dd3fc;
+  --color-accent-200: #bae6fd;
+  --color-accent-100: #e0f2fe;
+  --color-accent-50: #f0f9ff;
+  /* Secondary - Teal */
+  --color-secondary-600: #0f766e;
+  --color-secondary-500: #14b8a6;
+  --color-secondary-400: #2dd4bf;
+  --color-secondary-300: #5eead4;
+  --color-secondary-200: #99f6e4;
+  --color-secondary-100: #ccfbf1;
+  --color-secondary-50: #f0fdfa;
+  /* Semantics */
+  --surface-base: #ffffff;
+  --surface-subtle: #f8fafc;
+  --surface-raised: #f1f5f9;
+  --surface-sunken: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --focus-ring: rgba(14, 165, 233, 0.35);
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --input-placeholder: #94a3b8;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+  --gradient-banner: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0ea5e9 100%);
+  --gradient-hero: linear-gradient(135deg, #0f172a 0%, #0ea5e9 55%, #14b8a6 100%);
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 10px 20px -14px rgba(15, 23, 42, 0.25);
+  --shadow-xl: 0 30px 60px -28px rgba(15, 23, 42, 0.35);
+  --shadow-2xl: 0 40px 80px -36px rgba(15, 23, 42, 0.4);
+  --shadow-accent: 0 12px 30px -18px rgba(14, 165, 233, 0.45);
+  --shadow-secondary: 0 12px 30px -18px rgba(20, 184, 166, 0.45);
+  /* Soft tints */
+  --color-accent-soft: #e0f2fe;
+  --color-primary-soft: rgba(15, 23, 42, 0.04);
+  --color-primary-soft-border: rgba(15, 23, 42, 0.08);
+  --glass-tabs-bg: rgba(255, 255, 255, 0.75);
+  --modal-overlay: rgba(15, 23, 42, 0.45);
+  /* App globals */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --accent: #0ea5e9;
+  --accent-hover: #0284c7;
+  --border: #e2e8f0;
+}
+
+/* Male: strong blue / navy accent – professional, bold */
+html[data-theme="male"] {
+  /* Primary - Neutral Slate */
+  --color-primary-900: #0f172a;
+  --color-primary-800: #1e293b;
+  --color-primary-700: #334155;
+  --color-primary-600: #475569;
+  --color-primary-500: #64748b;
+  --color-primary-400: #94a3b8;
+  --color-primary-300: #cbd5e1;
+  --color-primary-200: #e2e8f0;
+  --color-primary-100: #f1f5f9;
+  --color-primary-50: #f8fafc;
+  /* Accent - Blue */
+  --color-accent-600: #1d4ed8;
+  --color-accent-500: #2563eb;
+  --color-accent-400: #3b82f6;
+  --color-accent-300: #60a5fa;
+  --color-accent-200: #93c5fd;
+  --color-accent-100: #dbeafe;
+  --color-accent-50: #eff6ff;
+  /* Secondary - Cyan */
+  --color-secondary-600: #0284c7;
+  --color-secondary-500: #0ea5e9;
+  --color-secondary-400: #38bdf8;
+  --color-secondary-300: #7dd3fc;
+  --color-secondary-200: #bae6fd;
+  --color-secondary-100: #e0f2fe;
+  --color-secondary-50: #f0f9ff;
+  /* Semantics */
+  --surface-base: #ffffff;
+  --surface-subtle: #f8fafc;
+  --surface-raised: #f1f5f9;
+  --surface-sunken: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --focus-ring: rgba(37, 99, 235, 0.35);
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --input-placeholder: #94a3b8;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+  --gradient-accent: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  --gradient-banner: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0ea5e9 100%);
+  --gradient-hero: linear-gradient(135deg, #0f172a 0%, #2563eb 60%, #0ea5e9 100%);
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 10px 20px -14px rgba(15, 23, 42, 0.25);
+  --shadow-xl: 0 30px 60px -28px rgba(15, 23, 42, 0.35);
+  --shadow-2xl: 0 40px 80px -36px rgba(15, 23, 42, 0.4);
+  --shadow-accent: 0 12px 30px -18px rgba(37, 99, 235, 0.45);
+  --shadow-secondary: 0 12px 30px -18px rgba(14, 165, 233, 0.45);
+  /* Soft tints */
+  --color-accent-soft: #dbeafe;
+  --color-primary-soft: rgba(15, 23, 42, 0.04);
+  --color-primary-soft-border: rgba(15, 23, 42, 0.08);
+  --glass-tabs-bg: rgba(59, 130, 246, 0.08);
+  --modal-overlay: rgba(15, 23, 42, 0.45);
+  /* App globals */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --border: #e2e8f0;
+}
+
+/* Female: dusty rose / soft mauve accent – warm, approachable */
+html[data-theme="female"] {
+  /* Primary - Neutral Slate */
+  --color-primary-900: #0f172a;
+  --color-primary-800: #1e293b;
+  --color-primary-700: #334155;
+  --color-primary-600: #475569;
+  --color-primary-500: #64748b;
+  --color-primary-400: #94a3b8;
+  --color-primary-300: #cbd5e1;
+  --color-primary-200: #e2e8f0;
+  --color-primary-100: #f1f5f9;
+  --color-primary-50: #f8fafc;
+  /* Accent - Rose */
+  --color-accent-600: #be123c;
+  --color-accent-500: #e11d48;
+  --color-accent-400: #fb7185;
+  --color-accent-300: #fda4af;
+  --color-accent-200: #fecdd3;
+  --color-accent-100: #ffe4e6;
+  --color-accent-50: #fff1f2;
+  /* Secondary - Purple */
+  --color-secondary-600: #6d28d9;
+  --color-secondary-500: #8b5cf6;
+  --color-secondary-400: #a78bfa;
+  --color-secondary-300: #c4b5fd;
+  --color-secondary-200: #ddd6fe;
+  --color-secondary-100: #ede9fe;
+  --color-secondary-50: #f5f3ff;
+  /* Semantics */
+  --surface-base: #ffffff;
+  --surface-subtle: #f8fafc;
+  --surface-raised: #f1f5f9;
+  --surface-sunken: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --focus-ring: rgba(225, 29, 72, 0.35);
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --input-placeholder: #94a3b8;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #0f172a 0%, #e11d48 100%);
+  --gradient-accent: linear-gradient(135deg, #e11d48 0%, #fb7185 100%);
+  --gradient-banner: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #8b5cf6 100%);
+  --gradient-hero: linear-gradient(135deg, #0f172a 0%, #e11d48 55%, #8b5cf6 100%);
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 10px 20px -14px rgba(15, 23, 42, 0.25);
+  --shadow-xl: 0 30px 60px -28px rgba(15, 23, 42, 0.35);
+  --shadow-2xl: 0 40px 80px -36px rgba(15, 23, 42, 0.4);
+  --shadow-accent: 0 12px 30px -18px rgba(225, 29, 72, 0.45);
+  --shadow-secondary: 0 12px 30px -18px rgba(139, 92, 246, 0.45);
+  /* Soft tints */
+  --color-accent-soft: #ffe4e6;
+  --color-primary-soft: rgba(15, 23, 42, 0.04);
+  --color-primary-soft-border: rgba(15, 23, 42, 0.08);
+  --glass-tabs-bg: rgba(225, 29, 72, 0.08);
+  --modal-overlay: rgba(15, 23, 42, 0.45);
+  /* App globals */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --accent: #e11d48;
+  --accent-hover: #be123c;
+  --border: #e2e8f0;
+}

@@ -53,20 +53,19 @@ Check the backend terminal for error messages. Common issues:
 - CORS issues
 - Port conflicts
 
-## Solution 4: Delete and Recreate Database
+## Solution 4: Fix Database / Recreate Demo User
 
 If there are database issues:
 
-```bash
-cd backend
-# Delete database
-rm raha_fitness.db  # or del raha_fitness.db on Windows
+- **PostgreSQL:** Ensure `DATABASE_URL` in `.env` is correct and the database exists (e.g. `createdb raha_fitness`). Then run:
+  ```bash
+  cd backend
+  python init_database.py   # creates tables
+  python fix_login.py       # creates/resets demo user
+  ```
+  The app uses PostgreSQL only; set `DATABASE_URL` in `.env` (see `.env.example`).
 
-# Restart backend (it will create new database)
-python app.py
-```
-
-Then register via UI.
+Then register or log in via UI.
 
 
 

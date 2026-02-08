@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import { useAuth } from '../../context/AuthContext';
 import './ProgressTrend.css';
 
 const ProgressTrend = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user } = useAuth();
   const [userProfile, setUserProfile] = useState(null);
   const [progressEntries, setProgressEntries] = useState([]);
@@ -48,8 +50,8 @@ const ProgressTrend = () => {
 
     try {
       const [profileRes, progressRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/user/profile', getAxiosConfig()),
-        axios.get('http://localhost:5000/api/workout-log/progress', getAxiosConfig())
+        axios.get(`${API_BASE}/api/user/profile`, getAxiosConfig()),
+        axios.get(`${API_BASE}/api/workout-log/progress`, getAxiosConfig())
       ]);
       
       setUserProfile(profileRes.data);
@@ -112,7 +114,7 @@ const ProgressTrend = () => {
 
       // Submit progress entry
       const progressRes = await axios.post(
-        'http://localhost:5000/api/workout-log/progress',
+        `${API_BASE}/api/workout-log/progress`,
         progressData,
         getAxiosConfig()
       );
@@ -125,7 +127,7 @@ const ProgressTrend = () => {
         
         try {
           await axios.post(
-            'http://localhost:5000/api/progress/upload-analysis',
+            `${API_BASE}/api/progress/upload-analysis`,
             formDataFile,
             {
               headers: {

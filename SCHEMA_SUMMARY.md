@@ -72,15 +72,14 @@ python backend/seed_exercises.py
 
 ### Using Raw SQL
 
+The app uses **PostgreSQL** in production. Prefer SQLAlchemy `db.create_all()` or Prisma for schema creation. For manual/backup use:
+
 ```bash
-# SQLite
+# PostgreSQL (recommended; use database_schema_postgresql.sql)
+psql -d raha_fitness -f database_schema_postgresql.sql
+
+# SQLite (local dev only)
 sqlite3 raha_fitness.db < database_schema.sql
-
-# PostgreSQL
-psql -d raha_fitness < database_schema.sql
-
-# MySQL
-mysql -u user -p raha_fitness < database_schema.sql
 ```
 
 ## Example Usage

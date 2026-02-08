@@ -1,5 +1,6 @@
 """
 Check existing users in the database and diagnose login issues
+Uses Flask app context and SQLAlchemy (works with PostgreSQL or SQLite via DATABASE_URL).
 """
 
 import sys
@@ -11,29 +12,14 @@ from werkzeug.security import check_password_hash
 
 def check_users():
     with app.app_context():
-        # Check if database exists (check both locations)
-        db_uri = app.config['SQLALCHEMY_DATABASE_URI']
-        db_file = db_uri.replace('sqlite:///', '')
-        
-        # Also check instance folder
-        instance_db = 'instance/raha_fitness.db'
-        
-        if os.path.exists(db_file):
-            print(f"[OK] Database file exists: {db_file}")
-        elif os.path.exists(instance_db):
-            print(f"[OK] Database file exists: {instance_db}")
-            # Update the database URI for this session
-            app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{instance_db}'
-            db_file = instance_db
-        else:
-            print(f"[ERROR] Database file NOT found in:")
-            print(f"  - {db_file}")
-            print(f"  - {instance_db}")
-            print("  The database will be created when you start the server.")
+        try:
+            users = User.query.all()
+        except Exception as e:
+            print(f"[ERROR] Could not connect to database: {e}")
+            print("  Ensure DATABASE_URL is set (e.g. postgresql://...) and the database exists.")
             return
         
-        # Get all users
-        users = User.query.all()
+        print("[OK] Connected to database")
         
         print(f"\n{'='*60}")
         print(f"Total users in database: {len(users)}")

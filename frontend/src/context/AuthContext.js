@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { getApiBase } from '../services/apiBase';
 
 const AuthContext = createContext();
 
@@ -12,6 +13,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const API_BASE = getApiBase();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(() => {
@@ -151,7 +153,7 @@ export const AuthProvider = ({ children }) => {
       console.log('Token length:', tokenWithoutBearer.length);
       console.log('Full token (for debugging):', tokenWithoutBearer);
       
-      const response = await axios.get('http://localhost:5000/api/user', {
+      const response = await axios.get(`${API_BASE}/api/user`, {
         headers: {
           'Authorization': authHeader
         }
@@ -243,7 +245,7 @@ export const AuthProvider = ({ children }) => {
         delete axios.defaults.headers.common['Authorization'];
       }
       
-      const response = await axios.post('http://localhost:5000/api/login', {
+      const response = await axios.post(`${API_BASE}/api/login`, {
         username,
         password
       }, config);
@@ -265,23 +267,21 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', cleanToken);
         setToken(cleanToken);
         axios.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
-        
-        // Set user from login response - don't call fetchUser immediately
-        // The user data from login is sufficient, and we'll verify it later if needed
         setUser(userData);
-        setLoading(false);
-        justLoggedInRef.current = true; // Flag that we just logged in
+        justLoggedInRef.current = true;
         console.log('User set after login:', userData);
-        
-        // Clear the flag after a short delay to allow any immediate requests to complete
+
+        // Load full user (with profile/gender) so theme applies immediately without reload
+        try {
+          await fetchUser(true);
+        } catch (e) {
+          // Keep minimal user on failure; theme may stay unisex until next load
+        }
+        setLoading(false);
         setTimeout(() => {
           justLoggedInRef.current = false;
         }, 3000);
-        
-        // DON'T call fetchUser immediately after login - the user data from login is sufficient
-        // fetchUser will be called on page reload if needed
-        // This prevents any race conditions or immediate failures from clearing the user
-        
+
         return { success: true, user: userData };
       } else {
         console.error('No access_token in response:', response.data);
@@ -325,7 +325,7 @@ export const AuthProvider = ({ children }) => {
         delete axios.defaults.headers.common['Authorization'];
       }
       
-      const response = await axios.post('http://localhost:5000/api/register', requestData, config);
+      const response = await axios.post(`${API_BASE}/api/register`, requestData, config);
       const { access_token, user: userData } = response.data;
       
       // Ensure token is stored correctly
@@ -344,7 +344,18 @@ export const AuthProvider = ({ children }) => {
         setToken(cleanToken);
         axios.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
         setUser(userData);
+        justLoggedInRef.current = true;
+
+        // Load full user (with profile/gender) so theme applies immediately without reload
+        try {
+          await fetchUser(true);
+        } catch (e) {
+          // Keep minimal user on failure
+        }
         setLoading(false);
+        setTimeout(() => {
+          justLoggedInRef.current = false;
+        }, 3000);
         console.log('User set after registration:', userData);
         return { success: true };
       } else {

@@ -1,42 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import AdminPage from './components/AdminPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
+import './themes.css';
 
-// Component to scroll to top on route change (only resets, doesn't block user scroll)
+// Sync theme with user profile: unisex when not logged in, male/female based on profile.gender.
+// useLayoutEffect so theme is applied before paint (avoids orange flash then switch).
+function ThemeSync({ children }) {
+  const { user, loading } = useAuth();
+  useLayoutEffect(() => {
+    const theme = (() => {
+      if (loading || !user) return 'unisex';
+      const gender = user.profile?.gender;
+      if (gender === 'male') return 'male';
+      if (gender === 'female') return 'female';
+      return 'unisex';
+    })();
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [user, loading]);
+  return children;
+}
+
+// No scroll-to-top on route change (avoids unwanted scroll when e.g. member logs in and goes to dashboard)
 function ScrollToTop() {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    // Reset scroll position on route change (not blocking user scroll)
-    const resetScroll = () => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-    
-    // Reset scroll a few times to catch delayed scrolls
-    resetScroll();
-    const timeout1 = setTimeout(resetScroll, 0);
-    const timeout2 = setTimeout(resetScroll, 10);
-    const timeout3 = setTimeout(resetScroll, 50);
-    
-    // Use requestAnimationFrame
-    requestAnimationFrame(() => {
-      resetScroll();
-    });
-    
-    return () => {
-      clearTimeout(timeout1);
-      clearTimeout(timeout2);
-      clearTimeout(timeout3);
-    };
-  }, [pathname]);
-
   return null;
 }
 
@@ -49,10 +39,12 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <ScrollToTop />
-        <AppRoutes />
-      </Router>
+      <ThemeSync>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <ScrollToTop />
+          <AppRoutes />
+        </Router>
+      </ThemeSync>
     </AuthProvider>
   );
 }

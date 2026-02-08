@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './OnlineLab.css';
 
 const OnlineLab = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user } = useAuth();
   const [userProfile, setUserProfile] = useState(null);
   const [activeSection, setActiveSection] = useState('bmi');
@@ -42,7 +44,7 @@ const OnlineLab = () => {
     }
 
     try {
-      const response = await axios.get('http://localhost:5000/api/user/profile', getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/user/profile`, getAxiosConfig());
       setUserProfile(response.data);
       
       // Pre-fill forms with user data

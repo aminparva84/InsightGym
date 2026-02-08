@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../services/apiBase';
 import { useAuth } from '../context/AuthContext';
 import './TrainingWithAgent.css';
 
 const TrainingWithAgent = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user } = useAuth();
   const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ const TrainingWithAgent = () => {
     }
 
     try {
-      const response = await axios.get('http://localhost:5000/api/meetings', getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/meetings`, getAxiosConfig());
       setMeetings(response.data || []);
     } catch (error) {
       console.error('Error loading meetings:', error);
@@ -60,13 +62,13 @@ const TrainingWithAgent = () => {
     try {
       if (editingMeeting) {
         await axios.put(
-          `http://localhost:5000/api/meetings/${editingMeeting.id}`,
+          `${API_BASE}/api/meetings/${editingMeeting.id}`,
           formData,
           getAxiosConfig()
         );
       } else {
         await axios.post(
-          'http://localhost:5000/api/meetings',
+          `${API_BASE}/api/meetings`,
           formData,
           getAxiosConfig()
         );
@@ -86,7 +88,7 @@ const TrainingWithAgent = () => {
   const handleAccept = async (meetingId) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/meetings/${meetingId}/accept`,
+        `${API_BASE}/api/meetings/${meetingId}/accept`,
         {},
         getAxiosConfig()
       );
@@ -102,7 +104,7 @@ const TrainingWithAgent = () => {
   const handleDeny = async (meetingId) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/meetings/${meetingId}/deny`,
+        `${API_BASE}/api/meetings/${meetingId}/deny`,
         {},
         getAxiosConfig()
       );
@@ -135,7 +137,7 @@ const TrainingWithAgent = () => {
 
     try {
       await axios.delete(
-        `http://localhost:5000/api/meetings/${meetingId}`,
+        `${API_BASE}/api/meetings/${meetingId}`,
         getAxiosConfig()
       );
       loadMeetings();

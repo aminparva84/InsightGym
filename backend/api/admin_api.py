@@ -190,6 +190,154 @@ def delete_exercise(exercise_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+@admin_bp.route('/exercises/<int:exercise_id>/movement-info', methods=['PATCH'])
+@jwt_required()
+def update_exercise_movement_info(exercise_id):
+    """Update only video/voice/trainer notes for an exercise (training movement info)."""
+    db = get_db()
+    Exercise = get_exercise_model()
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    exercise = db.session.query(Exercise).filter_by(id=exercise_id).first()
+    if not exercise:
+        return jsonify({'error': 'Exercise not found'}), 404
+    data = request.get_json() or {}
+    for key in ('video_url', 'voice_url', 'trainer_notes_fa', 'trainer_notes_en', 'note_notify_at_seconds', 'ask_post_set_questions'):
+        if key in data and hasattr(exercise, key):
+            val = data[key]
+            if key == 'note_notify_at_seconds':
+                try:
+                    setattr(exercise, key, int(val) if val is not None and str(val).strip() != '' else None)
+                except (TypeError, ValueError):
+                    setattr(exercise, key, None)
+            elif key == 'ask_post_set_questions':
+                setattr(exercise, key, bool(val))
+            else:
+                setattr(exercise, key, (val.strip() if isinstance(val, str) else val) or None)
+    try:
+        db.session.commit()
+        return jsonify(exercise.to_dict('fa')), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+@admin_bp.route('/exercises/video-upload', methods=['POST'])
+@jwt_required()
+def upload_exercise_video():
+    """Upload a video file for an exercise; returns { video_url: ... }."""
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from werkzeug.utils import secure_filename
+    import os
+    from datetime import datetime
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    ext = (file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else '') or 'mp4'
+    if ext not in ('mp4', 'webm', 'mov', 'avi', 'mkv'):
+        return jsonify({'error': 'Invalid file type. Allowed: mp4, webm, mov, avi, mkv'}), 400
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'exercises', 'videos')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = secure_filename(f"video_{user_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{ext}")
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+    video_url = f'/api/uploads/exercises/videos/{filename}'
+    return jsonify({'video_url': video_url, 'filename': filename}), 200
+
+
+@admin_bp.route('/exercises/<int:exercise_id>/propagate-notes', methods=['POST'])
+@jwt_required()
+def propagate_exercise_notes(exercise_id):
+    """Copy this exercise's trainer notes (and voice) to all programs that contain this movement.
+    Sets TrainingActionNote for every (program_id, session_index, exercise_index) where the
+    exercise name matches. Voice/text is set once on the movement and added to members' training program."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from models import TrainingProgram, TrainingActionNote
+    Exercise = get_exercise_model()
+    exercise = db.session.query(Exercise).filter_by(id=exercise_id).first()
+    if not exercise:
+        return jsonify({'error': 'Exercise not found'}), 404
+    name_fa = (exercise.name_fa or '').strip()
+    name_en = (exercise.name_en or '').strip()
+    note_fa = exercise.trainer_notes_fa or ''
+    note_en = exercise.trainer_notes_en or ''
+    voice_url = exercise.voice_url or ''
+    if not name_fa and not name_en:
+        return jsonify({'error': 'Exercise has no name'}), 400
+    programs = db.session.query(TrainingProgram).all()
+    updated = 0
+    for program in programs:
+        sessions_list = program.get_sessions() if hasattr(program, 'get_sessions') else []
+        for session_idx, session in enumerate(sessions_list):
+            exercises_list = session.get('exercises') or []
+            for ex_idx, ex in enumerate(exercises_list):
+                ex_name_fa = (ex.get('name_fa') or ex.get('name') or '').strip()
+                ex_name_en = (ex.get('name_en') or ex.get('name') or '').strip()
+                if (name_fa and ex_name_fa == name_fa) or (name_en and ex_name_en == name_en):
+                    existing = db.session.query(TrainingActionNote).filter_by(
+                        training_program_id=program.id,
+                        session_index=session_idx,
+                        exercise_index=ex_idx,
+                    ).first()
+                    if existing:
+                        existing.note_fa = note_fa or None
+                        existing.note_en = note_en or None
+                        existing.voice_url = voice_url or None
+                    else:
+                        row = TrainingActionNote(
+                            training_program_id=program.id,
+                            session_index=session_idx,
+                            exercise_index=ex_idx,
+                            note_fa=note_fa or None,
+                            note_en=note_en or None,
+                            voice_url=voice_url or None,
+                            created_by=int(user_id) if user_id else None,
+                        )
+                        db.session.add(row)
+                    updated += 1
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Notes propagated to programs', 'updated_count': updated}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+@admin_bp.route('/exercises/voice-upload', methods=['POST'])
+@jwt_required()
+def upload_exercise_voice():
+    """Upload a voice note for an exercise; returns { voice_url: ... }."""
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from werkzeug.utils import secure_filename
+    import os
+    from datetime import datetime
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    ext = (file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else '') or 'webm'
+    if ext not in ('webm', 'mp3', 'ogg', 'wav', 'm4a'):
+        return jsonify({'error': 'Invalid file type. Allowed: webm, mp3, ogg, wav, m4a'}), 400
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'exercises', 'voice')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = secure_filename(f"voice_{user_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{ext}")
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+    voice_url = f'/api/uploads/exercises/voice/{filename}'
+    return jsonify({'voice_url': voice_url, 'filename': filename}), 200
+
+
 @admin_bp.route('/exercises/bulk', methods=['POST'])
 @jwt_required()
 def bulk_create_exercises():
@@ -880,18 +1028,28 @@ def get_configuration():
                 'purposes_fa': stored.get('purposes_fa', '') or stored.get('description_fa', ''),
                 'purposes_en': stored.get('purposes_en', '') or stored.get('description_en', ''),
                 'allowed_movements': stored.get('allowed_movements') if isinstance(stored.get('allowed_movements'), list) else [],
-                'forbidden_movements': stored.get('forbidden_movements') if isinstance(stored.get('forbidden_movements'), list) else []
+                'forbidden_movements': stored.get('forbidden_movements') if isinstance(stored.get('forbidden_movements'), list) else [],
+                'important_notes_fa': stored.get('important_notes_fa', ''),
+                'important_notes_en': stored.get('important_notes_en', '')
             }
             injuries_out[key] = merged
+        injuries_out['common_injury_note_fa'] = raw_injuries.get('common_injury_note_fa', '')
+        injuries_out['common_injury_note_en'] = raw_injuries.get('common_injury_note_en', '')
         return jsonify({
             'training_levels': training_levels_out,
             'injuries': injuries_out
         }), 200
     else:
-        _default_injury = lambda: {'purposes_fa': '', 'purposes_en': '', 'allowed_movements': [], 'forbidden_movements': []}
+        _default_injury = lambda: {
+            'purposes_fa': '', 'purposes_en': '', 'allowed_movements': [], 'forbidden_movements': [],
+            'important_notes_fa': '', 'important_notes_en': ''
+        }
+        default_injuries = {k: _default_injury() for k in ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle']}
+        default_injuries['common_injury_note_fa'] = ''
+        default_injuries['common_injury_note_en'] = ''
         return jsonify({
             'training_levels': default_training_levels,
-            'injuries': {k: _default_injury() for k in ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle']}
+            'injuries': default_injuries
         }), 200
 
 @admin_bp.route('/config', methods=['POST'])
@@ -1109,37 +1267,25 @@ def get_site_settings():
     row = db.session.query(SiteSettings).first()
     if not row:
         return jsonify({
-            'contact_email': '',
-            'contact_phone': '',
-            'address_fa': '',
-            'address_en': '',
-            'app_description_fa': '',
-            'app_description_en': '',
-            'instagram_url': '',
-            'telegram_url': '',
-            'whatsapp_url': '',
-            'twitter_url': '',
-            'facebook_url': '',
-            'linkedin_url': '',
-            'youtube_url': '',
-            'copyright_text': ''
+            'contact_email': '', 'contact_phone': '', 'address_fa': '', 'address_en': '',
+            'app_description_fa': '', 'app_description_en': '',
+            'instagram_url': '', 'telegram_url': '', 'whatsapp_url': '', 'twitter_url': '',
+            'facebook_url': '', 'linkedin_url': '', 'youtube_url': '', 'copyright_text': '',
+            'session_phases_json': '', 'training_plans_products_json': ''
         }), 200
-    return jsonify({
+    out = {
         'contact_email': row.contact_email or '',
         'contact_phone': row.contact_phone or '',
-        'address_fa': row.address_fa or '',
-        'address_en': row.address_en or '',
-        'app_description_fa': row.app_description_fa or '',
-        'app_description_en': row.app_description_en or '',
-        'instagram_url': row.instagram_url or '',
-        'telegram_url': row.telegram_url or '',
-        'whatsapp_url': row.whatsapp_url or '',
-        'twitter_url': row.twitter_url or '',
-        'facebook_url': row.facebook_url or '',
-        'linkedin_url': row.linkedin_url or '',
-        'youtube_url': row.youtube_url or '',
-        'copyright_text': row.copyright_text or ''
-    }), 200
+        'address_fa': row.address_fa or '', 'address_en': row.address_en or '',
+        'app_description_fa': row.app_description_fa or '', 'app_description_en': row.app_description_en or '',
+        'instagram_url': row.instagram_url or '', 'telegram_url': row.telegram_url or '',
+        'whatsapp_url': row.whatsapp_url or '', 'twitter_url': row.twitter_url or '',
+        'facebook_url': row.facebook_url or '', 'linkedin_url': row.linkedin_url or '',
+        'youtube_url': row.youtube_url or '', 'copyright_text': row.copyright_text or '',
+        'session_phases_json': row.session_phases_json if hasattr(row, 'session_phases_json') and row.session_phases_json else '',
+        'training_plans_products_json': row.training_plans_products_json if hasattr(row, 'training_plans_products_json') and row.training_plans_products_json else '',
+    }
+    return jsonify(out), 200
 
 
 @admin_bp.route('/site-settings', methods=['PUT'])
@@ -1160,14 +1306,520 @@ def update_site_settings():
                 'app_description_fa', 'app_description_en',
                 'instagram_url', 'telegram_url', 'whatsapp_url', 'twitter_url',
                 'facebook_url', 'linkedin_url', 'youtube_url', 'copyright_text'):
-        if key in data and data[key] is not None:
-            setattr(row, key, (data[key] or '').strip() if isinstance(data[key], str) else data[key])
+        if key in data and data[key] is not None and hasattr(row, key):
+            val = data[key]
+            setattr(row, key, (val.strip() if isinstance(val, str) else val))
+    for key in ('session_phases_json', 'training_plans_products_json'):
+        if key in data and hasattr(row, key):
+            val = data[key]
+            if val is None:
+                setattr(row, key, None)
+            elif isinstance(val, str):
+                setattr(row, key, val.strip() or None)
+            elif isinstance(val, (dict, list)):
+                setattr(row, key, json.dumps(val, ensure_ascii=False))
+            else:
+                setattr(row, key, str(val))
     try:
         db.session.commit()
         return jsonify({'message': 'Site settings saved successfully'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
+
+
+# ---------- Session phases (warming, cooldown, ending) for member session steps ----------
+@admin_bp.route('/session-phases', methods=['GET'])
+@jwt_required()
+def get_session_phases():
+    """Get warming, cooldown, ending message (admin)."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from models import SiteSettings
+    row = db.session.query(SiteSettings).first()
+    raw = (getattr(row, 'session_phases_json', None) or '').strip() if row else ''
+    if not raw:
+        return jsonify({
+            'warming': {'title_fa': '', 'title_en': '', 'steps': []},
+            'cooldown': {'title_fa': '', 'title_en': '', 'steps': []},
+            'ending_message_fa': '',
+            'ending_message_en': ''
+        }), 200
+    try:
+        return jsonify(json.loads(raw)), 200
+    except Exception:
+        return jsonify({
+            'warming': {'title_fa': '', 'title_en': '', 'steps': []},
+            'cooldown': {'title_fa': '', 'title_en': '', 'steps': []},
+            'ending_message_fa': '',
+            'ending_message_en': ''
+        }), 200
+
+
+@admin_bp.route('/session-phases', methods=['PUT'])
+@jwt_required()
+def update_session_phases():
+    """Update warming, cooldown, ending message (admin)."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid body'}), 400
+    from models import SiteSettings
+    row = db.session.query(SiteSettings).first()
+    if not row:
+        row = SiteSettings()
+        db.session.add(row)
+    row.session_phases_json = json.dumps(data, ensure_ascii=False)
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Session phases saved'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+# ---------- Training plans & packages (buy modal content) ----------
+@admin_bp.route('/training-plans-products', methods=['GET'])
+@jwt_required()
+def get_training_plans_products():
+    """Get buyable training plans and packages config (admin)."""
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    db = get_db()
+    from models import SiteSettings
+    row = db.session.query(SiteSettings).first()
+    raw = (getattr(row, 'training_plans_products_json', None) or '').strip() if row else ''
+    if not raw:
+        return jsonify({'basePrograms': [], 'packages': []}), 200
+    try:
+        return jsonify(json.loads(raw)), 200
+    except Exception:
+        return jsonify({'basePrograms': [], 'packages': []}), 200
+
+
+@admin_bp.route('/training-plans-products', methods=['PUT'])
+@jwt_required()
+def update_training_plans_products():
+    """Update buyable training plans and packages (admin)."""
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid body'}), 400
+    db = get_db()
+    from models import SiteSettings
+    row = db.session.query(SiteSettings).first()
+    if not row:
+        row = SiteSettings()
+        db.session.add(row)
+    row.training_plans_products_json = json.dumps(data, ensure_ascii=False)
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Training plans & packages saved'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+# ---------- AI Settings (provider keys + selected provider) ----------
+@admin_bp.route('/ai-settings', methods=['GET'])
+@jwt_required()
+def get_ai_settings():
+    """Get AI provider settings (no API keys in response). Admin only."""
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        from services.ai_provider import _get_settings, get_provider_api_key, is_sdk_installed, PROVIDERS, SELECTED_DEFAULT
+        settings = _get_settings()
+        selected = settings.get('selected_provider') or SELECTED_DEFAULT
+        providers = {}
+        for p in PROVIDERS:
+            key, source = get_provider_api_key(p, settings)
+            prov_data = settings.get(p) or {}
+            providers[p] = {
+                'sdk_installed': is_sdk_installed(p),
+                'has_key': bool(key),
+                'source': source or (None if not key else 'database'),
+                'is_valid': prov_data.get('is_valid', False),
+                'last_tested_at': prov_data.get('last_tested_at'),
+            }
+        return jsonify({
+            'selected_provider': selected,
+            'providers': providers,
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/ai-settings', methods=['PUT'])
+@jwt_required()
+def update_ai_settings():
+    """Update AI settings: selected_provider and/or API keys per provider. Admin only."""
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid body'}), 400
+    try:
+        from services.ai_provider import _get_settings, _save_settings, PROVIDERS, SELECTED_DEFAULT
+        settings = _get_settings()
+        selectable = ('auto',) + PROVIDERS
+        if 'selected_provider' in data and data['selected_provider'] in selectable:
+            settings['selected_provider'] = data['selected_provider']
+        for p in PROVIDERS:
+            if p in data and isinstance(data[p], dict) and 'api_key' in data[p]:
+                key = data[p]['api_key']
+                if p not in settings:
+                    settings[p] = {}
+                if key is None or (isinstance(key, str) and not key.strip()):
+                    settings[p].pop('api_key', None)
+                else:
+                    settings[p]['api_key'] = key.strip() if isinstance(key, str) else str(key)
+        if not _save_settings(settings):
+            return jsonify({'error': 'Failed to save settings'}), 500
+        return jsonify({'message': 'AI settings saved'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/ai-settings/test', methods=['POST'])
+@jwt_required()
+def test_ai_provider():
+    """Test an AI provider's API key. Body: { provider: 'openai'|'anthropic'|'gemini', api_key?: optional }. Admin only."""
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json() or {}
+    provider = (data.get('provider') or '').strip().lower()
+    if provider not in ('openai', 'anthropic', 'gemini', 'vertex'):
+        return jsonify({'error': 'Invalid provider'}), 400
+    api_key_override = data.get('api_key')
+    if api_key_override is not None and isinstance(api_key_override, str):
+        api_key_override = api_key_override.strip() or None
+    try:
+        from services.ai_provider import test_provider
+        success, message = test_provider(provider, api_key_override)
+        return jsonify({'success': success, 'message': message}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 200
+
+
+# ---------- Progress check requests (trainer accept/deny) ----------
+@admin_bp.route('/progress-check-requests', methods=['GET'])
+@jwt_required()
+def list_progress_check_requests():
+    """List pending progress check requests (admin/assistant)."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from models import ProgressCheckRequest, User
+    status_filter = request.args.get('status', 'pending')
+    q = db.session.query(ProgressCheckRequest)
+    if status_filter:
+        q = q.filter_by(status=status_filter)
+    q = q.order_by(ProgressCheckRequest.requested_at.desc()).limit(50)
+    rows = q.all()
+    out = []
+    for r in rows:
+        member = db.session.get(User, r.member_id)
+        out.append({
+            'id': r.id,
+            'member_id': r.member_id,
+            'member_username': member.username if member else None,
+            'status': r.status,
+            'requested_at': r.requested_at.isoformat() if r.requested_at else None,
+            'responded_at': r.responded_at.isoformat() if r.responded_at else None,
+        })
+    return jsonify(out), 200
+
+
+@admin_bp.route('/progress-check-requests/<int:req_id>', methods=['PATCH'])
+@jwt_required()
+def respond_progress_check_request(req_id):
+    """Accept or deny a progress check request (admin/assistant)."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from models import ProgressCheckRequest, Notification
+    data = request.get_json() or {}
+    action = (data.get('action') or '').strip().lower()
+    if action not in ('accept', 'deny'):
+        return jsonify({'error': 'action must be accept or deny'}), 400
+    req = db.session.query(ProgressCheckRequest).filter_by(id=req_id).first()
+    if not req:
+        return jsonify({'error': 'Request not found'}), 404
+    if req.status != 'pending':
+        return jsonify({'error': 'Request already responded'}), 400
+    from datetime import datetime
+    req.status = 'accepted' if action == 'accept' else 'denied'
+    req.responded_at = datetime.utcnow()
+    req.responded_by = user_id
+    if action == 'accept':
+        notif = Notification(
+            user_id=req.member_id,
+            type='message',
+            title_fa='بررسی پیشرفت پذیرفته شد',
+            title_en='Progress check accepted',
+            body_fa='مربی درخواست بررسی پیشرفت شما را پذیرفت.',
+            body_en='Your trainer has accepted your progress check request.'
+        )
+        db.session.add(notif)
+    else:
+        notif = Notification(
+            user_id=req.member_id,
+            type='message',
+            title_fa='درخواست بررسی پیشرفت رد شد',
+            title_en='Progress check request declined',
+            body_fa='مربی در این زمان نتوانست درخواست بررسی پیشرفت شما را بپذیرد.',
+            body_en='Your trainer could not fulfill your progress check request at this time.'
+        )
+        db.session.add(notif)
+    try:
+        db.session.commit()
+        return jsonify({'id': req.id, 'status': req.status, 'message': 'Updated'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+# ---------- Admin list all training programs ----------
+@admin_bp.route('/programs', methods=['GET'])
+@jwt_required()
+def list_programs():
+    """List all training programs for admin/assistant (to manage action notes)."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from models import TrainingProgram
+    language = request.args.get('language', 'fa')
+    programs = db.session.query(TrainingProgram).order_by(TrainingProgram.id).all()
+    out = [p.to_dict(language) for p in programs]
+    return jsonify(out), 200
+
+
+# ---------- Admin cleanup: keep single training program ----------
+@admin_bp.route('/training-programs/cleanup', methods=['POST'])
+@jwt_required()
+def cleanup_training_programs():
+    """Keep one general program and one program per member. Body: { dry_run?: bool }."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data = request.get_json() or {}
+    dry_run = bool(data.get('dry_run', False))
+
+    from app import User
+    from models import TrainingProgram, MemberWeeklyGoal, MemberTrainingActionCompletion, TrainingActionNote
+
+    # General programs: keep the first by id
+    general = (
+        db.session.query(TrainingProgram)
+        .filter(TrainingProgram.user_id.is_(None))
+        .order_by(TrainingProgram.id)
+        .all()
+    )
+    if not general:
+        return jsonify({'error': 'No general training programs found'}), 400
+
+    keep_general = general[0]
+    extra_general = general[1:]
+    removed_general = len(extra_general)
+
+    if not dry_run and extra_general:
+        for prog in extra_general:
+            pid = prog.id
+            db.session.query(MemberWeeklyGoal).filter_by(training_program_id=pid).delete()
+            db.session.query(MemberTrainingActionCompletion).filter_by(training_program_id=pid).delete()
+            db.session.query(TrainingActionNote).filter_by(training_program_id=pid).delete()
+            db.session.delete(prog)
+
+    # Member programs: keep first per member, assign if none
+    members = db.session.query(User).filter(User.role == 'member').order_by(User.id).all()
+    removed_member_programs = 0
+    assigned = 0
+    for member in members:
+        programs = (
+            db.session.query(TrainingProgram)
+            .filter_by(user_id=member.id)
+            .order_by(TrainingProgram.id)
+            .all()
+        )
+        if programs:
+            for prog in programs[1:]:
+                pid = prog.id
+                if not dry_run:
+                    db.session.query(MemberWeeklyGoal).filter_by(training_program_id=pid).delete()
+                    db.session.query(MemberTrainingActionCompletion).filter_by(training_program_id=pid).delete()
+                    db.session.query(TrainingActionNote).filter_by(training_program_id=pid).delete()
+                    db.session.delete(prog)
+                removed_member_programs += 1
+            continue
+
+        # No program: copy the single general program
+        if not dry_run:
+            copy_program = TrainingProgram(
+                user_id=member.id,
+                name_fa=keep_general.name_fa,
+                name_en=keep_general.name_en,
+                description_fa=keep_general.description_fa,
+                description_en=keep_general.description_en,
+                duration_weeks=keep_general.duration_weeks,
+                training_level=keep_general.training_level,
+                category=keep_general.category,
+                sessions=keep_general.sessions,
+            )
+            db.session.add(copy_program)
+        assigned += 1
+
+    if not dry_run:
+        db.session.commit()
+
+    return jsonify({
+        'dry_run': dry_run,
+        'kept_general_program_id': keep_general.id,
+        'removed_general_programs': removed_general,
+        'removed_member_programs': removed_member_programs,
+        'assigned_to_members': assigned,
+    }), 200
+
+
+# ---------- Training action notes (admin: notes/voice per exercise) ----------
+@admin_bp.route('/programs/<int:program_id>/action-notes', methods=['GET'])
+@jwt_required()
+def get_action_notes(program_id):
+    """Get all trainer notes for a program (admin/assistant)."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from models import TrainingProgram, TrainingActionNote
+    program = db.session.get(TrainingProgram, program_id)
+    if not program:
+        return jsonify({'error': 'Program not found'}), 404
+    rows = db.session.query(TrainingActionNote).filter_by(training_program_id=program_id).all()
+    language = request.args.get('language', 'fa')
+    out = []
+    for r in rows:
+        out.append({
+            'session_index': r.session_index,
+            'exercise_index': r.exercise_index,
+            'note_fa': r.note_fa or '',
+            'note_en': r.note_en or '',
+            'note': r.note_fa if language == 'fa' else r.note_en,
+            'voice_url': r.voice_url or '',
+        })
+    return jsonify(out), 200
+
+
+@admin_bp.route('/programs/<int:program_id>/action-notes', methods=['PUT'])
+@jwt_required()
+def update_action_notes(program_id):
+    """Bulk update trainer notes for a program. Body: { notes: [{ session_index, exercise_index, note_fa?, note_en?, voice_url? }], notify_members?: bool }."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from models import TrainingProgram, TrainingActionNote, Notification, MemberWeeklyGoal
+    from app import User
+    from datetime import datetime
+    program = db.session.get(TrainingProgram, program_id)
+    if not program:
+        return jsonify({'error': 'Program not found'}), 404
+    data = request.get_json() or {}
+    notes_list = data.get('notes') or []
+    notify_members = data.get('notify_members', False)
+    for item in notes_list:
+        si = int(item.get('session_index', 0))
+        ei = int(item.get('exercise_index', 0))
+        note_fa = (item.get('note_fa') or '').strip()
+        note_en = (item.get('note_en') or '').strip()
+        voice_url = (item.get('voice_url') or '').strip()
+        existing = db.session.query(TrainingActionNote).filter_by(
+            training_program_id=program_id, session_index=si, exercise_index=ei
+        ).first()
+        if existing:
+            existing.note_fa = note_fa or None
+            existing.note_en = note_en or None
+            existing.voice_url = voice_url or None
+            existing.updated_at = datetime.utcnow()
+        else:
+            if note_fa or note_en or voice_url:
+                row = TrainingActionNote(
+                    training_program_id=program_id,
+                    session_index=si,
+                    exercise_index=ei,
+                    note_fa=note_fa or None,
+                    note_en=note_en or None,
+                    voice_url=voice_url or None,
+                    created_by=int(user_id) if user_id else None,
+                )
+                db.session.add(row)
+    db.session.commit()
+    if notify_members:
+        member_ids = set()
+        for g in db.session.query(MemberWeeklyGoal).filter_by(training_program_id=program_id).all():
+            member_ids.add(g.user_id)
+        if program.user_id:
+            member_ids.add(program.user_id)
+        title_fa = 'یادداشت جدید از مربی'
+        title_en = 'New note from your trainer'
+        body_fa = 'مربی شما یک یادداشت یا نکته برای تمرینات شما اضافه کرده است. در برنامه تمرینی مشاهده کنید.'
+        body_en = 'Your trainer added a note or tip for your workout. Check your training program.'
+        for uid in member_ids:
+            n = Notification(
+                user_id=uid,
+                title_fa=title_fa,
+                title_en=title_en,
+                body_fa=body_fa,
+                body_en=body_en,
+                type='trainer_note',
+                link='?tab=training-program',
+            )
+            db.session.add(n)
+        db.session.commit()
+    return jsonify({'message': 'Action notes saved', 'notify_members': notify_members}), 200
+
+
+@admin_bp.route('/action-notes/voice-upload', methods=['POST'])
+@jwt_required()
+def upload_voice_note():
+    """Upload a voice note file; returns { voice_url: ... } for use in action notes."""
+    db = get_db()
+    user_id = get_jwt_identity()
+    if not is_admin_or_assistant(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from werkzeug.utils import secure_filename
+    import os
+    from datetime import datetime
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    ext = (file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else '') or 'webm'
+    if ext not in ('webm', 'mp3', 'ogg', 'wav', 'm4a'):
+        return jsonify({'error': 'Invalid file type. Allowed: webm, mp3, ogg, wav, m4a'}), 400
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'voice_notes')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = secure_filename(f"voice_{user_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{ext}")
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+    voice_url = f'/api/uploads/voice_notes/{filename}'
+    return jsonify({'voice_url': voice_url, 'filename': filename}), 200
 
 
 

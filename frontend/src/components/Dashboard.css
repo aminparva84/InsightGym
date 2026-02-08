@@ -1,86 +1,22 @@
-/* Dashboard - Matching Landing Page Theme */
-
-/* ============================================
-   CSS Variables - Color Theme System (Shared with Landing Page)
-   ============================================ */
-:root {
-  /* Primary Colors - Deep Slate Blue (Professional, Trustworthy) */
-  --color-primary-900: #0f172a;
-  --color-primary-800: #1e293b;
-  --color-primary-700: #334155;
-  --color-primary-600: #475569;
-  --color-primary-500: #64748b;
-  --color-primary-400: #94a3b8;
-  --color-primary-300: #cbd5e1;
-  --color-primary-200: #e2e8f0;
-  --color-primary-100: #f1f5f9;
-  --color-primary-50: #f8fafc;
-
-  /* Accent Colors - Vibrant Orange (Energy, Action) */
-  --color-accent-600: #ea580c;
-  --color-accent-500: #f97316;
-  --color-accent-400: #fb923c;
-  --color-accent-300: #fdba74;
-  --color-accent-200: #fed7aa;
-  --color-accent-100: #ffedd5;
-  --color-accent-50: #fff7ed;
-
-  /* Secondary Accent - Teal/Cyan (Freshness, Health) */
-  --color-secondary-600: #0891b2;
-  --color-secondary-500: #06b6d4;
-  --color-secondary-400: #22d3ee;
-  --color-secondary-300: #67e8f9;
-  --color-secondary-200: #a5f3fc;
-  --color-secondary-100: #cffafe;
-  --color-secondary-50: #ecfeff;
-
-  /* Neutral Colors */
-  --color-white: #ffffff;
-  --color-black: #000000;
-  --color-gray-900: #111827;
-  --color-gray-800: #1f2937;
-  --color-gray-700: #374151;
-  --color-gray-600: #4b5563;
-  --color-gray-500: #6b7280;
-  --color-gray-400: #9ca3af;
-  --color-gray-300: #d1d5db;
-  --color-gray-200: #e5e7eb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-50: #f9fafb;
-
-  /* Status Colors */
-  --color-success: #10b981;
-  --color-error: #ef4444;
-  --color-warning: #f59e0b;
-  --color-info: #3b82f6;
-
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--color-primary-700) 0%, var(--color-secondary-500) 100%);
-  --gradient-accent: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-accent-400) 100%);
-  --gradient-banner: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-primary-700) 50%, var(--color-secondary-600) 100%);
-  --gradient-hero: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-secondary-500) 50%, var(--color-accent-500) 100%);
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-accent: 0 4px 14px 0 rgba(249, 115, 22, 0.3);
-  --shadow-secondary: 0 4px 14px 0 rgba(6, 182, 212, 0.3);
-}
+/* Dashboard - Theme from themes.css (html[data-theme]).
+   Where to see male vs female theme:
+   - Top bar: thick colored line under the bar (blue = male, pink/rose = female).
+   - Site title (top left): gradient text (blue gradient = male, pink/purple = female).
+   - Language toggle circle: same gradient as title.
+   - Tab bar: background tint (light blue = male, warm white = female) and active tab underline in accent color.
+   - Buttons/links that use --color-accent-* or --color-secondary-* will follow the theme. */
 
 .dashboard {
   min-height: 100vh;
-  background-color: var(--color-white);
-  color: var(--color-primary-800);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
   padding-top: 80px;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
 }
 
-/* Dashboard Topbar - Matching Landing Page Theme */
+/* Dashboard Topbar - Theme accent bar under topbar (male=blue, female=rose, unisex=teal/orange) */
 .dashboard-topbar {
   position: fixed;
   top: 0;
@@ -88,15 +24,15 @@
   right: 0;
   width: 100%;
   max-width: 100%;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  padding: 1rem clamp(1rem, 2rem, 4vw);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  padding: 0.8rem clamp(1rem, 2rem, 4vw);
   z-index: 1000;
-  box-shadow: var(--shadow-md);
-  border-bottom: 1px solid rgba(30, 41, 59, 0.1);
+  box-shadow: 0 12px 32px -24px rgba(15, 23, 42, 0.4);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
   transition: all 0.3s ease;
-  overflow-x: hidden;
+  overflow: visible; /* allow notifications dropdown to show below header */
 }
 
 .topbar-container {
@@ -107,27 +43,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 0.5rem;
+  padding: 0.35rem 0.5rem;
 }
 
 .topbar-title {
   font-size: 1.8rem;
   font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
   margin: 0;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .topbar-title:hover {
-  transform: scale(1.05);
-  background: var(--gradient-hero);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  transform: translateY(-1px);
+  color: var(--accent);
 }
 
 .topbar-actions {
@@ -135,58 +65,80 @@
   gap: 1rem;
   align-items: center;
   direction: ltr; /* Always LTR for topbar */
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 999px;
+  padding: 0.35rem 0.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
-/* Language Toggle Button - Matching Landing Page */
+/* Language Toggle - Material 3 segmented button (compact) */
 .lang-toggle {
   position: relative;
-  width: 80px;
+  width: 92px;
   height: 36px;
-  background: rgba(30, 41, 59, 0.08);
-  border: 1px solid rgba(30, 41, 59, 0.15);
-  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   padding: 0;
   overflow: hidden;
   direction: ltr;
-  backdrop-filter: blur(10px);
-}
-
-.lang-toggle:hover {
-  background: rgba(30, 41, 59, 0.12);
-  border-color: rgba(30, 41, 59, 0.25);
-}
-
-.lang-toggle-slider {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 32px;
-  height: 32px;
-  background: var(--gradient-primary);
-  border-radius: 50%;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
-  box-shadow: var(--shadow-secondary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-white);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12), 0 6px 16px -12px rgba(15, 23, 42, 0.35);
 }
 
-/* When Persian is active, slider is on the right with "فا" */
+.lang-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2), 0 10px 22px -16px rgba(15, 23, 42, 0.4);
+}
+
+.lang-toggle:active {
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+}
+
+/* Sliding circle - centered vertically and in each half horizontally */
+.lang-toggle-slider {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 30px;
+  height: 30px;
+  margin-top: -15px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-secondary-500) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 18px -12px rgba(14, 165, 233, 0.6);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.lang-toggle-slider::before {
+  content: 'EN';
+}
+
+/* When Persian is active: circle in right half */
 .lang-toggle.fa-active .lang-toggle-slider {
-  transform: translateX(44px);
+  transform: translateX(56px);
 }
 
 .lang-toggle.fa-active .lang-toggle-slider::before {
   content: 'فا';
 }
 
-/* When English is active, slider is on the left with "EN" */
+/* When English is active: circle on the left */
 .lang-toggle.en-active .lang-toggle-slider {
   transform: translateX(0);
 }
@@ -195,6 +147,7 @@
   content: 'EN';
 }
 
+/* Labels in each half (optional context; circle shows selected) */
 .lang-label-fa,
 .lang-label-en {
   position: absolute;
@@ -202,67 +155,262 @@
   transform: translateY(-50%);
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--color-primary-600);
-  transition: color 0.3s ease;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
   z-index: 1;
   pointer-events: none;
 }
 
-.lang-label-fa {
-  right: 10px;
-}
-
+/* Labels centered in each half, same spacing as circle */
 .lang-label-en {
-  left: 10px;
+  left: 14px;
+  transform: translateY(-50%);
 }
 
-.lang-toggle.fa-active .lang-label-fa {
-  display: none; /* Hide "فا" label when it's in the circle */
+.lang-label-fa {
+  right: 14px;
+  transform: translateY(-50%);
 }
 
-.lang-toggle.fa-active .lang-label-en {
-  color: var(--color-primary-600);
-  left: 10px;
-}
-
+/* Mute the label that is under the circle (selected side) so circle text stands out */
+.lang-toggle.fa-active .lang-label-fa,
 .lang-toggle.en-active .lang-label-en {
-  display: none;
+  visibility: hidden;
 }
 
+.lang-toggle.fa-active .lang-label-en,
 .lang-toggle.en-active .lang-label-fa {
-  color: var(--color-primary-600);
-  right: 10px;
+  color: var(--text-muted);
 }
 
 .username {
-  color: var(--color-primary-800);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
+/* Notifications bell (members only) */
+.topbar-notifications-wrap {
+  position: relative;
+}
+
+.topbar-notifications-btn {
+  position: relative;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--color-primary-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar-notifications-btn:hover {
+  background: var(--color-primary-50);
+  color: var(--color-accent-600);
+  border-color: var(--color-accent-400);
+}
+
+.notification-bell-icon {
+  display: block;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  background: var(--color-accent-500);
+  color: var(--color-white);
+  border-radius: 10px;
+}
+
+.topbar-notifications-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(360px, 90vw);
+  min-height: 120px;
+  max-height: 400px;
+  background: var(--color-white);
+  border: 1px solid var(--color-primary-200);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Ensure dropdown appears below header on the page, not clipped */
+  margin-top: 0;
+}
+
+.notifications-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary-50);
+  border-bottom: 1px solid var(--color-primary-200);
+  font-weight: 600;
+  color: var(--color-primary-800);
+}
+
+.notifications-mark-all {
+  font-size: 0.8rem;
+  color: var(--color-accent-600);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.notifications-mark-all:hover {
+  text-decoration: underline;
+}
+
+.notifications-dropdown-list {
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.notifications-loading,
+.notifications-empty,
+.notifications-error {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--color-primary-700);
+  font-size: 0.95rem;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.notifications-error {
+  color: var(--color-error, #b91c1c);
+}
+
+.notifications-retry {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  background: var(--color-primary-100);
+  border: 1px solid var(--color-primary-300);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-primary-800);
+}
+
+.notifications-retry:hover {
+  background: var(--color-primary-200);
+}
+
+.notification-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-bottom: 1px solid var(--color-primary-100);
+  background: var(--color-white);
+  cursor: pointer;
+  transition: background 0.2s;
+  color: var(--color-primary-800);
+}
+
+.notification-item:hover {
+  background: var(--color-primary-50);
+}
+
+.notification-item.unread {
+  background: var(--color-accent-soft);
+}
+
+.notification-type-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  margin-bottom: 0.35rem;
+  background: var(--color-primary-200);
+  color: var(--color-primary-800);
+}
+
+.notification-type-badge[data-type="message"] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-700);
+}
+
+.notification-type-badge[data-type="reminder"] {
+  background: rgba(245, 158, 11, 0.2);
+  color: #b45309;
+}
+
+.notification-type-badge[data-type="trainer_note"] {
+  background: rgba(34, 197, 94, 0.2);
+  color: #15803d;
+}
+
+.notification-item strong {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.notification-body {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-primary-600);
+  margin-bottom: 0.25rem;
+}
+
+.notification-time {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-primary-500);
+}
+
+.notification-audio {
+  width: 100%;
+  height: 28px;
+  margin-top: 0.25rem;
+}
+
 .topbar-break-request-btn {
   padding: 0.5rem 1rem;
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 8px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-600);
+  border: none;
+  border-radius: 999px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
 }
 
 .topbar-break-request-btn:hover {
-  background: rgba(245, 158, 11, 0.25);
-  color: var(--color-warning);
-  border-color: rgba(245, 158, 11, 0.5);
+  background: var(--color-accent-100);
+  color: var(--color-accent-600);
 }
 
 .topbar-logout-btn {
   padding: 0.6rem 1.5rem;
   background: rgba(239, 68, 68, 0.1);
   color: var(--color-error);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 8px;
+  border: none;
+  border-radius: 999px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -275,55 +423,71 @@
   color: var(--color-error);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .dashboard-content {
   max-width: min(1600px, 100%);
   width: 100%;
   margin: 0 auto;
-  padding: 2rem;
-  padding-left: clamp(1rem, 2rem, 4vw);
-  padding-right: clamp(1rem, 2rem, 4vw);
-  background-color: var(--color-white);
+  padding: 1rem clamp(1rem, 2rem, 4vw) 2rem;
+  background-color: transparent;
   overflow-x: hidden;
 }
 
-.dashboard-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
-  gap: 2rem;
-  align-items: start;
-  min-width: 0; /* allow grid children to shrink below content size */
+.trial-banner {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
 }
 
-.dashboard-left {
+.trial-banner.trial-active {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(34, 197, 94, 0.15) 100%);
+  border: 1px solid var(--color-accent-400);
+  color: var(--color-primary-800);
+}
+
+.trial-banner.trial-ended {
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: var(--color-primary-800);
+}
+
+.dashboard-layout {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  position: sticky;
-  top: 100px;
-  max-height: calc(100vh - 120px);
-  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
-.dashboard-right {
-  display: flex;
-  flex-direction: column;
-  min-width: 0; /* allow shrinking so tab content doesn't overflow */
+.dashboard-chat-row {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
+/* Dashboard tabs: glass effect (male=blue tint, female=pink tint, unisex=neutral) */
 .tabs-container {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 2rem;
-  border-bottom: 1px solid var(--color-primary-200);
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 1rem;
   flex-wrap: nowrap;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(249, 115, 22, 0.08) 100%);
-  padding: 1rem;
-  border-radius: 12px 12px 0 0;
-  border-bottom: 2px solid var(--color-secondary-500);
+  background: var(--surface-base);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0.75rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -333,12 +497,12 @@
 }
 
 .tabs-container::-webkit-scrollbar-track {
-  background: var(--color-primary-100);
+  background: var(--surface-raised);
   border-radius: 3px;
 }
 
 .tabs-container::-webkit-scrollbar-thumb {
-  background: var(--color-secondary-500);
+  background: var(--border-strong);
   border-radius: 3px;
 }
 
@@ -347,12 +511,12 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.6rem 1rem;
-  background: none;
-  border: none;
-  color: var(--color-primary-800);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.85rem;
-  border-bottom: 2px solid transparent;
+  border-radius: 10px;
   transition: all 0.3s;
   position: relative;
   top: 1px;
@@ -361,37 +525,61 @@
 }
 
 .tab-btn:hover {
-  color: var(--color-secondary-600);
-  background: rgba(6, 182, 212, 0.05);
-  border-radius: 6px;
+  color: var(--text-primary);
+  background: var(--surface-raised);
+  border-color: var(--border-subtle);
 }
 
 .tab-btn.active {
-  color: var(--color-secondary-600);
-  border-bottom-color: var(--color-secondary-500);
+  color: var(--accent);
+  border-color: var(--color-accent-200);
   font-weight: 600;
-  background: rgba(6, 182, 212, 0.1);
-  border-radius: 6px 6px 0 0;
+  background: var(--color-accent-50);
+  box-shadow: var(--shadow-sm);
 }
 
 .tab-icon {
-  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.tab-icon svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .tab-content {
-  background-color: var(--color-white);
-  border: 1px solid var(--color-primary-200);
-  border-radius: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
   padding: clamp(1rem, 2rem, 4vw);
   min-height: 500px;
-  color: var(--color-primary-800);
+  color: var(--text-primary);
   box-shadow: var(--shadow-md);
   min-width: 0;
   overflow-x: auto; /* scroll inside tab if content is wide (e.g. tables) */
 }
 
+/* All tab roots: fit within tab content; padding/margin normalized */
+.tab-content > * {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
 .tab-content * {
-  color: var(--color-primary-800);
+  color: var(--text-primary);
 }
 
 .tab-content p,
@@ -401,7 +589,7 @@
 .tab-content th,
 .tab-content li,
 .tab-content label {
-  color: var(--color-primary-800) !important;
+  color: var(--text-secondary) !important;
 }
 
 @media (max-width: 1200px) {

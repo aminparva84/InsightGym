@@ -4,7 +4,7 @@ Run this once to update the database schema.
 """
 
 from app import app, db
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 
 def migrate_user_role():
     """Add role and assigned_to columns to user table"""
@@ -12,19 +12,17 @@ def migrate_user_role():
         try:
             print("Starting migration...")
             
-            # Get table info to check existing columns
-            result = db.session.execute(text("PRAGMA table_info(user)"))
-            existing_columns = [row[1] for row in result.fetchall()]
+            # DB-agnostic: use SQLAlchemy inspector to get existing columns
+            # Table name "user" is quoted for PostgreSQL (reserved word)
+            insp = inspect(db.engine)
+            existing_columns = [c['name'] for c in insp.get_columns('user')]
             
             print(f"Existing columns: {existing_columns}")
             
             # Add role column if it doesn't exist
             if 'role' not in existing_columns:
                 print("Adding role column...")
-                db.session.execute(text("""
-                    ALTER TABLE user 
-                    ADD COLUMN role VARCHAR(20) DEFAULT 'member'
-                """))
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN role VARCHAR(20) DEFAULT \'member\''))
                 print("[OK] Added role column")
             else:
                 print("[OK] role column already exists")
@@ -32,10 +30,7 @@ def migrate_user_role():
             # Add assigned_to column if it doesn't exist
             if 'assigned_to' not in existing_columns:
                 print("Adding assigned_to column...")
-                db.session.execute(text("""
-                    ALTER TABLE user 
-                    ADD COLUMN assigned_to INTEGER
-                """))
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN assigned_to INTEGER'))
                 print("[OK] Added assigned_to column")
             else:
                 print("[OK] assigned_to column already exists")

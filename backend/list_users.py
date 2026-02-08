@@ -1,64 +1,42 @@
 """
-List all users in the database using direct SQL
+List all users in the database.
+Uses Flask app context and SQLAlchemy (works with PostgreSQL or SQLite via DATABASE_URL).
 """
 
-import sqlite3
 import os
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Fix Windows console encoding
 if sys.platform == 'win32':
     import codecs
     sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
     sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
+from app import app, User
+
 def list_users():
-    db_paths = [
-        'instance/raha_fitness.db',
-        'raha_fitness.db'
-    ]
-    
-    db_path = None
-    for path in db_paths:
-        if os.path.exists(path):
-            db_path = path
-            break
-    
-    if not db_path:
-        print("[ERROR] Database file not found")
-        return
-    
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT id, username, email, language, created_at FROM user")
-        users = cursor.fetchall()
-        
+    with app.app_context():
+        try:
+            users = User.query.all()
+        except Exception as e:
+            print(f"[ERROR] Could not connect to database: {e}")
+            return
         print("="*60)
         print(f"Total users in database: {len(users)}")
         print("="*60)
-        
         if len(users) == 0:
             print("\nNo users found in the database.")
             print("\nTo create a demo user, run:")
-            print("  python fix_login.py")
+            print("  python init_database.py")
         else:
             print()
             for user in users:
-                print(f"User ID: {user[0]}")
-                print(f"  Username: {user[1]}")
-                print(f"  Email: {user[2]}")
-                print(f"  Language: {user[3]}")
-                print(f"  Created: {user[4]}")
+                print(f"User ID: {user.id}")
+                print(f"  Username: {user.username}")
+                print(f"  Email: {user.email}")
+                print(f"  Language: {user.language}")
+                print(f"  Created: {user.created_at}")
                 print()
-        
-        conn.close()
-        
-    except Exception as e:
-        print(f"[ERROR] An error occurred: {e}")
-        import traceback
-        traceback.print_exc()
 
 if __name__ == '__main__':
     list_users()

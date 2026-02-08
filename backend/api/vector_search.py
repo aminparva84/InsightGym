@@ -13,12 +13,35 @@ from typing import List, Dict, Any
 
 vector_search_bp = Blueprint('vector_search', __name__, url_prefix='/api/vector-search')
 
-# Initialize OpenAI
-openai.api_key = os.getenv('OPENAI_API_KEY')
+
+def _get_openai_key():
+    """Use admin-configured OpenAI key (AI settings) or fallback to env."""
+    try:
+        from services.ai_provider import get_embedding_api_key
+        key = get_embedding_api_key()
+        if key:
+            return key
+    except Exception:
+        pass
+    return os.getenv('OPENAI_API_KEY')
+
 
 def generate_embedding(text: str) -> List[float]:
-    """Generate embedding using OpenAI"""
+    """Generate embedding using OpenAI (key from AI settings or OPENAI_API_KEY env)."""
+    key = _get_openai_key()
+    if not key:
+        raise ValueError("No OpenAI API key configured. Set it in Admin > AI Settings or OPENAI_API_KEY env.")
     try:
+        client = getattr(openai, 'OpenAI', None)
+        if client:
+            c = client(api_key=key)
+            response = c.embeddings.create(
+                model='text-embedding-3-small',
+                input=text,
+                dimensions=1536
+            )
+            return response.data[0].embedding
+        openai.api_key = key
         response = openai.embeddings.create(
             model='text-embedding-3-small',
             input=text,

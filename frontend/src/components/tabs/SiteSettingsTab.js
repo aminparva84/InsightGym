@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './SiteSettingsTab.css';
+
+const API_BASE = getApiBase();
 
 const SiteSettingsTab = () => {
   const { i18n } = useTranslation();
@@ -38,7 +41,7 @@ const SiteSettingsTab = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/admin/site-settings', getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/admin/site-settings`, getAxiosConfig());
       setFormData({
         contact_email: response.data.contact_email || '',
         contact_phone: response.data.contact_phone || '',
@@ -74,7 +77,7 @@ const SiteSettingsTab = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await axios.put('http://localhost:5000/api/admin/site-settings', formData, getAxiosConfig());
+      await axios.put(`${API_BASE}/api/admin/site-settings`, formData, getAxiosConfig());
       alert(i18n.language === 'fa' ? 'تنظیمات سایت ذخیره شد' : 'Site settings saved');
     } catch (error) {
       console.error('Error saving site settings:', error);

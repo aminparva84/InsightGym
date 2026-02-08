@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../services/apiBase';
 import './BreakRequestModal.css';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = getApiBase();
 
 const getAuthConfig = () => {
   const token = localStorage.getItem('token');

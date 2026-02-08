@@ -1,30 +1,31 @@
 """
-Delete existing demo user and recreate via API
+Delete existing demo user and recreate (via SQLAlchemy, then optionally via API).
+Uses Flask app context and SQLAlchemy (works with PostgreSQL or SQLite via DATABASE_URL).
 """
 
-import requests
-import sqlite3
+import sys
 import os
+import requests
 
-# First, try to delete via SQLite directly
-db_path = os.path.join(os.path.dirname(__file__), 'raha_fitness.db')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-if os.path.exists(db_path):
+from app import app, db, User
+from werkzeug.security import generate_password_hash
+from datetime import datetime
+
+# Delete demo user via SQLAlchemy
+with app.app_context():
     try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Delete demo user
-        cursor.execute("DELETE FROM user WHERE username = 'demo'")
-        conn.commit()
-        conn.close()
-        print("Deleted existing demo user from database")
+        demo = User.query.filter_by(username='demo').first()
+        if demo:
+            db.session.delete(demo)
+            db.session.commit()
+            print("Deleted existing demo user from database")
     except Exception as e:
-        print(f"Could not delete via SQLite: {e}")
+        print(f"Could not delete demo user: {e}")
 
-# Now try to register via API
+# Try to register via API (backend must be running)
 url = "http://localhost:5000/api/register"
-
 data = {
     "username": "demo",
     "email": "demo@raha-fitness.com",
@@ -35,7 +36,6 @@ data = {
 try:
     print("Registering demo user via API...")
     response = requests.post(url, json=data, timeout=5)
-    
     if response.status_code == 201:
         print("\n" + "="*50)
         print("SUCCESS: DEMO USER CREATED!")
@@ -49,13 +49,37 @@ try:
         result = response.json()
         print(f"Status: {response.status_code}")
         print(f"Response: {result}")
-        
+        # Fallback: create demo user directly via SQLAlchemy
+        with app.app_context():
+            if not User.query.filter_by(username='demo').first():
+                demo_user = User(
+                    username='demo',
+                    email='demo@raha-fitness.com',
+                    password_hash=generate_password_hash('demo123'),
+                    language='fa',
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(demo_user)
+                db.session.commit()
+                print("\nDemo user created directly in database (API was unavailable or rejected).")
 except requests.exceptions.ConnectionError:
-    print("ERROR: Backend not running. Please start it first:")
-    print("  cd backend")
-    print("  python app.py")
+    # Backend not running: create demo user directly
+    with app.app_context():
+        try:
+            if not User.query.filter_by(username='demo').first():
+                demo_user = User(
+                    username='demo',
+                    email='demo@raha-fitness.com',
+                    password_hash=generate_password_hash('demo123'),
+                    language='fa',
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(demo_user)
+                db.session.commit()
+                print("\nDemo user created directly (backend was not running).")
+                print("Username: demo, Password: demo123")
+        except Exception as e:
+            print(f"ERROR: Backend not running and could not create user: {e}")
+            print("  Start backend first: cd backend && python app.py")
 except Exception as e:
     print(f"Error: {e}")
-
-
-

@@ -1,7 +1,7 @@
 .break-request-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,12 +10,13 @@
 }
 
 .break-request-modal {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--surface-base);
+  border-radius: 16px;
   max-width: 420px;
   width: 100%;
   padding: 1.5rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-subtle);
 }
 
 .break-request-modal-header {
@@ -28,7 +29,7 @@
 .break-request-modal-header h3 {
   margin: 0;
   font-size: 1.35rem;
-  color: #000;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -37,19 +38,19 @@
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #666;
+  color: var(--text-muted);
   line-height: 1;
   padding: 0.25rem;
 }
 
 .break-request-modal-close:hover {
-  color: #000;
+  color: var(--text-primary);
 }
 
 .break-request-modal-desc {
   margin: 0 0 1rem 0;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -57,14 +58,14 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-secondary);
 }
 
 .break-request-modal form textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
   font-size: 1rem;
   font-family: inherit;
   resize: vertical;
@@ -73,7 +74,7 @@
 
 .break-request-modal-error {
   margin: 0 0 0.75rem 0;
-  color: #dc3545;
+  color: var(--error);
   font-size: 0.9rem;
 }
 
@@ -85,25 +86,25 @@
 
 .break-request-modal-actions button {
   padding: 0.5rem 1rem;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.95rem;
   cursor: pointer;
 }
 
 .break-request-modal-actions button[type="button"] {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  color: #333;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
 }
 
 .break-request-modal-actions button[type="submit"] {
-  background: #0d6efd;
+  background: var(--accent);
   border: none;
   color: #fff;
 }
 
 .break-request-modal-actions button[type="submit"]:hover:not(:disabled) {
-  background: #0b5ed7;
+  background: var(--accent-hover);
 }
 
 .break-request-modal-actions button[type="submit"]:disabled {

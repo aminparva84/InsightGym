@@ -2,7 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './ProfileTab.css';
+
+const API_BASE = getApiBase();
 
 // BMI Calculator Component
 const BMICalculator = ({ weight, height, gender, language }) => {
@@ -128,6 +131,15 @@ const ProfileTab = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [userRole, setUserRole] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({
+    basic: false,
+    body: false,
+    training: false,
+    health: false,
+    history: false,
+    medical: false,
+    equipment: false,
+  });
 
   // Get auth token
   const getAuthToken = () => {
@@ -202,7 +214,7 @@ const ProfileTab = () => {
     // Check user role
     const checkRole = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/check-admin');
+        const response = await axios.get(`${API_BASE}/api/admin/check-admin`);
         setUserRole(response.data.role || 'member');
       } catch (error) {
         setUserRole('member');
@@ -244,6 +256,13 @@ const ProfileTab = () => {
       isMounted = false;
     };
   }, [authLoading, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleSection = (key) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
   const loadProfile = async () => {
     setLoading(true);
@@ -314,7 +333,7 @@ const ProfileTab = () => {
       });
       console.log('Full token being sent:', cleanToken);
       
-      const response = await axios.get('http://localhost:5000/api/user/profile', config);
+      const response = await axios.get(`${API_BASE}/api/user/profile`, config);
       console.log('Profile loaded successfully - RAW response:', JSON.stringify(response.data, null, 2));
       
       // Ensure all fields are properly formatted and not null/undefined
@@ -400,7 +419,7 @@ const ProfileTab = () => {
       
       // Load profile image if exists
       if (profileData.profile_image) {
-        const imageUrl = `http://localhost:5000/api/user/profile/image/${profileData.profile_image}`;
+        const imageUrl = `${API_BASE}/api/user/profile/image/${profileData.profile_image}`;
         setImagePreview(imageUrl);
       } else {
         setImagePreview(null);
@@ -668,12 +687,12 @@ const ProfileTab = () => {
       console.log('Authorization header:', config.headers['Authorization'].substring(0, 30) + '...');
       
       // Save profile data
-      await axios.put('http://localhost:5000/api/user/profile', profileData, config);
+      await axios.put(`${API_BASE}/api/user/profile`, profileData, config);
       
       // Save user data (username and email) if changed
       if (username !== user?.username || email !== user?.email) {
         try {
-          await axios.put('http://localhost:5000/api/user', {
+          await axios.put(`${API_BASE}/api/user`, {
             username: username,
             email: email
           }, config);
@@ -693,7 +712,7 @@ const ProfileTab = () => {
       // If assistant, check if profile is now complete and reload page to show assistant dashboard
       if (userRole === 'assistant') {
         try {
-          const profileCheck = await axios.get('http://localhost:5000/api/admin/check-profile-complete', getAxiosConfig());
+          const profileCheck = await axios.get(`${API_BASE}/api/admin/check-profile-complete`, getAxiosConfig());
           if (profileCheck.data.profile_complete) {
             alert(i18n.language === 'fa' 
               ? 'پروفایل با موفقیت به‌روزرسانی شد. در حال بارگذاری مجدد...' 
@@ -763,36 +782,61 @@ const ProfileTab = () => {
       </div>
 
       <div className="profile-content">
-        {/* Profile Image Section */}
-        <div className="profile-image-section">
-          <div className="image-container">
-            {imagePreview ? (
-              <img src={imagePreview} alt="Profile" className="profile-image" />
-            ) : (
-              <div className="profile-image-placeholder">
-                {i18n.language === 'fa' ? 'تصویر پروفایل' : 'Profile Image'}
-              </div>
-            )}
-            {editing && (
-              <div className="image-upload-overlay">
-                <label className="image-upload-btn">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    style={{ display: 'none' }}
-                  />
-                  {i18n.language === 'fa' ? 'انتخاب تصویر' : 'Choose Image'}
-                </label>
-              </div>
-            )}
+        <div className="profile-summary-card">
+          <div className="profile-image-section">
+            <div className="image-container">
+              {imagePreview ? (
+                <img src={imagePreview} alt="Profile" className="profile-image" />
+              ) : (
+                <div className="profile-image-placeholder">
+                  {i18n.language === 'fa' ? 'تصویر پروفایل' : 'Profile Image'}
+                </div>
+              )}
+              {editing && (
+                <div className="image-upload-overlay">
+                  <label className="image-upload-btn">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      style={{ display: 'none' }}
+                    />
+                    {i18n.language === 'fa' ? 'انتخاب تصویر' : 'Choose Image'}
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="profile-summary-info">
+            <h3 className="profile-summary-name">
+              {username || (i18n.language === 'fa' ? 'کاربر' : 'User')}
+            </h3>
+            <p className="profile-summary-email">{email || '—'}</p>
+            <div className="profile-summary-meta">
+              <span className="summary-chip">
+                {i18n.language === 'fa' ? 'سن' : 'Age'}: {profile?.age ?? '—'}
+              </span>
+              <span className="summary-chip">
+                {i18n.language === 'fa' ? 'وزن' : 'Weight'}: {profile?.weight ?? '—'}
+              </span>
+              <span className="summary-chip">
+                {i18n.language === 'fa' ? 'قد' : 'Height'}: {profile?.height ?? '—'}
+              </span>
+              <span className="summary-chip">
+                {i18n.language === 'fa' ? 'سطح' : 'Level'}: {profile?.training_level || '—'}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Basic Information */}
-        <div className="profile-section">
-          <h3>{i18n.language === 'fa' ? 'اطلاعات پایه' : 'Basic Information'}</h3>
-          <div className="form-grid">
+        <div className={`profile-section ${expandedSections.basic ? 'expanded' : 'collapsed'}`}>
+          <button type="button" className="section-toggle" onClick={() => toggleSection('basic')}>
+            <span>{i18n.language === 'fa' ? 'اطلاعات پایه' : 'Basic Information'}</span>
+            <span className="section-toggle-icon">{expandedSections.basic ? '−' : '+'}</span>
+          </button>
+          <div className="section-body">
+            <div className="form-grid">
             <div className="form-group">
               <label>{i18n.language === 'fa' ? 'نام کاربری' : 'Username'}</label>
               <input 
@@ -890,17 +934,22 @@ const ProfileTab = () => {
               language={i18n.language}
             />
           )}
+          </div>
         </div>
 
         {/* Body Measurements */}
-        <div className="profile-section">
-          <h3>{i18n.language === 'fa' ? 'اندازه‌گیری بدن' : 'Body Measurements'}</h3>
-          <p className="section-description" style={{ color: '#000000', marginBottom: '1rem', fontSize: '0.9rem' }}>
-            {i18n.language === 'fa' 
-              ? 'اندازه‌های بدن بر حسب سانتی‌متر'
-              : 'Body measurements in centimeters'}
-          </p>
-          <div className="form-grid">
+        <div className={`profile-section ${expandedSections.body ? 'expanded' : 'collapsed'}`}>
+          <button type="button" className="section-toggle" onClick={() => toggleSection('body')}>
+            <span>{i18n.language === 'fa' ? 'اندازه‌گیری بدن' : 'Body Measurements'}</span>
+            <span className="section-toggle-icon">{expandedSections.body ? '−' : '+'}</span>
+          </button>
+          <div className="section-body">
+            <p className="section-description" style={{ color: '#000000', marginBottom: '1rem', fontSize: '0.9rem' }}>
+              {i18n.language === 'fa' 
+                ? 'اندازه‌های بدن بر حسب سانتی‌متر'
+                : 'Body measurements in centimeters'}
+            </p>
+            <div className="form-grid">
             <div className="form-group">
               <label>{i18n.language === 'fa' ? 'دور سینه (سانتی‌متر)' : 'Chest Circumference (cm)'}</label>
               <p className="measurement-description" style={{ color: '#000000', fontSize: '0.85rem', marginTop: '0.25rem', marginBottom: '0.5rem', opacity: 0.8, fontStyle: 'italic' }}>
@@ -992,12 +1041,17 @@ const ProfileTab = () => {
               />
             </div>
           </div>
+          </div>
         </div>
 
         {/* Training Information */}
-        <div className="profile-section">
-          <h3>{i18n.language === 'fa' ? 'اطلاعات تمرینی' : 'Training Information'}</h3>
-          <div className="form-grid">
+        <div className={`profile-section ${expandedSections.training ? 'expanded' : 'collapsed'}`}>
+          <button type="button" className="section-toggle" onClick={() => toggleSection('training')}>
+            <span>{i18n.language === 'fa' ? 'اطلاعات تمرینی' : 'Training Information'}</span>
+            <span className="section-toggle-icon">{expandedSections.training ? '−' : '+'}</span>
+          </button>
+          <div className="section-body">
+            <div className="form-grid">
             <div className="form-group">
               <label>{i18n.language === 'fa' ? 'سطح تمرین' : 'Training Level'}</label>
               <select
@@ -1073,220 +1127,241 @@ const ProfileTab = () => {
               ))}
             </div>
           </div>
+          </div>
         </div>
 
         {/* Health Information */}
-        <div className="profile-section">
-          <h3>{i18n.language === 'fa' ? 'اطلاعات سلامتی' : 'Health Information'}</h3>
-          <div className="form-group full-width">
-            <label>{i18n.language === 'fa' ? 'آسیب‌ها' : 'Injuries'}</label>
-            <div className="checkbox-group">
-              {injuryOptions.map(option => (
-                <label key={option.value} className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.injuries || []).includes(option.value)}
-                    onChange={(e) => handleArrayChange('injuries', option.value, e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? option.label_fa : option.label_en}
-                </label>
-              ))}
+        <div className={`profile-section ${expandedSections.health ? 'expanded' : 'collapsed'}`}>
+          <button type="button" className="section-toggle" onClick={() => toggleSection('health')}>
+            <span>{i18n.language === 'fa' ? 'اطلاعات سلامتی' : 'Health Information'}</span>
+            <span className="section-toggle-icon">{expandedSections.health ? '−' : '+'}</span>
+          </button>
+          <div className="section-body">
+            <div className="form-group full-width">
+              <label>{i18n.language === 'fa' ? 'آسیب‌ها' : 'Injuries'}</label>
+              <div className="checkbox-group">
+                {injuryOptions.map(option => (
+                  <label key={option.value} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.injuries || []).includes(option.value)}
+                      onChange={(e) => handleArrayChange('injuries', option.value, e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? option.label_fa : option.label_en}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="form-group full-width">
-            <label>{i18n.language === 'fa' ? 'جزئیات آسیب‌ها' : 'Injury Details'}</label>
-            <textarea
-              name="injury_details"
-              value={profile?.injury_details || ''}
-              onChange={handleInputChange}
-              disabled={!editing}
-              rows="3"
-            />
+            <div className="form-group full-width">
+              <label>{i18n.language === 'fa' ? 'جزئیات آسیب‌ها' : 'Injury Details'}</label>
+              <textarea
+                name="injury_details"
+                value={profile?.injury_details || ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                rows="3"
+              />
+            </div>
           </div>
         </div>
 
         {/* Exercise History */}
-        <div className="profile-section">
-          <h3>{i18n.language === 'fa' ? 'سابقه تمرینی' : 'Exercise History'}</h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>{i18n.language === 'fa' ? 'سال‌های سابقه تمرین' : 'Years of Exercise History'}</label>
-              <input
-                type="number"
-                name="exercise_history_years"
-                value={profile?.exercise_history_years ?? ''}
+        <div className={`profile-section ${expandedSections.history ? 'expanded' : 'collapsed'}`}>
+          <button type="button" className="section-toggle" onClick={() => toggleSection('history')}>
+            <span>{i18n.language === 'fa' ? 'سابقه تمرینی' : 'Exercise History'}</span>
+            <span className="section-toggle-icon">{expandedSections.history ? '−' : '+'}</span>
+          </button>
+          <div className="section-body">
+            <div className="form-grid">
+              <div className="form-group">
+                <label>{i18n.language === 'fa' ? 'سال‌های سابقه تمرین' : 'Years of Exercise History'}</label>
+                <input
+                  type="number"
+                  name="exercise_history_years"
+                  value={profile?.exercise_history_years ?? ''}
+                  onChange={handleInputChange}
+                  disabled={!editing}
+                  min="0"
+                  max="50"
+                />
+              </div>
+            </div>
+            <div className="form-group full-width">
+              <label>{i18n.language === 'fa' ? 'توضیحات سابقه تمرینی' : 'Exercise History Description'}</label>
+              <textarea
+                name="exercise_history_description"
+                value={profile?.exercise_history_description || ''}
                 onChange={handleInputChange}
                 disabled={!editing}
-                min="0"
-                max="50"
+                rows="3"
+                placeholder={i18n.language === 'fa' ? 'سابقه تمرینات قبلی خود را شرح دهید...' : 'Describe your previous exercise experience...'}
               />
             </div>
-          </div>
-          <div className="form-group full-width">
-            <label>{i18n.language === 'fa' ? 'توضیحات سابقه تمرینی' : 'Exercise History Description'}</label>
-            <textarea
-              name="exercise_history_description"
-              value={profile?.exercise_history_description || ''}
-              onChange={handleInputChange}
-              disabled={!editing}
-              rows="3"
-              placeholder={i18n.language === 'fa' ? 'سابقه تمرینات قبلی خود را شرح دهید...' : 'Describe your previous exercise experience...'}
-            />
           </div>
         </div>
 
         {/* Medical Conditions */}
-        <div className="profile-section">
-          <h3>{i18n.language === 'fa' ? 'شرایط پزشکی' : 'Medical Conditions'}</h3>
-          <div className="form-group full-width">
-            <label>{i18n.language === 'fa' ? 'بیماری‌ها و شرایط پزشکی' : 'Medical Conditions'}</label>
-            <div className="checkbox-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={(profile?.medical_conditions || []).includes('heart_disease')}
-                  onChange={(e) => handleArrayChange('medical_conditions', 'heart_disease', e.target.checked)}
-                  disabled={!editing}
-                />
-                {i18n.language === 'fa' ? 'بیماری قلبی' : 'Heart Disease'}
-              </label>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={(profile?.medical_conditions || []).includes('high_blood_pressure')}
-                  onChange={(e) => handleArrayChange('medical_conditions', 'high_blood_pressure', e.target.checked)}
-                  disabled={!editing}
-                />
-                {i18n.language === 'fa' ? 'فشار خون بالا' : 'High Blood Pressure'}
-              </label>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={(profile?.medical_conditions || []).includes('pregnancy')}
-                  onChange={(e) => handleArrayChange('medical_conditions', 'pregnancy', e.target.checked)}
-                  disabled={!editing}
-                />
-                {i18n.language === 'fa' ? 'بارداری' : 'Pregnancy'}
-              </label>
+        <div className={`profile-section ${expandedSections.medical ? 'expanded' : 'collapsed'}`}>
+          <button type="button" className="section-toggle" onClick={() => toggleSection('medical')}>
+            <span>{i18n.language === 'fa' ? 'شرایط پزشکی' : 'Medical Conditions'}</span>
+            <span className="section-toggle-icon">{expandedSections.medical ? '−' : '+'}</span>
+          </button>
+          <div className="section-body">
+            <div className="form-group full-width">
+              <label>{i18n.language === 'fa' ? 'بیماری‌ها و شرایط پزشکی' : 'Medical Conditions'}</label>
+              <div className="checkbox-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.medical_conditions || []).includes('heart_disease')}
+                    onChange={(e) => handleArrayChange('medical_conditions', 'heart_disease', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'بیماری قلبی' : 'Heart Disease'}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.medical_conditions || []).includes('high_blood_pressure')}
+                    onChange={(e) => handleArrayChange('medical_conditions', 'high_blood_pressure', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'فشار خون بالا' : 'High Blood Pressure'}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(profile?.medical_conditions || []).includes('pregnancy')}
+                    onChange={(e) => handleArrayChange('medical_conditions', 'pregnancy', e.target.checked)}
+                    disabled={!editing}
+                  />
+                  {i18n.language === 'fa' ? 'بارداری' : 'Pregnancy'}
+                </label>
+              </div>
             </div>
-          </div>
-          <div className="form-group full-width">
-            <label>{i18n.language === 'fa' ? 'توضیحات شرایط پزشکی' : 'Medical Condition Details'}</label>
-            <textarea
-              name="medical_condition_details"
-              value={profile?.medical_condition_details || ''}
-              onChange={handleInputChange}
-              disabled={!editing}
-              rows="3"
-              placeholder={i18n.language === 'fa' ? 'جزئیات شرایط پزشکی خود را شرح دهید...' : 'Describe your medical conditions in detail...'}
-            />
+            <div className="form-group full-width">
+              <label>{i18n.language === 'fa' ? 'توضیحات شرایط پزشکی' : 'Medical Condition Details'}</label>
+              <textarea
+                name="medical_condition_details"
+                value={profile?.medical_condition_details || ''}
+                onChange={handleInputChange}
+                disabled={!editing}
+                rows="3"
+                placeholder={i18n.language === 'fa' ? 'جزئیات شرایط پزشکی خود را شرح دهید...' : 'Describe your medical conditions in detail...'}
+              />
+            </div>
           </div>
         </div>
 
         {/* Equipment Access */}
-        <div className="profile-section">
-          <h3>{i18n.language === 'fa' ? 'دسترسی به تجهیزات' : 'Equipment Access'}</h3>
-          <div className="form-group">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                name="gym_access"
-                checked={profile?.gym_access || false}
-                onChange={handleInputChange}
-                disabled={!editing}
-              />
-              {i18n.language === 'fa' ? 'دسترسی به باشگاه' : 'Gym Access'}
-            </label>
-          </div>
-          
-          {profile?.gym_access && (
-            <div className="form-group full-width">
-              <label>{i18n.language === 'fa' ? 'تجهیزات باشگاه' : 'Gym Equipment'}</label>
-              <div className="checkbox-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.equipment_access || []).includes('machine')}
-                    onChange={(e) => handleArrayChange('equipment_access', 'machine', e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? 'دستگاه' : 'Machines'}
-                </label>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.equipment_access || []).includes('dumbbells')}
-                    onChange={(e) => handleArrayChange('equipment_access', 'dumbbells', e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? 'دمبل' : 'Dumbbells'}
-                </label>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.equipment_access || []).includes('barbell')}
-                    onChange={(e) => handleArrayChange('equipment_access', 'barbell', e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? 'هالتر' : 'Barbell'}
-                </label>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.equipment_access || []).includes('cable')}
-                    onChange={(e) => handleArrayChange('equipment_access', 'cable', e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? 'کابل' : 'Cable Machine'}
-                </label>
-              </div>
+        <div className={`profile-section ${expandedSections.equipment ? 'expanded' : 'collapsed'}`}>
+          <button type="button" className="section-toggle" onClick={() => toggleSection('equipment')}>
+            <span>{i18n.language === 'fa' ? 'دسترسی به تجهیزات' : 'Equipment Access'}</span>
+            <span className="section-toggle-icon">{expandedSections.equipment ? '−' : '+'}</span>
+          </button>
+          <div className="section-body">
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="gym_access"
+                  checked={profile?.gym_access || false}
+                  onChange={handleInputChange}
+                  disabled={!editing}
+                />
+                {i18n.language === 'fa' ? 'دسترسی به باشگاه' : 'Gym Access'}
+              </label>
             </div>
-          )}
+            
+            {profile?.gym_access && (
+              <div className="form-group full-width">
+                <label>{i18n.language === 'fa' ? 'تجهیزات باشگاه' : 'Gym Equipment'}</label>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.equipment_access || []).includes('machine')}
+                      onChange={(e) => handleArrayChange('equipment_access', 'machine', e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? 'دستگاه' : 'Machines'}
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.equipment_access || []).includes('dumbbells')}
+                      onChange={(e) => handleArrayChange('equipment_access', 'dumbbells', e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? 'دمبل' : 'Dumbbells'}
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.equipment_access || []).includes('barbell')}
+                      onChange={(e) => handleArrayChange('equipment_access', 'barbell', e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? 'هالتر' : 'Barbell'}
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.equipment_access || []).includes('cable')}
+                      onChange={(e) => handleArrayChange('equipment_access', 'cable', e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? 'کابل' : 'Cable Machine'}
+                  </label>
+                </div>
+              </div>
+            )}
 
-          {!profile?.gym_access && (
-            <div className="form-group full-width">
-              <label>{i18n.language === 'fa' ? 'تجهیزات خانگی' : 'Home Equipment'}</label>
-              <div className="checkbox-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.home_equipment || []).includes('dumbbells')}
-                    onChange={(e) => handleArrayChange('home_equipment', 'dumbbells', e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? 'دمبل' : 'Dumbbells'}
-                </label>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.home_equipment || []).includes('resistance_bands')}
-                    onChange={(e) => handleArrayChange('home_equipment', 'resistance_bands', e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? 'باند مقاومتی' : 'Resistance Bands'}
-                </label>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.home_equipment || []).includes('yoga_mat')}
-                    onChange={(e) => handleArrayChange('home_equipment', 'yoga_mat', e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? 'تشک یوگا' : 'Yoga Mat'}
-                </label>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={(profile?.home_equipment || []).includes('body_weight_only')}
-                    onChange={(e) => handleArrayChange('home_equipment', 'body_weight_only', e.target.checked)}
-                    disabled={!editing}
-                  />
-                  {i18n.language === 'fa' ? 'فقط وزن بدن' : 'Body Weight Only'}
-                </label>
+            {!profile?.gym_access && (
+              <div className="form-group full-width">
+                <label>{i18n.language === 'fa' ? 'تجهیزات خانگی' : 'Home Equipment'}</label>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.home_equipment || []).includes('dumbbells')}
+                      onChange={(e) => handleArrayChange('home_equipment', 'dumbbells', e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? 'دمبل' : 'Dumbbells'}
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.home_equipment || []).includes('resistance_bands')}
+                      onChange={(e) => handleArrayChange('home_equipment', 'resistance_bands', e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? 'باند مقاومتی' : 'Resistance Bands'}
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.home_equipment || []).includes('yoga_mat')}
+                      onChange={(e) => handleArrayChange('home_equipment', 'yoga_mat', e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? 'تشک یوگا' : 'Yoga Mat'}
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(profile?.home_equipment || []).includes('body_weight_only')}
+                      onChange={(e) => handleArrayChange('home_equipment', 'body_weight_only', e.target.checked)}
+                      disabled={!editing}
+                    />
+                    {i18n.language === 'fa' ? 'فقط وزن بدن' : 'Body Weight Only'}
+                  </label>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Action Buttons */}

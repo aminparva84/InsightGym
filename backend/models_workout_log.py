@@ -46,7 +46,7 @@ class WorkoutLog(db.Model):
     alternative_exercise = db.relationship('models.Exercise', foreign_keys=[alternative_exercise_id])
     
     __table_args__ = (
-        db.Index('idx_user_workout_date', 'user_id', 'workout_date'),
+        db.Index('idx_workout_logs_user_workout_date', 'user_id', 'workout_date'),
     )
 
 class ProgressEntry(db.Model):

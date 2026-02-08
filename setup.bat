@@ -9,14 +9,16 @@ python -m venv venv
 call venv\Scripts\activate
 pip install -r requirements.txt
 
-REM Create .env if it doesn't exist
+REM Create .env if it doesn't exist (copy from .env.example or use PostgreSQL URL)
 if not exist .env (
     echo Creating .env file...
-    (
-        echo DATABASE_URL=sqlite:///raha_fitness.db
+    if exist ..\\.env.example (
+        copy ..\\.env.example .env
+    ) else (
+        echo DATABASE_URL=postgresql://user:password@localhost:5432/raha_fitness
         echo JWT_SECRET_KEY=your-secret-key-change-in-production
     ) > .env
-    echo .env file created!
+    echo .env file created! Edit .env and set DATABASE_URL to your PostgreSQL connection.
 )
 
 cd ..

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './TrainingLevelsInfoTab.css';
 
 const PURPOSE_KEYS = ['lose_weight', 'gain_weight', 'gain_muscle', 'shape_fitting'];
@@ -58,7 +59,9 @@ const defaultInjury = () => ({
   purposes_fa: '',
   purposes_en: '',
   allowed_movements: [],
-  forbidden_movements: []
+  forbidden_movements: [],
+  important_notes_fa: '',
+  important_notes_en: ''
 });
 
 const normalizeInjury = (stored) => {
@@ -67,12 +70,15 @@ const normalizeInjury = (stored) => {
     purposes_fa: stored.purposes_fa || (stored.description_fa ?? ''),
     purposes_en: stored.purposes_en || (stored.description_en ?? ''),
     allowed_movements: Array.isArray(stored.allowed_movements) ? stored.allowed_movements : [],
-    forbidden_movements: Array.isArray(stored.forbidden_movements) ? stored.forbidden_movements : []
+    forbidden_movements: Array.isArray(stored.forbidden_movements) ? stored.forbidden_movements : [],
+    important_notes_fa: stored.important_notes_fa ?? '',
+    important_notes_en: stored.important_notes_en ?? ''
   };
 };
 
 const TrainingLevelsInfoTab = () => {
   const { t, i18n } = useTranslation();
+  const lang = i18n.language === 'fa' ? 'fa' : 'en';
   const [trainingLevels, setTrainingLevels] = useState({
     beginner: defaultLevel(),
     intermediate: defaultLevel(),
@@ -81,6 +87,8 @@ const TrainingLevelsInfoTab = () => {
   const [injuries, setInjuries] = useState(() => {
     const o = {};
     INJURY_KEYS.forEach(k => { o[k] = defaultInjury(); });
+    o.common_injury_note_fa = '';
+    o.common_injury_note_en = '';
     return o;
   });
   const [loading, setLoading] = useState(false);
@@ -110,7 +118,7 @@ const TrainingLevelsInfoTab = () => {
   const fetchConfiguration = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/admin/config', getAxiosConfig());
+      const response = await axios.get(`${getApiBase()}/api/admin/config`, getAxiosConfig());
       if (response.data.training_levels) {
         const raw = response.data.training_levels;
         setTrainingLevels({
@@ -123,6 +131,8 @@ const TrainingLevelsInfoTab = () => {
         const raw = response.data.injuries;
         const normalized = {};
         INJURY_KEYS.forEach(k => { normalized[k] = normalizeInjury(raw[k]); });
+        normalized.common_injury_note_fa = raw.common_injury_note_fa ?? '';
+        normalized.common_injury_note_en = raw.common_injury_note_en ?? '';
         setInjuries(normalized);
       }
     } catch (error) {
@@ -195,9 +205,22 @@ const TrainingLevelsInfoTab = () => {
     });
   };
 
+  const updateInjuryImportantNotes = (injuryKey, lang, value) => {
+    const field = lang === 'fa' ? 'important_notes_fa' : 'important_notes_en';
+    setInjuries({
+      ...injuries,
+      [injuryKey]: { ...injuries[injuryKey], [field]: value }
+    });
+  };
+
+  const updateCommonInjuryNote = (lang, value) => {
+    const field = lang === 'fa' ? 'common_injury_note_fa' : 'common_injury_note_en';
+    setInjuries({ ...injuries, [field]: value });
+  };
+
   const handleSaveConfiguration = async () => {
     try {
-      await axios.post('http://localhost:5000/api/admin/config', {
+      await axios.post(`${getApiBase()}/api/admin/config`, {
         training_levels: trainingLevels,
         injuries: injuries
       }, getAxiosConfig());
@@ -236,29 +259,16 @@ const TrainingLevelsInfoTab = () => {
 
                   <div className="level-description">
                     <span className="level-subtitle">{i18n.language === 'fa' ? 'توضیحات' : 'Description'}</span>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>{i18n.language === 'fa' ? 'فارسی' : 'Persian'}</label>
-                        <textarea
-                          value={levelData.description_fa || ''}
-                          onChange={(e) => setTrainingLevels({
-                            ...trainingLevels,
-                            [level]: { ...levelData, description_fa: e.target.value }
-                          })}
-                          rows="3"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>{i18n.language === 'fa' ? 'انگلیسی' : 'English'}</label>
-                        <textarea
-                          value={levelData.description_en || ''}
-                          onChange={(e) => setTrainingLevels({
-                            ...trainingLevels,
-                            [level]: { ...levelData, description_en: e.target.value }
-                          })}
-                          rows="3"
-                        />
-                      </div>
+                    <div className="form-group">
+                      <textarea
+                        value={lang === 'fa' ? (levelData.description_fa || '') : (levelData.description_en || '')}
+                        onChange={(e) => setTrainingLevels({
+                          ...trainingLevels,
+                          [level]: { ...levelData, [lang === 'fa' ? 'description_fa' : 'description_en']: e.target.value }
+                        })}
+                        rows="3"
+                        placeholder={i18n.language === 'fa' ? 'توضیحات به فارسی' : 'Description in English'}
+                      />
                     </div>
                   </div>
 
@@ -271,17 +281,9 @@ const TrainingLevelsInfoTab = () => {
                           <div className="form-group">
                             <input
                               type="text"
-                              value={goal.fa || ''}
-                              onChange={(e) => updateGoal(level, idx, 'fa', e.target.value)}
-                              placeholder={i18n.language === 'fa' ? 'هدف (فارسی)' : 'Goal (Persian)'}
-                            />
-                          </div>
-                          <div className="form-group">
-                            <input
-                              type="text"
-                              value={goal.en || ''}
-                              onChange={(e) => updateGoal(level, idx, 'en', e.target.value)}
-                              placeholder={i18n.language === 'fa' ? 'هدف (انگلیسی)' : 'Goal (English)'}
+                              value={goal[lang] || ''}
+                              onChange={(e) => updateGoal(level, idx, lang, e.target.value)}
+                              placeholder={i18n.language === 'fa' ? 'هدف' : 'Goal'}
                             />
                           </div>
                         </div>
@@ -335,16 +337,9 @@ const TrainingLevelsInfoTab = () => {
                               <label>{i18n.language === 'fa' ? 'نحوه تمرین (مکان و ابزار)' : 'Training focus (where & tools)'}</label>
                               <input
                                 type="text"
-                                value={p.training_focus_fa || ''}
-                                onChange={(e) => updatePurpose(level, purposeKey, 'training_focus_fa', e.target.value)}
-                                placeholder={i18n.language === 'fa' ? 'فارسی: خانه، باشگاه، با/بدون ابزار' : 'Persian: e.g. at home, gym, with/without tools'}
-                              />
-                              <input
-                                type="text"
-                                value={p.training_focus_en || ''}
-                                onChange={(e) => updatePurpose(level, purposeKey, 'training_focus_en', e.target.value)}
-                                placeholder={i18n.language === 'fa' ? 'انگلیسی' : 'English: e.g. at home, gym, with/without tools'}
-                                className="mt-1"
+                                value={lang === 'fa' ? (p.training_focus_fa || '') : (p.training_focus_en || '')}
+                                onChange={(e) => updatePurpose(level, purposeKey, lang === 'fa' ? 'training_focus_fa' : 'training_focus_en', e.target.value)}
+                                placeholder={i18n.language === 'fa' ? 'مثال: خانه، باشگاه، با/بدون ابزار' : 'e.g. at home, gym, with/without tools'}
                               />
                             </div>
                             <div className="form-group">
@@ -379,29 +374,16 @@ const TrainingLevelsInfoTab = () => {
 
                   <div className="injury-purposes">
                     <span className="level-subtitle">{i18n.language === 'fa' ? 'اهداف / کاربرد' : 'Purposes'}</span>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>{i18n.language === 'fa' ? 'فارسی' : 'Persian'}</label>
-                        <textarea
-                          value={data.purposes_fa || ''}
-                          onChange={(e) => setInjuries({
-                            ...injuries,
-                            [injuryKey]: { ...data, purposes_fa: e.target.value }
-                          })}
-                          rows="3"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>{i18n.language === 'fa' ? 'انگلیسی' : 'English'}</label>
-                        <textarea
-                          value={data.purposes_en || ''}
-                          onChange={(e) => setInjuries({
-                            ...injuries,
-                            [injuryKey]: { ...data, purposes_en: e.target.value }
-                          })}
-                          rows="3"
-                        />
-                      </div>
+                    <div className="form-group">
+                      <textarea
+                        value={lang === 'fa' ? (data.purposes_fa || '') : (data.purposes_en || '')}
+                        onChange={(e) => setInjuries({
+                          ...injuries,
+                          [injuryKey]: { ...data, [lang === 'fa' ? 'purposes_fa' : 'purposes_en']: e.target.value }
+                        })}
+                        rows="3"
+                        placeholder={i18n.language === 'fa' ? 'توضیحات به فارسی' : 'Description in English'}
+                      />
                     </div>
                   </div>
 
@@ -413,17 +395,9 @@ const TrainingLevelsInfoTab = () => {
                           <div className="form-group">
                             <input
                               type="text"
-                              value={item.fa || ''}
-                              onChange={(e) => updateInjuryMovement(injuryKey, 'allowed_movements', idx, 'fa', e.target.value)}
-                              placeholder={i18n.language === 'fa' ? 'فارسی' : 'Persian'}
-                            />
-                          </div>
-                          <div className="form-group">
-                            <input
-                              type="text"
-                              value={item.en || ''}
-                              onChange={(e) => updateInjuryMovement(injuryKey, 'allowed_movements', idx, 'en', e.target.value)}
-                              placeholder={i18n.language === 'fa' ? 'انگلیسی' : 'English'}
+                              value={item[lang] || ''}
+                              onChange={(e) => updateInjuryMovement(injuryKey, 'allowed_movements', idx, lang, e.target.value)}
+                              placeholder={i18n.language === 'fa' ? 'حرکت مجاز' : 'Allowed movement'}
                             />
                           </div>
                         </div>
@@ -443,17 +417,9 @@ const TrainingLevelsInfoTab = () => {
                           <div className="form-group">
                             <input
                               type="text"
-                              value={item.fa || ''}
-                              onChange={(e) => updateInjuryMovement(injuryKey, 'forbidden_movements', idx, 'fa', e.target.value)}
-                              placeholder={i18n.language === 'fa' ? 'فارسی' : 'Persian'}
-                            />
-                          </div>
-                          <div className="form-group">
-                            <input
-                              type="text"
-                              value={item.en || ''}
-                              onChange={(e) => updateInjuryMovement(injuryKey, 'forbidden_movements', idx, 'en', e.target.value)}
-                              placeholder={i18n.language === 'fa' ? 'انگلیسی' : 'English'}
+                              value={item[lang] || ''}
+                              onChange={(e) => updateInjuryMovement(injuryKey, 'forbidden_movements', idx, lang, e.target.value)}
+                              placeholder={i18n.language === 'fa' ? 'حرکت ممنوع' : 'Forbidden movement'}
                             />
                           </div>
                         </div>
@@ -464,9 +430,33 @@ const TrainingLevelsInfoTab = () => {
                       {i18n.language === 'fa' ? '+ افزودن حرکت ممنوع' : '+ Add forbidden movement'}
                     </button>
                   </div>
+
+                  <div className="injury-important-notes">
+                    <span className="level-subtitle">{i18n.language === 'fa' ? 'نکات مهم' : 'Important notes'}</span>
+                    <div className="form-group">
+                      <textarea
+                        value={lang === 'fa' ? (data.important_notes_fa || '') : (data.important_notes_en || '')}
+                        onChange={(e) => updateInjuryImportantNotes(injuryKey, lang, e.target.value)}
+                        rows="3"
+                        placeholder={i18n.language === 'fa' ? 'نکات مهم به فارسی' : 'Important notes in English'}
+                      />
+                    </div>
+                  </div>
                 </div>
               );
             })}
+
+            <div className="injury-common-note">
+              <h4 className="injury-common-note-title">{i18n.language === 'fa' ? 'نکته مشترک برای تمام آسیب‌ها' : 'Common note for all injuries'}</h4>
+              <div className="form-group">
+                <textarea
+                  value={lang === 'fa' ? (injuries.common_injury_note_fa || '') : (injuries.common_injury_note_en || '')}
+                  onChange={(e) => updateCommonInjuryNote(lang, e.target.value)}
+                  rows="4"
+                  placeholder={i18n.language === 'fa' ? 'مثال: همیشه فرم صحیح + تنفس کنترل‌شده؛ اگر درد شدید بود توقف و جایگزینی' : 'e.g. Always correct form + controlled breathing; if severe pain, stop and substitute'}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}

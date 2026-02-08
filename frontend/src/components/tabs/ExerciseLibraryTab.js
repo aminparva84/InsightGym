@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './ExerciseLibraryTab.css';
 
+const API_BASE = getApiBase();
+
 const CATEGORIES = [
-  { value: 'bodybuilding_machine', label_fa: 'باشگاهی با دستگاه', label_en: 'Bodybuilding Machine' },
-  { value: 'functional_home', label_fa: 'فانکشنال / خانگی', label_en: 'Functional Home' },
-  { value: 'hybrid_hiit_machine', label_fa: 'ترکیبی HIIT', label_en: 'Hybrid HIIT' }
+  { value: 'bodybuilding_machine', label_fa: 'حرکات باشگاهی با دستگاه', label_en: 'Gym equipment exercises' },
+  { value: 'functional_home', label_fa: 'حرکات فانکشنال بدون دستگاه', label_en: 'Functional exercises without equipment' },
+  { value: 'hybrid_hiit_machine', label_fa: 'حرکات ترکیبی (دستگاه و فانکشنال)', label_en: 'Combined (equipment and functional)' }
 ];
 const LEVELS = [
   { value: 'beginner', label_fa: 'مبتدی', label_en: 'Beginner' },
@@ -26,7 +29,7 @@ const GENDER_SUITABILITY = [
 const INJURY_OPTIONS = ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle'];
 
 const defaultExerciseForm = () => ({
-  category: 'functional_home',
+  category: 'bodybuilding_machine',
   name_fa: '',
   name_en: '',
   target_muscle_fa: '',
@@ -76,7 +79,7 @@ const ExerciseLibraryTab = () => {
       if (categoryFilter) params.set('category', categoryFilter);
       if (levelFilter) params.set('level', levelFilter);
       const response = await axios.get(
-        `http://localhost:5000/api/admin/exercises?${params}`,
+        `${API_BASE}/api/admin/exercises?${params}`,
         getAxiosConfig()
       );
       setExercises(response.data.exercises || []);
@@ -109,12 +112,12 @@ const ExerciseLibraryTab = () => {
   const openEdit = async (exercise) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/admin/exercises/${exercise.id}`,
+        `${API_BASE}/api/admin/exercises/${exercise.id}`,
         getAxiosConfig()
       );
       const ex = response.data;
       setFormData({
-        category: ex.category || 'functional_home',
+        category: ex.category || 'bodybuilding_machine',
         name_fa: ex.name_fa || '',
         name_en: ex.name_en || '',
         target_muscle_fa: ex.target_muscle_fa || '',
@@ -164,13 +167,13 @@ const ExerciseLibraryTab = () => {
     try {
       if (editingExercise) {
         await axios.put(
-          `http://localhost:5000/api/admin/exercises/${editingExercise.id}`,
+          `${API_BASE}/api/admin/exercises/${editingExercise.id}`,
           payload,
           getAxiosConfig()
         );
         alert(i18n.language === 'fa' ? 'تمرین به‌روزرسانی شد' : 'Exercise updated');
       } else {
-        await axios.post('http://localhost:5000/api/admin/exercises', payload, getAxiosConfig());
+        await axios.post(`${API_BASE}/api/admin/exercises`, payload, getAxiosConfig());
         alert(i18n.language === 'fa' ? 'تمرین ایجاد شد' : 'Exercise created');
       }
       setShowForm(false);
@@ -192,7 +195,7 @@ const ExerciseLibraryTab = () => {
     )) return;
     try {
       await axios.delete(
-        `http://localhost:5000/api/admin/exercises/${exercise.id}`,
+        `${API_BASE}/api/admin/exercises/${exercise.id}`,
         getAxiosConfig()
       );
       alert(i18n.language === 'fa' ? 'تمرین حذف شد' : 'Exercise deleted');

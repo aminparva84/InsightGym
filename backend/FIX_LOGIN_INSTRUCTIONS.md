@@ -64,7 +64,7 @@ If you still can't login:
 
 1. Make sure the backend server is running on port 5000
 2. Check browser console for errors
-3. Verify the database exists: `backend/instance/raha_fitness.db`
+3. Verify the database: ensure `DATABASE_URL` in `.env` is correct. The database must exist (e.g. `createdb raha_fitness`). The app uses PostgreSQL; see `.env.example` for the expected format.
 4. Try resetting the password using the script above
 5. Clear browser localStorage and try again
 

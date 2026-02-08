@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { getApiBase } from '../services/apiBase';
 import './AdminPage.css';
 
 const AdminPage = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('assistants');
@@ -73,7 +75,7 @@ const AdminPage = () => {
 
   const checkAdmin = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/check-admin');
+      const response = await axios.get(`${API_BASE}/api/admin/check-admin`);
       setIsAdmin(response.data.is_admin);
       if (!response.data.is_admin) {
         alert(i18n.language === 'fa' ? 'شما مجاز به دسترسی به این صفحه نیستید' : 'You are not authorized to access this page');
@@ -89,7 +91,7 @@ const AdminPage = () => {
 
   const fetchAssistants = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/assistants');
+      const response = await axios.get(`${API_BASE}/api/admin/assistants`);
       setAssistants(response.data);
     } catch (error) {
       console.error('Error fetching assistants:', error);
@@ -99,7 +101,7 @@ const AdminPage = () => {
 
   const fetchMembers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/members');
+      const response = await axios.get(`${API_BASE}/api/admin/members`);
       setMembers(response.data);
     } catch (error) {
       console.error('Error fetching members:', error);
@@ -133,7 +135,7 @@ const AdminPage = () => {
         };
       }
       
-      await axios.post('http://localhost:5000/api/admin/assistants', data);
+      await axios.post(`${API_BASE}/api/admin/assistants`, data);
       alert(i18n.language === 'fa' ? 'دستیار با موفقیت ایجاد شد' : 'Assistant created successfully');
       setShowAssistantForm(false);
       resetAssistantForm();
@@ -148,7 +150,7 @@ const AdminPage = () => {
 
   const handleAssignMember = async (memberId, assistantId) => {
     try {
-      await axios.post(`http://localhost:5000/api/admin/members/${memberId}/assign`, {
+      await axios.post(`${API_BASE}/api/admin/members/${memberId}/assign`, {
         assigned_to_id: assistantId || null
       });
       alert(i18n.language === 'fa' ? 'تخصیص با موفقیت انجام شد' : 'Assignment successful');
@@ -167,7 +169,7 @@ const AdminPage = () => {
 
   const handleSaveMemberProfile = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/admin/members/${editingMember.id}/profile`, memberFormData);
+      await axios.put(`${API_BASE}/api/admin/members/${editingMember.id}/profile`, memberFormData);
       alert(i18n.language === 'fa' ? 'پروفایل عضو به‌روزرسانی شد' : 'Member profile updated');
       setEditingMember(null);
       fetchMembers();

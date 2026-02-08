@@ -1,11 +1,11 @@
-/* Training Programs Modal Styles */
+/* Buy Training Programme modal – follows landing page theme */
 .training-programs-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--modal-overlay);
   backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
@@ -25,14 +25,15 @@
 }
 
 .training-programs-modal {
-  background: #ffffff;
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
   border-radius: 24px;
   width: 100%;
   max-width: 1200px;
   max-height: 85vh;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-xl);
   animation: slideUp 0.3s ease;
   display: flex;
   flex-direction: column;
@@ -53,9 +54,9 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: rgba(183, 163, 227, 0.1);
-  border: 2px solid rgba(183, 163, 227, 0.3);
-  color: #B7A3E3;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
   font-size: 1.75rem;
   width: 36px;
   height: 36px;
@@ -71,48 +72,153 @@
 }
 
 .training-programs-modal-close:hover {
-  background: rgba(183, 163, 227, 0.2);
-  border-color: rgba(183, 163, 227, 0.5);
+  background: var(--color-accent-50);
+  border-color: var(--color-accent-200);
+  color: var(--accent);
   transform: rotate(90deg) scale(1.1);
 }
 
 .training-programs-modal-header {
   padding: 1.5rem 2rem 1rem;
   text-align: center;
-  border-bottom: 2px solid rgba(183, 163, 227, 0.2);
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(183, 163, 227, 0.05) 0%, rgba(232, 180, 203, 0.05) 100%);
+  background: var(--surface-subtle);
 }
 
 .training-programs-modal-title {
   font-size: 1.75rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #B7A3E3 0%, #E8B4CB 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
   margin: 0 0 0.25rem 0;
 }
 
 .training-programs-modal-subtitle {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-muted);
   margin: 0;
 }
 
-.training-programs-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  padding: 1.5rem;
-  overflow: visible;
+.training-programs-modal-body {
+  padding: 0 1.5rem 1.5rem;
+  overflow-y: auto;
   flex: 1;
   min-height: 0;
 }
 
+.training-programs-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.training-programs-base-section {
+  margin-bottom: 1.5rem;
+}
+
+.training-programs-grid,
+.training-programs-grid-base {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  overflow: visible;
+  min-height: 0;
+}
+
+.training-programs-grid-base {
+  padding: 0;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.training-programs-ems-intro {
+  text-align: center;
+  padding: 2rem;
+}
+
+.ems-intro-image-placeholder {
+  width: 100%;
+  max-width: 280px;
+  height: 180px;
+  margin: 0 auto 1rem;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.ems-intro-title {
+  font-size: 1.25rem;
+  margin: 0 0 0.75rem 0;
+  color: var(--text-primary);
+}
+
+.ems-intro-text {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem 0;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.training-programs-ems-form .ems-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.ems-form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.ems-form-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.ems-form-fields .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.ems-form-fields .form-group label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.ems-form-fields input,
+.ems-form-fields textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-primary-200, #ddd);
+  border-radius: 8px;
+}
+
+.training-programs-footer .program-buy-btn.secondary {
+  background: var(--color-primary-200, #e0e0e0);
+  color: var(--color-primary-800, #333);
+}
+
+.training-programs-footer .program-buy-btn.secondary:hover {
+  background: var(--color-primary-300, #ccc);
+}
+
 .training-program-card {
-  background: #ffffff;
-  border: 2px solid #f0f0f0;
+  background: var(--color-white);
+  border: 2px solid var(--color-primary-200);
   border-radius: 16px;
   padding: 1.25rem 1rem;
   text-align: center;
@@ -121,8 +227,19 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   min-height: 0;
+  cursor: pointer;
+}
+
+.training-program-card.selected {
+  border-color: var(--color-accent-500);
+  background: var(--color-primary-50);
+  box-shadow: var(--shadow-accent);
+}
+
+.training-program-card.selected::before {
+  transform: scaleX(1);
 }
 
 .training-program-card::before {
@@ -132,7 +249,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #B7A3E3 0%, #E8B4CB 100%);
+  background: var(--gradient-accent);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.4s ease;
@@ -140,8 +257,8 @@
 
 .training-program-card:hover {
   transform: translateY(-8px) scale(1.02);
-  border-color: #B7A3E3;
-  box-shadow: 0 12px 40px rgba(183, 163, 227, 0.25);
+  border-color: var(--color-accent-400);
+  box-shadow: var(--shadow-accent);
 }
 
 .training-program-card:hover::before {
@@ -163,18 +280,18 @@
 .program-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #333;
+  color: var(--color-primary-800);
   margin: 0 0 0.5rem 0;
   transition: color 0.3s ease;
 }
 
 .training-program-card:hover .program-name {
-  color: #B7A3E3;
+  color: var(--color-accent-600);
 }
 
 .program-description {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--color-primary-600);
   line-height: 1.4;
   margin: 0 0 0.75rem 0;
   flex: 1;
@@ -184,12 +301,9 @@
 .program-features {
   margin: 0.5rem 0;
   text-align: left;
-}
-
-.program-features ul {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0.5rem 0;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -197,7 +311,7 @@
 
 .program-features li {
   font-size: 0.75rem;
-  color: #555;
+  color: var(--color-primary-600);
   padding-left: 1.25rem;
   position: relative;
   line-height: 1.3;
@@ -207,7 +321,7 @@
   content: '✓';
   position: absolute;
   left: 0;
-  color: #B7A3E3;
+  color: var(--color-accent-500);
   font-weight: bold;
   font-size: 1rem;
 }
@@ -215,7 +329,7 @@
 .program-price {
   font-size: 1.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #B7A3E3 0%, #E8B4CB 100%);
+  background: var(--gradient-accent);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -224,28 +338,155 @@
 
 .program-buy-btn {
   padding: 0.6rem 1.25rem;
-  background: linear-gradient(135deg, #B7A3E3 0%, #E8B4CB 100%);
+  background: var(--gradient-accent);
   border: none;
   border-radius: 50px;
-  color: #ffffff;
+  color: var(--color-white);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: auto;
-  box-shadow: 0 4px 15px rgba(183, 163, 227, 0.3);
+  box-shadow: var(--shadow-accent);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .program-buy-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(183, 163, 227, 0.4);
-  background: linear-gradient(135deg, #A693D3 0%, #D8A4BB 100%);
+  box-shadow: var(--shadow-accent);
+  background: linear-gradient(135deg, var(--color-accent-600) 0%, var(--color-accent-500) 100%);
 }
 
 .program-buy-btn:active {
   transform: translateY(0);
+}
+
+/* Package list */
+.training-programs-packages-section {
+  margin-bottom: 1.5rem;
+}
+
+.training-programs-packages-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.5rem;
+}
+
+.training-programs-package-item {
+  margin: 0;
+}
+
+.training-programs-package-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  border: 2px solid var(--color-primary-200);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--color-white);
+}
+
+.training-programs-package-label:hover {
+  border-color: var(--color-accent-300);
+  background: var(--color-primary-50);
+}
+
+.training-programs-package-checkbox {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-accent-500);
+  flex-shrink: 0;
+}
+
+.training-programs-package-name {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--color-primary-800);
+}
+
+.training-programs-package-price {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-accent-600);
+}
+
+.training-programs-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0 0;
+  border-top: 2px solid var(--color-primary-200);
+  margin-top: 0.5rem;
+}
+
+.training-programs-total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.training-programs-total-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-primary-700);
+}
+
+.training-programs-total-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.training-programs-buy-btn {
+  min-width: 140px;
+}
+
+.training-programs-buy-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Success state */
+.training-programs-success {
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.training-programs-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gradient-accent);
+  color: var(--color-white);
+  font-size: 2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-accent);
+}
+
+.training-programs-success-text {
+  font-size: 1.1rem;
+  color: var(--color-primary-700);
+  margin: 0;
+  max-width: 360px;
 }
 
 /* RTL Support */
@@ -268,12 +509,15 @@
   left: 1rem;
 }
 
-/* Large screens - ensure 4 columns fit */
+[dir="rtl"] .training-programs-package-label {
+  text-align: right;
+}
+
+/* Large screens - ensure 4 columns for base programs (including EMS) */
 @media (min-width: 1025px) {
-  .training-programs-grid {
+  .training-programs-grid-base {
     grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
-    padding: 1.5rem;
   }
 }
 
@@ -308,10 +552,26 @@
     font-size: 0.85rem;
   }
 
-  .training-programs-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .training-programs-modal-body {
+    padding: 0 1rem 1rem;
+  }
+
+  .training-programs-grid-base {
+    grid-template-columns: 1fr;
     gap: 0.75rem;
-    padding: 1rem;
+  }
+  
+  .training-programs-packages-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .training-programs-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .training-programs-buy-btn {
+    width: 100%;
   }
 
   .training-program-card {
@@ -374,10 +634,17 @@
     font-size: 0.8rem;
   }
 
-  .training-programs-grid {
+  .training-programs-grid-base {
     grid-template-columns: 1fr;
     gap: 0.75rem;
-    padding: 0.75rem;
+  }
+  
+  .training-programs-success {
+    padding: 2rem 1rem;
+  }
+  
+  .training-programs-success-text {
+    font-size: 1rem;
   }
 
   .training-program-card {

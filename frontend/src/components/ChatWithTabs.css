@@ -1,0 +1,84 @@
+/* Single chat box with tabs: AI Chat | Trainer / Messages */
+.chat-with-tabs {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 460px;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  flex-shrink: 0;
+}
+
+.chat-with-tabs-header {
+  display: flex;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  flex-shrink: 0;
+}
+
+.chat-with-tabs-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.chat-with-tabs-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-raised);
+}
+
+.chat-with-tabs-btn.active {
+  color: var(--accent);
+  font-weight: 600;
+  border-bottom-color: var(--color-accent-300);
+  background: var(--color-accent-50);
+}
+
+.chat-tab-icon {
+  font-size: 1rem;
+}
+
+.chat-with-tabs-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* When ChatBox/TrainerChat/TrainerInbox are inside, they fill the content area without their own outer box */
+.chat-with-tabs-content .chatbox-container,
+.chat-with-tabs-content .trainer-chat-container,
+.chat-with-tabs-content .trainer-inbox-container {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin-top: 0;
+}
+
+.chat-with-tabs-content .chatbox-header,
+.chat-with-tabs-content .trainer-chat-header,
+.chat-with-tabs-content .trainer-inbox-header {
+  display: none;
+}
+
+.chat-with-tabs-content .trainer-inbox-body {
+  flex: 1;
+  min-height: 0;
+}

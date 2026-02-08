@@ -3,6 +3,9 @@
  */
 
 import { vectorSearchService, UserProfile, SearchResult } from './vectorSearch';
+import { getApiBase } from './apiBase';
+
+const API_BASE = getApiBase();
 
 /**
  * Map user profile from API to vector search format
@@ -44,7 +47,7 @@ export async function searchExercisesWithProfile(
 ): Promise<SearchResult[]> {
   try {
     // Fetch user profile from API
-    const response = await fetch(`http://localhost:5000/api/user/profile`, {
+    const response = await fetch(`${API_BASE}/api/user/profile`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -123,7 +126,7 @@ export async function getExerciseRecommendations(
   } = {}
 ): Promise<SearchResult[]> {
   // Fetch user profile to determine query
-  const response = await fetch(`http://localhost:5000/api/user/profile`, {
+  const response = await fetch(`${API_BASE}/api/user/profile`, {
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
     }

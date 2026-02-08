@@ -3,6 +3,7 @@
  */
 
 import axios from 'axios';
+import { getApiBase } from './apiBase';
 
 export interface ExerciseWorkout {
   exercise_id: number;
@@ -86,7 +87,7 @@ export interface WeeklyTable {
 }
 
 class WorkoutPlanService {
-  private baseURL = 'http://localhost:5000/api/workout-plan';
+  private baseURL = `${getApiBase()}/api/workout-plan`;
 
   /**
    * Generate complete 6-month workout plan

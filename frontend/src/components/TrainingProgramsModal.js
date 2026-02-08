@@ -1,46 +1,53 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import './TrainingProgramsModal.css';
 
+const BASE_PROGRAMS = [
+  { id: 1, nameKey: 'trainingProgram1', descriptionKey: 'trainingProgram1Desc', price: 99, icon: '💪', features: ['feature1', 'feature2', 'feature3'] },
+  { id: 2, nameKey: 'trainingProgram2', descriptionKey: 'trainingProgram2Desc', price: 149, icon: '🔥', features: ['feature1', 'feature2', 'feature3', 'feature4'] },
+  { id: 3, nameKey: 'trainingProgram3', descriptionKey: 'trainingProgram3Desc', price: 199, icon: '⭐', features: ['feature1', 'feature2', 'feature3', 'feature4', 'feature5'] },
+  { id: 4, nameKey: 'trainingProgramEms', descriptionKey: 'trainingProgramEmsDesc', price: 249, icon: '⚡', features: [], isEms: true }
+];
+
+const PACKAGE_OPTIONS = [
+  { id: 'vip', nameKey: 'packageVip', price: 80 },
+  { id: 'weeklyPlan', nameKey: 'packageWeeklyPlan', price: 25 },
+  { id: 'nutrition', nameKey: 'packageNutrition', price: 30 },
+  { id: 'onlineSupport', nameKey: 'packageOnlineSupport', price: 25 },
+  { id: 'progressTracking', nameKey: 'packageProgressTracking', price: 20 },
+  { id: 'personalCoaching', nameKey: 'packagePersonalCoaching', price: 50 },
+  { id: 'lifetimeAccess', nameKey: 'packageLifetimeAccess', price: 100 },
+  { id: 'assessment', nameKey: 'packageAssessment', price: 40 },
+  { id: 'months3', nameKey: 'packageMonths3', price: 60 }
+];
+
+const EMS_FORM_DEFAULTS = {
+  pregnancy: false, pacemaker: false, epilepsy: false, thrombosis: false, hernia: false,
+  infection: false, bleeding: false, medications: '', areasFocus: '', otherLimits: '', fitnessLevel: '', goals: ''
+};
+
 const TrainingProgramsModal = ({ isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
+  const [selectedProgramId, setSelectedProgramId] = useState(1);
+  const [selectedPackages, setSelectedPackages] = useState({});
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emsStep, setEmsStep] = useState(0);
+  const [emsForm, setEmsForm] = useState(EMS_FORM_DEFAULTS);
 
-  if (!isOpen) return null;
+  const isEmsSelected = selectedProgramId === 4;
+  const basePrice = useMemo(() => {
+    const program = BASE_PROGRAMS.find((p) => p.id === selectedProgramId);
+    return program ? program.price : 0;
+  }, [selectedProgramId]);
 
-  const trainingPrograms = [
-    {
-      id: 1,
-      nameKey: 'trainingProgram1',
-      descriptionKey: 'trainingProgram1Desc',
-      priceKey: 'trainingProgram1Price',
-      icon: '💪',
-      features: ['feature1', 'feature2', 'feature3']
-    },
-    {
-      id: 2,
-      nameKey: 'trainingProgram2',
-      descriptionKey: 'trainingProgram2Desc',
-      priceKey: 'trainingProgram2Price',
-      icon: '🔥',
-      features: ['feature1', 'feature2', 'feature3', 'feature4']
-    },
-    {
-      id: 3,
-      nameKey: 'trainingProgram3',
-      descriptionKey: 'trainingProgram3Desc',
-      priceKey: 'trainingProgram3Price',
-      icon: '⭐',
-      features: ['feature1', 'feature2', 'feature3', 'feature4', 'feature5']
-    },
-    {
-      id: 4,
-      nameKey: 'trainingProgram4',
-      descriptionKey: 'trainingProgram4Desc',
-      priceKey: 'trainingProgram4Price',
-      icon: '👑',
-      features: ['feature1', 'feature2', 'feature3', 'feature4', 'feature5', 'feature6']
-    }
-  ];
+  const packagesTotal = useMemo(() => {
+    return PACKAGE_OPTIONS.reduce((sum, pkg) => {
+      return sum + (selectedPackages[pkg.id] ? pkg.price : 0);
+    }, 0);
+  }, [selectedPackages]);
+
+  const totalPrice = basePrice + packagesTotal;
 
   const handleClose = (e) => {
     if (e.target === e.currentTarget) {
@@ -48,57 +55,180 @@ const TrainingProgramsModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleBuyClick = (programId) => {
-    // Handle purchase logic here
-    console.log(`Purchasing program ${programId}`);
-    // You can add navigation or payment processing here
+  const togglePackage = (id) => {
+    setSelectedPackages((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
+  const handleSelectProgram = (id) => {
+    setSelectedProgramId(id);
+    setEmsStep(id === 4 ? 1 : 0);
+  };
+
+  const handleBuyNow = async () => {
+    setIsSubmitting(true);
+    try {
+      // In a full implementation: POST /api/purchase-requests with programId, packageIds, totalPrice, and for EMS: emsForm
+      await new Promise((r) => setTimeout(r, 600));
+      setShowSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 2500);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const isRtl = i18n.language === 'fa';
 
   return (
     <div className="training-programs-modal-overlay" onClick={handleClose}>
-      <div className="training-programs-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="training-programs-modal-close" onClick={onClose}>
+      <div className="training-programs-modal" onClick={(e) => e.stopPropagation()} dir={isRtl ? 'rtl' : 'ltr'}>
+        <button className="training-programs-modal-close" onClick={onClose} aria-label="Close">
           ×
         </button>
 
         <div className="training-programs-modal-header">
           <h2 className="training-programs-modal-title">
-            {i18n.language === 'fa' ? 'خرید برنامه تمرینی' : 'Buy a Training Programme'}
+            {t('buyTrainingProgramme')}
           </h2>
           <p className="training-programs-modal-subtitle">
-            {i18n.language === 'fa' 
-              ? 'برنامه تمرینی مناسب خود را انتخاب کنید' 
-              : 'Choose the training programme that suits you'}
+            {isRtl ? 'برنامه پایه و بسته‌های مورد نظر را انتخاب کنید' : 'Choose your base program and the packages you want'}
           </p>
         </div>
 
-        <div className="training-programs-grid">
-          {trainingPrograms.map((program) => (
-            <div key={program.id} className="training-program-card">
-              <div className="program-icon">{program.icon}</div>
-              <h3 className="program-name">{t(program.nameKey)}</h3>
-              <p className="program-description">{t(program.descriptionKey)}</p>
-              <div className="program-features">
-                <ul>
-                  {program.features.map((feature, index) => (
-                    <li key={index}>{t(feature)}</li>
-                  ))}
-                </ul>
+        {showSuccess ? (
+          <div className="training-programs-success">
+            <div className="training-programs-success-icon">✓</div>
+            <p className="training-programs-success-text">{t('requestSubmitted')}</p>
+          </div>
+        ) : isEmsSelected && emsStep === 1 ? (
+          <div className="training-programs-modal-body training-programs-ems-intro">
+            <div className="ems-intro-image">
+              <div className="ems-intro-image-placeholder">⚡ EMS</div>
+            </div>
+            <h3 className="ems-intro-title">EMS – {i18n.language === 'fa' ? 'تحریک الکتریکی عضله' : 'Electrical Muscle Stimulation'}</h3>
+            <p className="ems-intro-text">{t('emsWhatIs')}</p>
+            <button type="button" className="program-buy-btn" onClick={() => setEmsStep(2)}>
+              {t('emsNextStep')}
+            </button>
+          </div>
+        ) : isEmsSelected && emsStep === 2 ? (
+          <div className="training-programs-modal-body training-programs-ems-form">
+            <h3 className="training-programs-section-title">{t('emsFormTitle')}</h3>
+            <div className="ems-form-grid">
+              {['pregnancy', 'pacemaker', 'epilepsy', 'thrombosis', 'hernia', 'infection', 'bleeding'].map((key) => (
+                <label key={key} className="ems-form-check">
+                  <input type="checkbox" checked={!!emsForm[key]} onChange={(e) => setEmsForm(prev => ({ ...prev, [key]: e.target.checked }))} />
+                  <span>{t('ems' + key.charAt(0).toUpperCase() + key.slice(1))}</span>
+                </label>
+              ))}
+            </div>
+            <div className="ems-form-fields">
+              <div className="form-group">
+                <label>{t('emsMedications')}</label>
+                <input type="text" value={emsForm.medications} onChange={(e) => setEmsForm(prev => ({ ...prev, medications: e.target.value }))} placeholder={isRtl ? 'داروهای فعلی' : 'Current medications'} />
               </div>
-              <div className="program-price">{t(program.priceKey)}</div>
-              <button 
-                className="program-buy-btn"
-                onClick={() => handleBuyClick(program.id)}
-              >
-                {i18n.language === 'fa' ? 'خرید' : 'Buy Now'}
+              <div className="form-group">
+                <label>{t('emsAreasFocus')}</label>
+                <input type="text" value={emsForm.areasFocus} onChange={(e) => setEmsForm(prev => ({ ...prev, areasFocus: e.target.value }))} placeholder={isRtl ? 'مناطق تمرین' : 'Body areas'} />
+              </div>
+              <div className="form-group">
+                <label>{t('emsFitnessLevel')}</label>
+                <input type="text" value={emsForm.fitnessLevel} onChange={(e) => setEmsForm(prev => ({ ...prev, fitnessLevel: e.target.value }))} placeholder={isRtl ? 'مبتدی / متوسط / پیشرفته' : 'Beginner / Intermediate / Advanced'} />
+              </div>
+              <div className="form-group">
+                <label>{t('emsGoals')}</label>
+                <input type="text" value={emsForm.goals} onChange={(e) => setEmsForm(prev => ({ ...prev, goals: e.target.value }))} placeholder={isRtl ? 'اهداف' : 'Goals'} />
+              </div>
+              <div className="form-group full-width">
+                <label>{t('emsOtherLimits')}</label>
+                <textarea rows={2} value={emsForm.otherLimits} onChange={(e) => setEmsForm(prev => ({ ...prev, otherLimits: e.target.value }))} placeholder={isRtl ? 'سایر محدودیت‌ها' : 'Other limitations'} />
+              </div>
+            </div>
+            <div className="training-programs-footer">
+              <button type="button" className="program-buy-btn secondary" onClick={() => setEmsStep(1)}>{isRtl ? 'قبلی' : 'Back'}</button>
+              <div className="training-programs-total">
+                <span className="training-programs-total-label">{t('totalPrice')}</span>
+                <span className="training-programs-total-value">${basePrice}</span>
+              </div>
+              <button type="button" className="program-buy-btn training-programs-buy-btn" onClick={handleBuyNow} disabled={isSubmitting}>
+                {isSubmitting ? (isRtl ? 'در حال ارسال...' : 'Submitting...') : t('buyNow')}
               </button>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="training-programs-modal-body">
+            <section className="training-programs-base-section">
+              <h3 className="training-programs-section-title">
+                {isRtl ? 'برنامه پایه' : 'Base program'}
+              </h3>
+              <div className="training-programs-grid training-programs-grid-base">
+                {BASE_PROGRAMS.map((program) => (
+                  <button
+                    key={program.id}
+                    type="button"
+                    className={`training-program-card ${selectedProgramId === program.id ? 'selected' : ''}`}
+                    onClick={() => handleSelectProgram(program.id)}
+                  >
+                    <div className="program-icon">{program.icon}</div>
+                    <h4 className="program-name">{t(program.nameKey)}</h4>
+                    <p className="program-description">{t(program.descriptionKey)}</p>
+                    {program.features && program.features.length > 0 && (
+                      <ul className="program-features">
+                        {program.features.map((featureKey, index) => (
+                          <li key={index}>{t(featureKey)}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="program-price">${program.price}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="training-programs-packages-section">
+              <h3 className="training-programs-section-title">{t('selectPackages')}</h3>
+              <ul className="training-programs-packages-list">
+                {PACKAGE_OPTIONS.map((pkg) => (
+                  <li key={pkg.id} className="training-programs-package-item">
+                    <label className="training-programs-package-label">
+                      <input
+                        type="checkbox"
+                        checked={!!selectedPackages[pkg.id]}
+                        onChange={() => togglePackage(pkg.id)}
+                        className="training-programs-package-checkbox"
+                      />
+                      <span className="training-programs-package-name">{t(pkg.nameKey)}</span>
+                      <span className="training-programs-package-price">+${pkg.price}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <div className="training-programs-footer">
+              <div className="training-programs-total">
+                <span className="training-programs-total-label">{t('totalPrice')}</span>
+                <span className="training-programs-total-value">${totalPrice}</span>
+              </div>
+              <button
+                type="button"
+                className="program-buy-btn training-programs-buy-btn"
+                onClick={handleBuyNow}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (isRtl ? 'در حال ارسال...' : 'Submitting...') : t('buyNow')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default TrainingProgramsModal;
-

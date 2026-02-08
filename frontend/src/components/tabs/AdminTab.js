@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './AdminTab.css';
 
 const AdminTab = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   
@@ -63,7 +65,7 @@ const AdminTab = () => {
 
   const fetchAssistants = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/assistants', getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/admin/assistants`, getAxiosConfig());
       setAssistants(response.data);
     } catch (error) {
       console.error('Error fetching assistants:', error);
@@ -73,7 +75,7 @@ const AdminTab = () => {
 
   const fetchAssistantDetails = async (assistantId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/admin/assistants/${assistantId}`, getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/admin/assistants/${assistantId}`, getAxiosConfig());
       return response.data;
     } catch (error) {
       console.error('Error fetching assistant details:', error);
@@ -144,7 +146,7 @@ const AdminTab = () => {
         education: assistantEditFormData.education || '',
         bio: assistantEditFormData.bio || ''
       };
-      await axios.put(`http://localhost:5000/api/admin/assistants/${editingAssistant.id}`, payload, getAxiosConfig());
+      await axios.put(`${API_BASE}/api/admin/assistants/${editingAssistant.id}`, payload, getAxiosConfig());
       alert(i18n.language === 'fa' ? 'دستیار به‌روزرسانی شد' : 'Assistant updated');
       setEditingAssistant(null);
       setAssistantEditFormData(null);
@@ -191,7 +193,7 @@ const AdminTab = () => {
         };
       }
       
-      const response = await axios.post('http://localhost:5000/api/admin/assistants', data, getAxiosConfig());
+      const response = await axios.post(`${API_BASE}/api/admin/assistants`, data, getAxiosConfig());
       
       // Show credentials modal
       setCreatedCredentials({
@@ -213,7 +215,7 @@ const AdminTab = () => {
 
   const handleDeleteAssistant = async (assistantId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/admin/assistants/${assistantId}`, getAxiosConfig());
+      await axios.delete(`${API_BASE}/api/admin/assistants/${assistantId}`, getAxiosConfig());
       alert(i18n.language === 'fa' ? 'دستیار با موفقیت حذف شد' : 'Assistant deleted successfully');
       fetchAssistants();
     } catch (error) {

@@ -1,45 +1,26 @@
 """
-Standalone script to create demo user
+Standalone script to create demo user.
 Run this directly: python create_demo_user_standalone.py
+Uses main app and DATABASE_URL (PostgreSQL). Set DATABASE_URL in .env (see .env.example).
 """
 
 import sys
 import os
-
-# Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Set up minimal Flask app context
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from app import app, db, User
 from werkzeug.security import generate_password_hash
 from datetime import datetime
-import sqlite3
-
-# Create minimal app
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///raha_fitness.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-# Define minimal User model
-class User(db.Model):
-    __tablename__ = 'user'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    language = db.Column(db.String(10), default='fa')
 
 def create_demo_user():
     """Create demo user"""
     with app.app_context():
-        # Create tables if they don't exist
-        db.create_all()
-        
-        # Check if demo user already exists
+        try:
+            db.create_all()
+        except Exception as e:
+            print(f"[ERROR] Could not connect to database: {e}")
+            print("Set DATABASE_URL (e.g. postgresql://user:password@localhost:5432/raha_fitness)")
+            return
         demo_user = User.query.filter_by(username='demo').first()
         if demo_user:
             print("\n" + "="*50)

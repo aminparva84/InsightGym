@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../services/apiBase';
 import { useAuth } from '../context/AuthContext';
 import './ChatPanel.css';
 
 const ChatPanel = ({ onClose }) => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user, logout, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -81,7 +83,7 @@ const ChatPanel = ({ onClose }) => {
     const greeting = i18n.language === 'fa' ? 'سلام' : 'Hello';
     
     try {
-      const response = await axios.post('http://localhost:5000/api/chat', {
+      const response = await axios.post(`${API_BASE}/api/chat`, {
         message: greeting,
         local_time: localTime
       }, getAxiosConfig());
@@ -123,7 +125,7 @@ const ChatPanel = ({ onClose }) => {
     }
 
     try {
-      const response = await axios.get('http://localhost:5000/api/chat/history', getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/chat/history`, getAxiosConfig());
       const historyMessages = response.data.map(chat => ({
         type: 'user',
         text: chat.message,
@@ -180,7 +182,7 @@ const ChatPanel = ({ onClose }) => {
     setMessages(prev => [...prev, newUserMessage]);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/chat', {
+      const response = await axios.post(`${API_BASE}/api/chat`, {
         message: userMessage,
         local_time: localTime
       }, getAxiosConfig());

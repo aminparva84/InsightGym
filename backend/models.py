@@ -202,6 +202,15 @@ class Exercise(db.Model):
     video_url = db.Column(db.String(500))
     image_url = db.Column(db.String(500))
     
+    # Trainer / movement info (video, voice, text notes - shown in member training plan)
+    voice_url = db.Column(db.String(500))  # uploaded voice note for this movement
+    trainer_notes_fa = db.Column(db.Text)   # trainer text note (Persian)
+    trainer_notes_en = db.Column(db.Text)  # trainer text note (English)
+    # When during the exercise to notify the note/voice: 1 = after set 1, 2 = after set 2, etc. Null = at start of movement
+    note_notify_at_seconds = db.Column(db.Integer, nullable=True)
+    # If True, after completing a set the member is asked questions (how was it? which muscle?) and gets AI feedback
+    ask_post_set_questions = db.Column(db.Boolean, default=False, nullable=False)
+    
     # Metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -247,7 +256,13 @@ class Exercise(db.Model):
             'equipment_needed_fa': self.equipment_needed_fa,
             'equipment_needed_en': self.equipment_needed_en,
             'video_url': self.video_url,
-            'image_url': self.image_url
+            'image_url': self.image_url,
+            'voice_url': self.voice_url or '',
+            'trainer_notes': self.trainer_notes_fa if language == 'fa' else self.trainer_notes_en,
+            'trainer_notes_fa': self.trainer_notes_fa or '',
+            'trainer_notes_en': self.trainer_notes_en or '',
+            'note_notify_at_seconds': self.note_notify_at_seconds,
+            'ask_post_set_questions': getattr(self, 'ask_post_set_questions', False),
         }
 
 
@@ -281,7 +296,7 @@ class ExerciseHistory(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     __table_args__ = (
-        db.Index('idx_user_workout_date', 'user_id', 'workout_date'),
+        db.Index('idx_exercise_history_user_workout_date', 'user_id', 'workout_date'),
     )
 
 
@@ -451,6 +466,64 @@ class BreakRequest(db.Model):
     )
 
 
+class MemberTrainingActionCompletion(db.Model):
+    """Tracks which training actions (session+exercise) a member has completed (ticked)."""
+    __tablename__ = 'member_training_action_completions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    training_program_id = db.Column(db.Integer, db.ForeignKey('training_programs.id'), nullable=False)
+    session_index = db.Column(db.Integer, nullable=False)  # 0-based index in program.sessions
+    exercise_index = db.Column(db.Integer, nullable=False)  # 0-based index in session.exercises
+    completed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'training_program_id', 'session_index', 'exercise_index', name='uq_member_action'),
+        db.Index('idx_member_action_user_program', 'user_id', 'training_program_id'),
+    )
+
+
+class Notification(db.Model):
+    """In-app notifications for members (e.g. trainer notes sent to member)."""
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title_fa = db.Column(db.String(300))
+    title_en = db.Column(db.String(300))
+    body_fa = db.Column(db.Text)
+    body_en = db.Column(db.Text)
+    type = db.Column(db.String(50), default='trainer_note')  # 'trainer_note', 'reminder', etc.
+    link = db.Column(db.String(500))  # optional deep link (e.g. ?tab=training-program)
+    voice_url = db.Column(db.String(500))  # optional voice note URL
+    read_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (db.Index('idx_notifications_user_read', 'user_id', 'read_at'),)
+
+
+class TrainingActionNote(db.Model):
+    """Admin/trainer notes or voice notes per training action (program + session + exercise)."""
+    __tablename__ = 'training_action_notes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    training_program_id = db.Column(db.Integer, db.ForeignKey('training_programs.id'), nullable=False)
+    session_index = db.Column(db.Integer, nullable=False)
+    exercise_index = db.Column(db.Integer, nullable=False)
+    note_fa = db.Column(db.Text)
+    note_en = db.Column(db.Text)
+    voice_url = db.Column(db.String(500))  # URL or path to uploaded voice note
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # admin who added
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('training_program_id', 'session_index', 'exercise_index', name='uq_action_note'),
+    )
+
+
 class Configuration(db.Model):
     """Configuration for training levels and injuries"""
     __tablename__ = 'configuration'
@@ -481,6 +554,24 @@ class SiteSettings(db.Model):
     linkedin_url = db.Column(db.String(500))
     youtube_url = db.Column(db.String(500))
     copyright_text = db.Column(db.String(255))
+    # JSON: session phases (warming, cooldown, ending message) with sub-steps for member session view
+    session_phases_json = db.Column(db.Text)
+    # JSON: buyable training plans and packages (names, descriptions, features, prices) for admin edit
+    training_plans_products_json = db.Column(db.Text)
+    # JSON: AI provider settings (selected_provider, openai/anthropic/gemini: api_key, source, last_tested_at, is_valid)
+    ai_settings_json = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ProgressCheckRequest(db.Model):
+    """Member requests a progress check; trainer can accept or deny."""
+    __tablename__ = 'progress_check_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, accepted, denied
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow)
+    responded_at = db.Column(db.DateTime)
+    responded_by = db.Column(db.Integer, db.ForeignKey('user.id'))
 

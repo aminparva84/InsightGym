@@ -1,0 +1,210 @@
+/* Tab content already has padding from .tab-content; we use full width so table fits */
+.ai-settings-tab {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 0 1rem 0;
+}
+
+.ai-settings-tab h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: #000;
+}
+
+.ai-settings-desc {
+  margin: 0 0 1.5rem 0;
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.ai-settings-loading {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+}
+
+.ai-settings-selected {
+  margin-bottom: 2rem;
+  padding: 1rem 1.25rem;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+.ai-settings-selected label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.ai-settings-selected select {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  min-width: 200px;
+}
+
+.ai-settings-warn {
+  margin: 0.75rem 0 0 0;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.ai-settings-table-wrap {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ai-settings-table {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.ai-settings-table thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.ai-settings-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #212529;
+  white-space: nowrap;
+}
+
+.ai-settings-table tbody tr {
+  border-bottom: 1px solid #eee;
+}
+
+.ai-settings-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.ai-settings-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.ai-settings-table tbody tr.valid {
+  background: #f0f9f4;
+}
+
+.ai-settings-table tbody tr.valid:hover {
+  background: #e7f5ec;
+}
+
+.ai-settings-table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+  color: #495057;
+}
+
+.ai-settings-cell-name {
+  font-weight: 600;
+  color: #212529;
+}
+
+.ai-settings-cell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.ai-settings-key-input {
+  width: 180px;
+  min-width: 140px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.ai-settings-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.ai-settings-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.ai-settings-btn-save {
+  background: #0d6efd;
+  color: #fff;
+}
+
+.ai-settings-btn-save:hover:not(:disabled) {
+  background: #0b5ed7;
+}
+
+.ai-settings-btn-test {
+  background: #198754;
+  color: #fff;
+}
+
+.ai-settings-btn-test:hover:not(:disabled) {
+  background: #157347;
+}
+
+.ai-kb-section {
+  margin-top: 2rem;
+  padding: 1rem 1.25rem;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+.ai-kb-section h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  color: #000;
+}
+
+.ai-kb-meta {
+  display: flex;
+  gap: 1rem;
+  color: #555;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-kb-textarea {
+  width: 100%;
+  min-height: 220px;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  resize: vertical;
+  background: #fff;
+  color: #212529;
+  box-sizing: border-box;
+}
+
+.ai-kb-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}

@@ -12,7 +12,7 @@ Run this once to update the database schema.
 """
 
 from app import app, db
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 
 def migrate_profile_fields():
     """Add new columns to user_profiles table"""
@@ -20,13 +20,9 @@ def migrate_profile_fields():
         try:
             print("Starting migration...")
             
-            # Check if columns already exist and add them if they don't
-            # SQLite doesn't support IF NOT EXISTS for ALTER TABLE ADD COLUMN,
-            # so we need to check first
-            
-            # Get table info to check existing columns
-            result = db.session.execute(text("PRAGMA table_info(user_profiles)"))
-            existing_columns = [row[1] for row in result.fetchall()]
+            # DB-agnostic: use SQLAlchemy inspector to get existing columns
+            insp = inspect(db.engine)
+            existing_columns = [c['name'] for c in insp.get_columns('user_profiles')]
             
             print(f"Existing columns: {existing_columns}")
             

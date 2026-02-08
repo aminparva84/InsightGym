@@ -1,0 +1,144 @@
+name: Deploy Unified App to Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: cloud-run-unified-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ secrets.GCP_REGION || 'me-central1' }}
+  SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME || 'insightgym' }}
+  REPOSITORY_NAME: ${{ secrets.GCP_REPOSITORY_NAME || 'insightgym' }}
+  IMAGE_NAME: ${{ secrets.GCP_IMAGE_NAME || 'insightgym-unified' }}
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Python dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+  deploy-unified:
+    name: Deploy Unified App to Cloud Run
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Secrets
+        id: check_secrets
+        run: |
+          if [ -z "${{ secrets.GCP_PROJECT_ID }}" ] || [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "Missing required secrets: GCP_PROJECT_ID and/or GCP_SA_KEY."
+            exit 1
+          else
+            echo "secrets_configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Authenticate to Google Cloud
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        run: |
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      - name: Get Cloud Run Service URL (optional)
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        id: service_url
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.GCP_REGION }} --format="value(status.url)" 2>/dev/null || true)
+          echo "url=${URL:-}" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        run: |
+          IMAGE_TAG="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          IMAGE_TAG_LATEST="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY_NAME }}/${{ env.IMAGE_NAME }}:latest"
+
+          docker build -f Dockerfile -t $IMAGE_TAG -t $IMAGE_TAG_LATEST \
+            --build-arg REACT_APP_API_URL="${{ steps.service_url.outputs.url }}" .
+
+          docker push $IMAGE_TAG
+          docker push $IMAGE_TAG_LATEST
+
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG_LATEST=$IMAGE_TAG_LATEST" >> $GITHUB_ENV
+
+      - name: Deploy to Cloud Run
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        run: |
+          ENV_VARS="DATABASE_URL=${{ secrets.DATABASE_URL }}"
+          ENV_VARS="$ENV_VARS,JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}"
+          ENV_VARS="$ENV_VARS,FLASK_ENV=production"
+
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image "${{ env.IMAGE_TAG_LATEST }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 2Gi \
+            --cpu 2 \
+            --timeout 300 \
+            --max-instances 10 \
+            --min-instances 0 \
+            --set-env-vars "$ENV_VARS" \
+            --quiet
+
+      - name: Get Service URL
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        id: get_service_url
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+          echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_OUTPUT
+
+      - name: Health Check
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        run: |
+          SERVICE_URL="${{ steps.get_service_url.outputs.SERVICE_URL }}"
+          sleep 15
+          curl -f "$SERVICE_URL/health" || echo "Health check failed"

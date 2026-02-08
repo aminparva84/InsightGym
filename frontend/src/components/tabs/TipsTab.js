@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './TipsTab.css';
 
 const TipsTab = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const [tips, setTips] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,7 +17,7 @@ const TipsTab = () => {
   const loadTips = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/tips?language=${i18n.language}`);
+      const response = await axios.get(`${API_BASE}/api/tips?language=${i18n.language}`);
       setTips(response.data);
     } catch (error) {
       console.error('Error loading tips:', error);

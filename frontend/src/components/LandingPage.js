@@ -6,10 +6,12 @@ import AuthModal from './AuthModal';
 import TrainingProgramsModal from './TrainingProgramsModal';
 import BannerChat from './BannerChat';
 import axios from 'axios';
+import { getApiBase } from '../services/apiBase';
 import './LandingPage.css';
 
 const LandingPage = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -57,23 +59,11 @@ const LandingPage = () => {
     };
   }, []);
 
-  // Reset scroll when user state changes (e.g., after login) - only reset, don't block
-  useEffect(() => {
-    // Only reset scroll once when user state changes, not continuously
-    const timeout = setTimeout(() => {
-      preventScroll();
-    }, 0);
-    
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [user]);
-
   // Fetch site settings for footer (contact, social)
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/site-settings');
+        const response = await axios.get(`${API_BASE}/api/site-settings`);
         setSiteSettings(response.data || {});
       } catch (error) {
         console.error('Error fetching site settings:', error);
@@ -100,7 +90,7 @@ const LandingPage = () => {
           return;
         }
 
-        const response = await axios.get('http://localhost:5000/api/training-programs', {
+        const response = await axios.get(`${API_BASE}/api/training-programs`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -120,11 +110,15 @@ const LandingPage = () => {
     checkTrainingProgram();
   }, [user]);
 
+  useEffect(() => {
+    document.documentElement.lang = i18n.language;
+    document.documentElement.dir = 'ltr';
+  }, [i18n.language]);
+
   const changeLanguage = () => {
     const newLang = i18n.language === 'fa' ? 'en' : 'fa';
     i18n.changeLanguage(newLang);
     document.documentElement.lang = newLang;
-    // Keep direction as LTR for consistent alignment
     document.documentElement.dir = 'ltr';
   };
 
@@ -208,18 +202,21 @@ const LandingPage = () => {
           {/* Left Side - Text and Chatbox */}
           <div className="banner-left">
             <div className="banner-text-container">
+              <h1 className="banner-brand">
+                {i18n.language === 'fa' ? 'باشگاهی با قدرت هوش مصنوعی' : 'Powered by AI GYM'}
+              </h1>
               <h2 className="banner-title">
                 {i18n.language === 'fa' ? (
                   <>
-                    <span className="banner-title-line">فراتر از تمرین؛</span>
-                    <span className="banner-title-line">مسیری علمی به</span>
-                    <span className="banner-title-line">تناسب اندام ماندگار</span>
+                    <span className="banner-title-line">فراتر از تمرین — هوشمندتر تمرین کنید.</span>
+                    <span className="banner-title-line">مسیر هوش‌مصنوعی شما به</span>
+                    <span className="banner-title-line">تناسب اندام ماندگار و نتایج واقعی.</span>
                   </>
                 ) : (
                   <>
-                    <span className="banner-title-line">Beyond Exercise;</span>
-                    <span className="banner-title-line">A Scientific Path to</span>
-                    <span className="banner-title-line">Lasting Fitness</span>
+                    <span className="banner-title-line">Beyond Exercise — Train Smarter.</span>
+                    <span className="banner-title-line">Your AI-Powered Path to</span>
+                    <span className="banner-title-line">Lasting Fitness & Real Results.</span>
                   </>
                 )}
               </h2>
@@ -243,29 +240,82 @@ const LandingPage = () => {
               )}
             </div>
           </div>
-          
-          {/* Right Side - Gym Image */}
-          <div className="banner-right">
-            <div className="banner-image-container">
-              <img 
-                src="/banner-image.png" 
-                alt="Fitness" 
-                className="banner-image"
-                onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=1000&fit=crop';
-                }}
-              />
+        </section>
+
+        <section className="intro-section">
+          <div className="intro-container">
+            <div className="intro-card">
+              <div className="intro-header">
+                <span className="intro-badge">{t('introBadge')}</span>
+                <h2 className="intro-title">{t('introHeadline')}</h2>
+              </div>
+              <p className="intro-text">{t('introParagraph1')}</p>
+              <p className="intro-text">{t('introParagraph2')}</p>
+              <p className="intro-text">{t('introParagraph3')}</p>
+
+              <h3 className="intro-subtitle">{t('introFeaturesTitle')}</h3>
+              <div className="intro-list">
+                <div className="intro-item">
+                  <span className="intro-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-2V6a4 4 0 0 0-8 0v2H8v8h2v2a4 4 0 0 0 8 0v-2h2V8zm-8-2a2 2 0 0 1 4 0v2h-4V6zm4 12a2 2 0 0 1-4 0v-2h4v2z"/></svg>
+                  </span>
+                  <div>
+                    <h4>{t('introFeature1Title')}</h4>
+                    <p>{t('introFeature1Desc')}</p>
+                  </div>
+                </div>
+                <div className="intro-item">
+                  <span className="intro-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 2h6a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a4 4 0 0 1-4 4h-2v2h-6v-2H7a4 4 0 0 1-4-4V8a2 2 0 0 1 2-2h2V4a2 2 0 0 1 2-2zm0 2v2h6V4H9zm-2 6h10v2H7v-2zm0 4h6v2H7v-2z"/></svg>
+                  </span>
+                  <div>
+                    <h4>{t('introFeature2Title')}</h4>
+                    <p>{t('introFeature2Desc')}</p>
+                  </div>
+                </div>
+                <div className="intro-item">
+                  <span className="intro-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.46 3 5.74V20a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-5.26A7 7 0 0 0 19 9a7 7 0 0 0-7-7zm2 18h-4v-4h4v4zm.12-6H9.88A5 5 0 1 1 14.12 14z"/></svg>
+                  </span>
+                  <div>
+                    <h4>{t('introFeature3Title')}</h4>
+                    <p>{t('introFeature3Desc')}</p>
+                  </div>
+                </div>
+                <div className="intro-item">
+                  <span className="intro-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 19h16v2H4v-2zm1-3h2V7H5v9zm4 0h2V4H9v12zm4 0h2V10h-2v6zm4 0h2V6h-2v10z"/></svg>
+                  </span>
+                  <div>
+                    <h4>{t('introFeature4Title')}</h4>
+                    <p>{t('introFeature4Desc')}</p>
+                  </div>
+                </div>
+                <div className="intro-item">
+                  <span className="intro-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-4 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2 4h12v2H6V8zm0 4h8v2H6v-2z"/></svg>
+                  </span>
+                  <div>
+                    <h4>{t('introFeature5Title')}</h4>
+                    <p>{t('introFeature5Desc')}</p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="intro-closing">{t('introClosing')}</p>
             </div>
           </div>
         </section>
 
-        {/* Feature Cards Section */}
+        {/* Feature Cards Section - Glass theme matching banner */}
         <section className="features-section">
           <div className="features-container">
             <div className="feature-cards">
               {/* Lose Weight Card */}
               <div className="feature-card">
-                <div className="feature-icon">⚖️</div>
+                <div className="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                </div>
                 <h3 className="feature-title">
                   {i18n.language === 'fa' ? 'کاهش وزن' : 'Lose Weight'}
                 </h3>
@@ -279,7 +329,9 @@ const LandingPage = () => {
 
               {/* Gain Weight Card */}
               <div className="feature-card">
-                <div className="feature-icon">📈</div>
+                <div className="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
+                </div>
                 <h3 className="feature-title">
                   {i18n.language === 'fa' ? 'افزایش وزن' : 'Gain Weight'}
                 </h3>
@@ -293,7 +345,9 @@ const LandingPage = () => {
 
               {/* Gain Muscle Card */}
               <div className="feature-card">
-                <div className="feature-icon">💪</div>
+                <div className="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9 3.57 6 6.57 4.57 5 3 6.57 2 8.14 4.57 9.71 7 6.57 10.14 4.57 11.57 6 13l2-2 2.43 2.43 1.43-1.43-2.43-2.43L22 8.14 20.57 6.71 17 10.29 8.43 1.71 12-1.86 10.57-3.29 9-1.71 6-4.71 4.57-6.29 3-4.71 2-3.14 4.57-1.57 7 4.29 10.14 2.57 11.57 4 13l2-2 4.29 4.29 1.43-1.43-4.29-4.29L22 6.29 20.57 4.86 17 8.43 8.43-0.14 12-3.71 10.57-5.14 9-3.57 6-6.57 4.57-8 3-6.57 2-5 4.57-3.43 7 5.43 10.14 3.57 11.57 5 13.43 5.43 15.86 8.29 18.71 12 15.43l2.57 2.57-1.43 1.43-2.57-2.57L17 20.57 20.57 24 22 22.57 18.43 19.43 20.57 14.86z"/></svg>
+                </div>
                 <h3 className="feature-title">
                   {i18n.language === 'fa' ? 'افزایش عضله' : 'Gain Muscle'}
                 </h3>
@@ -307,7 +361,9 @@ const LandingPage = () => {
 
               {/* Shape Fitting Card */}
               <div className="feature-card">
-                <div className="feature-icon">🎯</div>
+                <div className="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                </div>
                 <h3 className="feature-title">
                   {i18n.language === 'fa' ? 'تناسب اندام' : 'Shape Fitting'}
                 </h3>
@@ -321,7 +377,9 @@ const LandingPage = () => {
 
               {/* Healthy Diet Card */}
               <div className="feature-card">
-                <div className="feature-icon">🥗</div>
+                <div className="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2z"/></svg>
+                </div>
                 <h3 className="feature-title">
                   {i18n.language === 'fa' ? 'رژیم غذایی سالم' : 'Healthy Diet'}
                 </h3>
@@ -367,6 +425,7 @@ const LandingPage = () => {
             </button>
           )}
         </section>
+
       </div>
 
       {/* Footer */}

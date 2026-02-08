@@ -56,11 +56,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-5. Create a `.env` file in the backend directory:
+5. Create a `.env` file in the backend directory (or copy from project root `.env.example`):
 ```
-DATABASE_URL=sqlite:///raha_fitness.db
+DATABASE_URL=postgresql://user:password@localhost:5432/raha_fitness
 JWT_SECRET_KEY=your-secret-key-change-in-production
 ```
+   Create the PostgreSQL database first (e.g. `createdb raha_fitness`). Tables are created when you run the backend or `python init_database.py`.
 
 6. Run the Flask server:
 ```bash
@@ -136,7 +137,9 @@ The application defaults to Farsi (Persian) but supports English. Users can swit
 
 ## Database
 
-The application uses SQLite by default. The database file (`raha_fitness.db`) will be created automatically when you first run the backend.
+The application uses **PostgreSQL**. Set `DATABASE_URL` in `.env` (e.g. `postgresql://user:password@localhost:5432/raha_fitness`). Create the database (e.g. `createdb raha_fitness`), then run the backend or `python init_database.py` to create tables. Production must set `DATABASE_URL`. If you use Prisma, ensure `DATABASE_URL` in `.env` points to PostgreSQL and run `npx prisma generate` (and `npx prisma migrate dev` if using Prisma Migrate).
+
+**Migrating existing SQLite data to PostgreSQL:** See [MIGRATION.md](MIGRATION.md). In short: set `DATABASE_URL` to PostgreSQL, then run `python backend/migrate_sqlite_to_postgres.py` (optionally set `SOURCE_SQLITE_URL` for the SQLite file path).
 
 ## AI Assistant
 

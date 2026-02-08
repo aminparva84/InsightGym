@@ -1,44 +1,28 @@
 """
-Delete demo user from database
+Delete demo user from database.
+Uses Flask app context and SQLAlchemy (works with PostgreSQL or SQLite via DATABASE_URL).
 """
 
-import sqlite3
+import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-db_path = os.path.join(os.path.dirname(__file__), 'raha_fitness.db')
+from app import app, db, User
 
-if not os.path.exists(db_path):
-    print("Database file not found!")
-    exit(1)
+def delete_demo_user():
+    with app.app_context():
+        try:
+            user = User.query.filter_by(username='demo').first()
+        except Exception as e:
+            print(f"[ERROR] Could not connect to database: {e}")
+            return False
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+            print("Demo user deleted successfully!")
+        else:
+            print("Demo user not found in database")
+        return True
 
-try:
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    
-    # Check tables
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = [row[0] for row in cursor.fetchall()]
-    print(f"Tables found: {tables}")
-    
-    # Try to find and delete demo user
-    table_name = 'user'  # Default table name
-    
-    # Check if user exists
-    cursor.execute(f"SELECT username FROM {table_name} WHERE username='demo'")
-    user = cursor.fetchone()
-    
-    if user:
-        print(f"Found demo user in table '{table_name}'")
-        cursor.execute(f"DELETE FROM {table_name} WHERE username='demo'")
-        conn.commit()
-        print("Demo user deleted successfully!")
-    else:
-        print("Demo user not found in database")
-    
-    conn.close()
-    
-except Exception as e:
-    print(f"Error: {e}")
-
-
-
+if __name__ == '__main__':
+    delete_demo_user()

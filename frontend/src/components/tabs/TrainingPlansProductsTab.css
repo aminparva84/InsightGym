@@ -1,0 +1,131 @@
+.training-plans-products-tab {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 1rem 0;
+}
+
+.tpp-loading {
+  padding: 2rem;
+  text-align: center;
+  color: #555;
+}
+
+.tpp-header {
+  margin-bottom: 1.5rem;
+}
+
+.tpp-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.tpp-desc {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.tpp-section {
+  margin-bottom: 1.5rem;
+}
+
+.tpp-section h3 {
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 1.1rem;
+}
+
+.tpp-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.tpp-card h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.tpp-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.tpp-card.tpp-package .tpp-row {
+  grid-template-columns: 1fr 1fr 100px;
+}
+
+.tpp-features {
+  margin-top: 0.75rem;
+}
+
+.tpp-features > label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.tpp-feature-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tpp-feature-row input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.tpp-price input {
+  width: 80px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+  color: #555;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.tpp-actions {
+  margin-top: 1rem;
+}
+
+.tpp-actions .btn-primary,
+.tpp-header .btn-primary {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  background: #1976d2;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tpp-actions .btn-primary:disabled,
+.tpp-header .btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

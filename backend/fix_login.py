@@ -1,101 +1,57 @@
 """
-Simple script to fix login issues by creating/resetting demo user
-Uses direct SQL to avoid model conflicts
+Simple script to fix login issues by creating/resetting demo user.
+Uses Flask app context and SQLAlchemy (works with PostgreSQL or SQLite via DATABASE_URL).
 """
 
-import sqlite3
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from app import app, db, User
 from werkzeug.security import generate_password_hash
+from datetime import datetime
 
 def fix_login():
-    # Check both possible locations
-    db_paths = [
-        'instance/raha_fitness.db',  # Flask instance folder
-        'raha_fitness.db'  # Root backend folder
-    ]
-    
-    db_path = None
-    for path in db_paths:
-        if os.path.exists(path):
-            db_path = path
-            break
-    
-    if not db_path:
-        print(f"[ERROR] Database file not found in any of these locations:")
-        for path in db_paths:
-            print(f"  - {path}")
-        print("\n[INFO] The database will be created when you start the backend server.")
-        print("[INFO] After starting the server, run this script again or register a new user.")
-        return False
-    
-    print(f"[INFO] Found database at: {db_path}")
-    
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Check if user table exists
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user'")
-        if not cursor.fetchone():
-            print("[ERROR] User table not found in database")
-            print("[INFO] Please start the backend server first to create the database tables")
-            conn.close()
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception as e:
+            print(f"[ERROR] Could not create/connect to database: {e}")
+            print("[INFO] Ensure DATABASE_URL is set (e.g. postgresql://...) and the database exists.")
             return False
-        
-        # Check for existing demo user
-        cursor.execute("SELECT id, username, email FROM user WHERE username = ?", ('demo',))
-        existing = cursor.fetchone()
-        
-        password_hash = generate_password_hash('demo123')
-        
+        existing = User.query.filter_by(username='demo').first()
         if existing:
-            print(f"[INFO] Found existing user: {existing[1]}")
-            print("[INFO] Resetting password to 'demo123'...")
-            cursor.execute(
-                "UPDATE user SET password_hash = ? WHERE username = ?",
-                (password_hash, 'demo')
-            )
-            conn.commit()
+            print("[INFO] Found existing demo user, resetting password to 'demo123'...")
+            existing.password_hash = generate_password_hash('demo123')
+            db.session.commit()
             print("[OK] Password reset complete")
         else:
             print("[INFO] Creating new demo user...")
-            cursor.execute(
-                """INSERT INTO user (username, email, password_hash, language, created_at)
-                   VALUES (?, ?, ?, ?, datetime('now'))""",
-                ('demo', 'demo@raha-fitness.com', password_hash, 'fa')
+            demo_user = User(
+                username='demo',
+                email='demo@raha-fitness.com',
+                password_hash=generate_password_hash('demo123'),
+                language='fa',
+                created_at=datetime.utcnow()
             )
-            conn.commit()
+            db.session.add(demo_user)
+            db.session.commit()
             print("[OK] Demo user created")
-        
-        # Verify
-        cursor.execute("SELECT username, email FROM user WHERE username = ?", ('demo',))
-        user = cursor.fetchone()
-        
+        user = User.query.filter_by(username='demo').first()
         if user:
             print("\n" + "="*60)
             print("LOGIN FIXED!")
             print("="*60)
             print("\nDemo User Credentials:")
-            print(f"  Username: {user[0]}")
-            print(f"  Email: {user[1]}")
+            print(f"  Username: {user.username}")
+            print(f"  Email: {user.email}")
             print(f"  Password: demo123")
             print("\nYou can now login with these credentials!")
             print("="*60)
-            conn.close()
             return True
-        else:
-            print("[ERROR] Failed to create/verify user")
-            conn.close()
-            return False
-            
-    except Exception as e:
-        print(f"[ERROR] An error occurred: {e}")
-        import traceback
-        traceback.print_exc()
+        print("[ERROR] Failed to create/verify user")
         return False
 
 if __name__ == '__main__':
     success = fix_login()
     sys.exit(0 if success else 1)
-

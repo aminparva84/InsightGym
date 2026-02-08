@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_jwt_extended import (
@@ -8,6 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import os
+import uuid
 import base64
 from dotenv import load_dotenv
 
@@ -22,8 +23,24 @@ try:
 except ImportError:
     workout_plan_bp = None
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///raha_fitness.db')
+FRONTEND_BUILD_DIR = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'build')
+app = Flask(__name__, static_folder=FRONTEND_BUILD_DIR, static_url_path='')
+# Database: PostgreSQL by default. Set DATABASE_URL in .env (see .env.example).
+# Normalize postgres:// to postgresql:// (required by SQLAlchemy 1.4+ and many hosts like Heroku).
+_db_url = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/raha_fitness')
+if _db_url.startswith('postgres://'):
+    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+# If PostgreSQL is configured but not reachable, fall back to SQLite so the app can run
+if _db_url.startswith('postgresql'):
+    try:
+        from sqlalchemy import create_engine
+        _test = create_engine(_db_url, connect_args={"connect_timeout": 3})
+        with _test.connect():
+            pass
+    except Exception:
+        print("\n[INFO] PostgreSQL not reachable - using SQLite for this run. Start PostgreSQL and set DATABASE_URL for production.\n")
+        _db_url = 'sqlite:///raha_fitness.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Get JWT_SECRET_KEY from environment or use default
 # IMPORTANT: This key must be consistent - if it changes, all existing tokens become invalid
@@ -133,6 +150,7 @@ class User(db.Model):
     language = db.Column(db.String(10), default='fa')  # 'fa' for Farsi, 'en' for English
     role = db.Column(db.String(20), default='member')  # 'admin', 'assistant', 'member'
     assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # For members assigned to assistants/admins
+    trial_ends_at = db.Column(db.DateTime, nullable=True)  # 7-day free trial end; null = no trial or not a member
     
     exercises = db.relationship('UserExercise', backref='user', lazy=True, cascade='all, delete-orphan')
     chat_history = db.relationship('ChatHistory', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -156,9 +174,31 @@ class UserExercise(db.Model):
 class ChatHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    session_id = db.Column(db.String(36), nullable=True, index=True)  # conversation/session grouping
     message = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class ChatSession(db.Model):
+    """Optional custom title per conversation (session_id)."""
+    __tablename__ = 'chat_session'
+    session_id = db.Column(db.String(64), primary_key=True)  # uuid or _legacy_<id>
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(256), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class TrainerMessage(db.Model):
+    """Member-to-trainer (admin/assistant) direct messages."""
+    __tablename__ = 'trainer_messages'
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read_at = db.Column(db.DateTime, nullable=True)
+
 
 # NutritionPlan is defined in models.py to avoid duplicate class names
 
@@ -218,7 +258,8 @@ def register():
             email=email,
             password_hash=generate_password_hash(password),
             language=language,
-            role=role
+            role=role,
+            trial_ends_at=datetime.utcnow() + timedelta(days=7),  # 7-day free trial for new members
         )
         db.session.add(user)
         db.session.flush()  # Get user ID
@@ -720,6 +761,32 @@ def user_profile():
                 error_msg = 'Database table not found. Please restart the server.'
             return jsonify({'error': error_msg, 'details': error_trace if app.debug else None}), 500
 
+@app.route('/api/uploads/voice_notes/<path:filename>', methods=['GET'])
+def get_voice_note(filename):
+    """Serve uploaded voice note file (trainer notes)."""
+    try:
+        from flask import send_from_directory
+        if '..' in filename or filename.startswith('/'):
+            return jsonify({'error': 'Invalid filename'}), 400
+        upload_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'voice_notes')
+        return send_from_directory(upload_dir, filename, as_attachment=False)
+    except Exception as e:
+        return jsonify({'error': 'File not found'}), 404
+
+
+@app.route('/api/uploads/exercises/<path:filename>', methods=['GET'])
+def get_exercise_upload(filename):
+    """Serve uploaded exercise media (videos, voice). Path e.g. videos/xxx.mp4 or voice/xxx.webm."""
+    try:
+        from flask import send_from_directory
+        if '..' in filename or filename.startswith('/'):
+            return jsonify({'error': 'Invalid filename'}), 400
+        upload_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'exercises')
+        return send_from_directory(upload_dir, filename, as_attachment=False)
+    except Exception as e:
+        return jsonify({'error': 'File not found'}), 404
+
+
 @app.route('/api/user/profile/image/<filename>', methods=['GET'])
 @jwt_required()
 def get_profile_image(filename):
@@ -801,18 +868,28 @@ def chat():
         # For now, we'll create a simple response system
         response = generate_ai_response(message, user_id, user_language, local_time)
         
+        # Session: use provided session_id or create new conversation
+        session_id = (data.get('session_id') or '').strip() or None
+        if not session_id:
+            session_id = str(uuid.uuid4())
         # Save chat history
         chat_entry = ChatHistory(
             user_id=user_id,
+            session_id=session_id,
             message=message,
             response=response
         )
         db.session.add(chat_entry)
+        # Ensure ChatSession row exists for this conversation (for optional rename)
+        existing = ChatSession.query.filter_by(session_id=session_id, user_id=user_id).first()
+        if not existing:
+            db.session.add(ChatSession(session_id=session_id, user_id=user_id, title=None))
         db.session.commit()
         
         return jsonify({
             'response': response,
-            'timestamp': chat_entry.timestamp.isoformat()
+            'timestamp': chat_entry.timestamp.isoformat(),
+            'session_id': session_id
         }), 200
     except Exception as e:
         # This is for errors after authentication
@@ -851,19 +928,115 @@ def chat():
             'timestamp': datetime.utcnow().isoformat()
         }), 200  # Return 200 so frontend doesn't treat it as an error
 
-@app.route('/api/chat/history', methods=['GET'])
+@app.route('/api/chat/conversations', methods=['GET'])
 @jwt_required()
-def chat_history():
+def chat_conversations():
+    """List conversations (sessions) for the user: session_id, preview, last_at, message_count."""
     try:
-        # get_jwt_identity() returns a string, convert to int for database query
         user_id_str = get_jwt_identity()
         if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
         user_id = int(user_id_str)
-        
-        chats = ChatHistory.query.filter_by(user_id=user_id).order_by(ChatHistory.timestamp.desc()).all()
+        chats = ChatHistory.query.filter_by(user_id=user_id).order_by(ChatHistory.timestamp.asc()).all()
+        # Group by session_id (null/empty = legacy: each row is its own "conversation")
+        by_session = {}
+        for c in chats:
+            sid = c.session_id or f'_legacy_{c.id}'
+            if sid not in by_session:
+                by_session[sid] = {'session_id': c.session_id or sid, 'messages': [], 'last_at': c.timestamp}
+            by_session[sid]['messages'].append({'id': c.id, 'message': c.message, 'response': c.response, 'timestamp': c.timestamp.isoformat()})
+            by_session[sid]['last_at'] = max(by_session[sid]['last_at'], c.timestamp)
+        # Fetch custom titles from ChatSession
+        session_ids = list(by_session.keys())
+        titles = {s.session_id: (s.title or '').strip() for s in ChatSession.query.filter(
+            ChatSession.session_id.in_(session_ids),
+            ChatSession.user_id == user_id
+        ).all() if (s.title or '').strip()}
+        out = []
+        for sid, data in by_session.items():
+            first_user = next((m['message'] for m in data['messages'] if m.get('message')), '')
+            preview = (first_user[:60] + '...') if len(first_user) > 60 else first_user
+            display_title = titles.get(sid) or preview or '(No message)'
+            out.append({
+                'session_id': data['session_id'] if data['session_id'] and not str(data['session_id']).startswith('_legacy') else sid,
+                'preview': preview or '(No message)',
+                'title': display_title,
+                'last_at': data['last_at'].isoformat(),
+                'message_count': len(data['messages']) * 2
+            })
+        out.sort(key=lambda x: x['last_at'], reverse=True)
+        return jsonify(out), 200
+    except Exception as e:
+        import traceback
+        print(f"Error in chat_conversations: {e}")
+        print(traceback.format_exc())
+        return jsonify({'error': 'Authentication failed'}), 401
+
+
+@app.route('/api/chat/conversations/<session_id>', methods=['PATCH'])
+@jwt_required()
+def chat_conversation_rename(session_id):
+    """Rename a conversation (set custom title). session_id can be uuid or _legacy_<id>."""
+    try:
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
+            return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
+        session_id = (session_id or '').strip()
+        if not session_id:
+            return jsonify({'error': 'session_id required'}), 400
+        data = request.get_json() or {}
+        title = (data.get('title') or '').strip()[:256]
+        # Ensure user owns this conversation
+        if session_id.startswith('_legacy_'):
+            try:
+                legacy_id = int(session_id.replace('_legacy_', ''))
+                exists = ChatHistory.query.filter_by(user_id=user_id, id=legacy_id).first()
+            except ValueError:
+                exists = None
+        else:
+            exists = ChatHistory.query.filter_by(user_id=user_id, session_id=session_id).first()
+        if not exists:
+            return jsonify({'error': 'Conversation not found'}), 404
+        row = ChatSession.query.filter_by(session_id=session_id, user_id=user_id).first()
+        if not row:
+            row = ChatSession(session_id=session_id, user_id=user_id, title=title or None)
+            db.session.add(row)
+        else:
+            row.title = title or None
+        db.session.commit()
+        return jsonify({'session_id': session_id, 'title': row.title or ''}), 200
+    except Exception as e:
+        import traceback
+        print(f"Error in chat_conversation_rename: {e}")
+        print(traceback.format_exc())
+        return jsonify({'error': 'Authentication failed'}), 401
+
+
+@app.route('/api/chat/history', methods=['GET'])
+@jwt_required()
+def chat_history():
+    """Get chat history. If session_id query param is set, return only that conversation."""
+    try:
+        user_id_str = get_jwt_identity()
+        if not user_id_str:
+            return jsonify({'error': 'Invalid token'}), 401
+        user_id = int(user_id_str)
+        session_id = request.args.get('session_id', '').strip() or None
+        q = ChatHistory.query.filter_by(user_id=user_id)
+        if session_id:
+            if session_id.startswith('_legacy_'):
+                try:
+                    legacy_id = int(session_id.replace('_legacy_', ''))
+                    q = q.filter(ChatHistory.id == legacy_id)
+                except ValueError:
+                    pass
+            else:
+                q = q.filter_by(session_id=session_id)
+        chats = q.order_by(ChatHistory.timestamp.asc()).all()
         return jsonify([{
             'id': chat.id,
+            'session_id': chat.session_id,
             'message': chat.message,
             'response': chat.response,
             'timestamp': chat.timestamp.isoformat()
@@ -1113,6 +1286,53 @@ def generate_ai_response(message, user_id, language, local_time=None):
     print(f"DEBUG: generate_ai_response called with message='{message}', language='{language}', user_id={user_id}")
     
     try:
+        # ----- Admin/Assistant: add movement note (AI can add notes for admin) -----
+        user_role = getattr(user, 'role', None) if user else None
+        if user_role in ('admin', 'assistant'):
+            import re
+            from models import Exercise as ExerciseModel
+            exercise_name = None
+            note_text = None
+            # Persian: "یادداشت برای حرکت X اضافه کن: متن" or "یادداشت برای X: متن" or "یادداشت حرکت X: متن"
+            if language == 'fa':
+                m = re.search(r'یادداشت\s*(?:برای\s*)?(?:حرکت\s*)?(.+?)\s*(?:اضافه\s*کن\s*)?[:\s]+(.+)', message, re.DOTALL)
+                if m:
+                    exercise_name = m.group(1).strip()
+                    note_text = m.group(2).strip()
+                if not exercise_name and ('یادداشت' in message and 'حرکت' in message):
+                    # Fallback: split by : and take last part as note, before that find movement name
+                    parts = message.split(':', 1)
+                    if len(parts) == 2:
+                        note_text = parts[1].strip()
+                        left = parts[0].replace('یادداشت', '').replace('برای', '').replace('حرکت', '').replace('اضافه کن', '').strip()
+                        if left:
+                            exercise_name = left
+            else:
+                # English: "add note to movement X: text" or "add note to X: text"
+                m = re.search(r'add\s+note\s+to\s+(?:movement\s+)?(.+?)\s*[:\-]\s*(.+)', message_lower, re.DOTALL)
+                if m:
+                    exercise_name = m.group(1).strip()
+                    note_text = m.group(2).strip()
+            if exercise_name and note_text:
+                ex = db.session.query(ExerciseModel).filter(
+                    (ExerciseModel.name_fa == exercise_name) | (ExerciseModel.name_en == exercise_name)
+                ).first()
+                if ex:
+                    if language == 'fa':
+                        ex.trainer_notes_fa = (ex.trainer_notes_fa or '') + '\n' + note_text if ex.trainer_notes_fa else note_text
+                    else:
+                        ex.trainer_notes_en = (ex.trainer_notes_en or '') + '\n' + note_text if ex.trainer_notes_en else note_text
+                    db.session.commit()
+                    if language == 'fa':
+                        return f"یادداشت برای حرکت «{ex.name_fa or ex.name_en}» ذخیره شد. این یادداشت در برنامه تمرینی اعضا نمایش داده می‌شود. می‌توانید در تب «اطلاعات حرکات تمرینی» آن را ویرایش یا با دکمه «اضافه به برنامه‌های اعضا» به همه برنامه‌ها اعمال کنید."
+                    else:
+                        return f"Note for movement «{ex.name_en or ex.name_fa}» saved. It will be shown in members' training program. You can edit it in the «Training Movement Info» tab or use «Add to members' programs» to apply to all programs."
+                else:
+                    if language == 'fa':
+                        return f"حرکتی با نام «{exercise_name}» در کتابخانه تمرینات پیدا نشد. لطفاً نام دقیق حرکت را از تب کتابخانه تمرینات وارد کنید."
+                    else:
+                        return f"No movement named «{exercise_name}» found in the exercise library. Please use the exact name from the Exercise Library tab."
+        
         if language == 'fa':
             # Greeting
             if any(word in message for word in ['سلام', 'درود', 'صبح بخیر', 'عصر بخیر', 'شب بخیر']):
@@ -1569,6 +1789,82 @@ def generate_ai_response(message, user_id, language, local_time=None):
 def health():
     return jsonify({'status': 'healthy'}), 200
 
+@app.route('/health', methods=['GET'])
+def health_alias():
+    return jsonify({'status': 'healthy'}), 200
+
+
+@app.route('/api/public/training-info', methods=['GET'])
+def get_public_training_info():
+    """Public endpoint: training levels and corrective movements (no auth). Used by landing page."""
+    import json
+    try:
+        from models import Configuration
+        config = db.session.query(Configuration).first()
+    except Exception:
+        config = None
+    def _default_purposes():
+        return {
+            'lose_weight': {'sessions_per_week': '', 'sets_per_action': '', 'reps_per_action': '', 'training_focus_fa': '', 'training_focus_en': '', 'break_between_sets': ''},
+            'gain_weight': {'sessions_per_week': '', 'sets_per_action': '', 'reps_per_action': '', 'training_focus_fa': '', 'training_focus_en': '', 'break_between_sets': ''},
+            'gain_muscle': {'sessions_per_week': '', 'sets_per_action': '', 'reps_per_action': '', 'training_focus_fa': '', 'training_focus_en': '', 'break_between_sets': ''},
+            'shape_fitting': {'sessions_per_week': '', 'sets_per_action': '', 'reps_per_action': '', 'training_focus_fa': '', 'training_focus_en': '', 'break_between_sets': ''}
+        }
+    def _default_level():
+        return {'description_fa': '', 'description_en': '', 'goals': [], 'purposes': _default_purposes()}
+    default_training_levels = {
+        'beginner': _default_level(),
+        'intermediate': _default_level(),
+        'advanced': _default_level()
+    }
+    _default_injury = lambda: {
+        'purposes_fa': '', 'purposes_en': '', 'allowed_movements': [], 'forbidden_movements': [],
+        'important_notes_fa': '', 'important_notes_en': ''
+    }
+    default_injuries = {k: _default_injury() for k in ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle']}
+    default_injuries['common_injury_note_fa'] = ''
+    default_injuries['common_injury_note_en'] = ''
+    if not config:
+        return jsonify({
+            'training_levels': default_training_levels,
+            'injuries': default_injuries
+        }), 200
+    raw_levels = json.loads(config.training_levels) if config.training_levels else {}
+    training_levels_out = {}
+    for level_key in ('beginner', 'intermediate', 'advanced'):
+        stored = raw_levels.get(level_key) or {}
+        merged = {
+            'description_fa': stored.get('description_fa', ''),
+            'description_en': stored.get('description_en', ''),
+            'goals': stored.get('goals') if isinstance(stored.get('goals'), list) else [],
+            'purposes': {}
+        }
+        default_p = _default_purposes()
+        for purpose_key, default_purpose in default_p.items():
+            stored_p = (stored.get('purposes') or {}).get(purpose_key) or {}
+            merged['purposes'][purpose_key] = {**default_purpose, **stored_p}
+        training_levels_out[level_key] = merged
+    raw_injuries = json.loads(config.injuries) if config.injuries else {}
+    injury_keys = ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle']
+    injuries_out = {}
+    for key in injury_keys:
+        stored = raw_injuries.get(key) or {}
+        merged = {
+            'purposes_fa': stored.get('purposes_fa', '') or stored.get('description_fa', ''),
+            'purposes_en': stored.get('purposes_en', '') or stored.get('description_en', ''),
+            'allowed_movements': stored.get('allowed_movements') if isinstance(stored.get('allowed_movements'), list) else [],
+            'forbidden_movements': stored.get('forbidden_movements') if isinstance(stored.get('forbidden_movements'), list) else [],
+            'important_notes_fa': stored.get('important_notes_fa', ''),
+            'important_notes_en': stored.get('important_notes_en', '')
+        }
+        injuries_out[key] = merged
+    injuries_out['common_injury_note_fa'] = raw_injuries.get('common_injury_note_fa', '')
+    injuries_out['common_injury_note_en'] = raw_injuries.get('common_injury_note_en', '')
+    return jsonify({
+        'training_levels': training_levels_out,
+        'injuries': injuries_out
+    }), 200
+
 
 @app.route('/api/site-settings', methods=['GET'])
 def get_site_settings_public():
@@ -1649,6 +1945,12 @@ except ImportError:
     pass
 
 try:
+    from api.ai_plan_api import ai_plan_bp
+    app.register_blueprint(ai_plan_bp)
+except ImportError:
+    pass
+
+try:
     from api.admin_api import admin_bp
     app.register_blueprint(admin_bp)
 except ImportError:
@@ -1664,38 +1966,110 @@ try:
     app.register_blueprint(member_bp)
 except ImportError:
     pass
+try:
+    from api.messages_api import messages_bp
+    app.register_blueprint(messages_bp)
+except ImportError:
+    pass
+try:
+    from api.website_kb_api import website_kb_bp
+    app.register_blueprint(website_kb_bp)
+except ImportError:
+    pass
 
 @app.route('/api/training-programs', methods=['GET'])
 @jwt_required()
 def get_training_programs():
-    """Get training programs for the current user"""
+    """Get training programs for the current user. If member on trial with no program, AI creates a 1-week trial program."""
     try:
-        from models import TrainingProgram
+        from models import TrainingProgram, UserProfile, MemberWeeklyGoal
         user_id_str = get_jwt_identity()
         if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
         user_id = int(user_id_str)
-        
-        # Get user's language preference
-        # Use db.session.query() to avoid app context issues
+
         user = db.session.query(User).filter_by(id=user_id).first()
         language = user.language if user and user.language else 'fa'
-        
-        # Get user-specific programs and general programs
-        # Use db.session.query() to avoid app context issues
+
         user_programs = db.session.query(TrainingProgram).filter_by(user_id=user_id).all()
         general_programs = db.session.query(TrainingProgram).filter(TrainingProgram.user_id.is_(None)).all()
-        
-        # Combine and convert to dict
+
+        # 7-day trial: if member has no program and trial is active, generate AI 1-week program
+        trial_ends_at = getattr(user, 'trial_ends_at', None)
+        trial_active = (
+            user
+            and getattr(user, 'role', None) == 'member'
+            and trial_ends_at
+            and trial_ends_at > datetime.utcnow()
+        )
+        if (
+            user
+            and getattr(user, 'role', None) == 'member'
+            and trial_ends_at
+            and trial_ends_at > datetime.utcnow()
+            and not user_programs
+        ):
+            profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
+            parts = []
+            if profile:
+                if profile.age:
+                    parts.append(f"age={profile.age}")
+                if profile.gender:
+                    parts.append(f"gender={profile.gender}")
+                if profile.training_level:
+                    parts.append(f"training_level={profile.training_level}")
+                if profile.workout_days_per_week:
+                    parts.append(f"workout_days_per_week={profile.workout_days_per_week}")
+                if profile.get_fitness_goals():
+                    parts.append("fitness_goals=" + ",".join(profile.get_fitness_goals()))
+                if profile.get_injuries():
+                    parts.append("injuries=" + ",".join(profile.get_injuries()))
+                if profile.equipment_access:
+                    parts.append(f"equipment_access={profile.equipment_access}")
+                if profile.gym_access is not None:
+                    parts.append(f"gym_access={profile.gym_access}")
+            profile_summary = "; ".join(parts) if parts else "No profile yet; use beginner level, 3 days per week."
+            from services.session_ai_service import generate_trial_week_program
+            import json as _json
+            sessions = generate_trial_week_program(profile_summary, language)
+            if sessions:
+                name_fa = "برنامه هفته آزمایشی"
+                name_en = "Trial week program"
+                trial_program = TrainingProgram(
+                    user_id=user_id,
+                    name_fa=name_fa,
+                    name_en=name_en,
+                    description_fa="برنامه یک هفته‌ای شخصی‌سازی شده برای دوره آزمایشی شما.",
+                    description_en="Personalized 1-week program for your free trial.",
+                    duration_weeks=1,
+                    training_level=(profile.training_level if profile else None) or "beginner",
+                    category="hybrid",
+                    sessions=_json.dumps(sessions, ensure_ascii=False),
+                )
+                db.session.add(trial_program)
+                db.session.flush()
+                goal = MemberWeeklyGoal(
+                    user_id=user_id,
+                    training_program_id=trial_program.id,
+                    week_number=1,
+                    goal_title_fa="هفته ۱: انجام جلسات هفته آزمایشی",
+                    goal_title_en="Week 1: Complete your trial week sessions",
+                )
+                db.session.add(goal)
+                db.session.commit()
+                user_programs = db.session.query(TrainingProgram).filter_by(user_id=user_id).all()
+
+        # During active trial, show only the trial program (no general plans)
+        if trial_active:
+            general_programs = []
+        # For members with their own program(s), hide general templates to avoid duplicates
+        if user and getattr(user, 'role', None) == 'member' and user_programs:
+            general_programs = []
         all_programs = user_programs + general_programs
         programs_data = [program.to_dict(language) for program in all_programs]
-        
+
         print(f"[Training Programs API] User ID: {user_id}, Language: {language}")
         print(f"[Training Programs API] Found {len(all_programs)} programs: {len(user_programs)} user-specific, {len(general_programs)} general")
-        print(f"[Training Programs API] Program IDs: {[p.id for p in all_programs]}")
-        if programs_data:
-            print(f"[Training Programs API] First program keys: {list(programs_data[0].keys())}")
-            print(f"[Training Programs API] First program name: {programs_data[0].get('name', 'N/A')}")
         return jsonify(programs_data), 200
     except Exception as e:
         import traceback
@@ -1765,6 +2139,25 @@ def upload_progress_analysis():
         print(f"Error uploading analysis file: {e}")
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
+
+# Serve frontend (React build) in production
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    # Let API and upload routes be handled by their own handlers
+    if path.startswith('api') or path.startswith('uploads'):
+        return jsonify({'error': 'Not Found'}), 404
+
+    if app.static_folder:
+        asset_path = os.path.join(app.static_folder, path)
+        if path and os.path.exists(asset_path):
+            return send_from_directory(app.static_folder, path)
+
+        index_path = os.path.join(app.static_folder, 'index.html')
+        if os.path.exists(index_path):
+            return send_from_directory(app.static_folder, 'index.html')
+
+    return jsonify({'error': 'Frontend not built'}), 404
 
 if __name__ == '__main__':
     with app.app_context():

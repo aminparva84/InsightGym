@@ -1,0 +1,267 @@
+/* Admin/Assistant: Messages from members */
+.trainer-inbox-container {
+  display: flex;
+  flex-direction: column;
+  height: 340px;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.trainer-inbox-header {
+  padding: 0.75rem 1rem;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.trainer-inbox-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.trainer-inbox-progress-requests {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+}
+
+.trainer-inbox-progress-requests h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.trainer-inbox-empty-progress {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.progress-check-request-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.progress-check-request-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+}
+
+.progress-check-request-item:last-child {
+  border-bottom: none;
+}
+
+.progress-check-member {
+  font-weight: 600;
+  min-width: 100px;
+}
+
+.progress-check-date {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.progress-check-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.progress-check-accept,
+.progress-check-deny {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.progress-check-accept {
+  background: #4caf50;
+  color: #fff;
+}
+
+.progress-check-accept:hover:not(:disabled) {
+  background: #43a047;
+}
+
+.progress-check-deny {
+  background: #f44336;
+  color: #fff;
+}
+
+.progress-check-deny:hover:not(:disabled) {
+  background: #e53935;
+}
+
+.progress-check-accept:disabled,
+.progress-check-deny:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.trainer-inbox-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.trainer-inbox-list {
+  width: 200px;
+  min-width: 200px;
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-subtle);
+  flex-shrink: 0;
+}
+
+.trainer-inbox-thread-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.2s;
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
+.trainer-inbox-thread-btn:hover {
+  background: var(--surface-raised);
+}
+
+.trainer-inbox-thread-btn.active {
+  background: var(--color-accent-50);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.thread-username {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-unread {
+  flex-shrink: 0;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  background: var(--accent);
+  color: var(--color-white);
+  border-radius: 10px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trainer-inbox-loading,
+.trainer-inbox-empty-list,
+.trainer-inbox-select-prompt,
+.trainer-inbox-empty-msgs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.trainer-inbox-empty-list p,
+.trainer-inbox-select-prompt p,
+.trainer-inbox-empty-msgs p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.trainer-inbox-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.trainer-inbox-chat-header {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--color-primary-200);
+  font-weight: 600;
+  color: var(--color-primary-800);
+  background: var(--color-white);
+}
+
+.trainer-inbox-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background-color: var(--color-primary-50);
+}
+
+.trainer-inbox-messages .trainer-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 85%;
+}
+
+.trainer-inbox-messages .trainer-msg.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.trainer-inbox-messages .trainer-msg-content {
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  word-wrap: break-word;
+  font-size: 0.95rem;
+}
+
+.trainer-inbox-messages .trainer-msg.mine .trainer-msg-content {
+  background: var(--gradient-accent);
+  color: var(--color-white);
+  border-bottom-right-radius: 4px;
+}
+
+.trainer-inbox-messages .trainer-msg.theirs .trainer-msg-content {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-primary-200);
+  border-bottom-left-radius: 4px;
+  color: var(--color-primary-800);
+}
+
+.trainer-inbox-messages .trainer-msg-time {
+  font-size: 0.75rem;
+  color: var(--color-primary-500);
+  margin-top: 0.25rem;
+}
+
+.trainer-inbox-chat .trainer-chat-form {
+  padding: 0.75rem 1rem;
+  background: var(--color-white);
+  border-top: 1px solid var(--color-primary-200);
+}

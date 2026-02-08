@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './MembersListTab.css';
 
 const fitnessGoalsOptions = [
@@ -39,6 +40,7 @@ const homeEquipmentOptions = [
 
 const MembersListTab = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [assistants, setAssistants] = useState([]);
@@ -68,7 +70,7 @@ const MembersListTab = () => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/admin/members', getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/admin/members`, getAxiosConfig());
       setMembers(response.data);
     } catch (error) {
       console.error('Error fetching members:', error);
@@ -80,7 +82,7 @@ const MembersListTab = () => {
 
   const fetchAssistants = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/assistants', getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/admin/assistants`, getAxiosConfig());
       setAssistants(response.data);
     } catch (error) {
       console.error('Error fetching assistants:', error);
@@ -89,7 +91,7 @@ const MembersListTab = () => {
 
   const checkUserRole = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/check-admin', getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/admin/check-admin`, getAxiosConfig());
       setUserRole(response.data.role || 'member');
     } catch (error) {
       console.error('Error checking user role:', error);
@@ -105,7 +107,7 @@ const MembersListTab = () => {
 
   const handleAssignMember = async (memberId, assistantId) => {
     try {
-      await axios.post(`http://localhost:5000/api/admin/members/${memberId}/assign`, {
+      await axios.post(`${API_BASE}/api/admin/members/${memberId}/assign`, {
         assigned_to_id: assistantId || null
       }, getAxiosConfig());
       alert(i18n.language === 'fa' ? 'تخصیص با موفقیت انجام شد' : 'Assignment successful');
@@ -118,7 +120,7 @@ const MembersListTab = () => {
 
   const fetchMemberDetails = async (memberId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/admin/members/${memberId}`, getAxiosConfig());
+      const response = await axios.get(`${API_BASE}/api/admin/members/${memberId}`, getAxiosConfig());
       return response.data;
     } catch (error) {
       console.error('Error fetching member details:', error);
@@ -174,9 +176,9 @@ const MembersListTab = () => {
     try {
       const { username, email, ...profilePayload } = memberFormData;
       if (username !== editingMember.username || email !== editingMember.email) {
-        await axios.put(`http://localhost:5000/api/admin/members/${editingMember.id}`, { username, email }, getAxiosConfig());
+        await axios.put(`${API_BASE}/api/admin/members/${editingMember.id}`, { username, email }, getAxiosConfig());
       }
-      await axios.put(`http://localhost:5000/api/admin/members/${editingMember.id}/profile`, profilePayload, getAxiosConfig());
+      await axios.put(`${API_BASE}/api/admin/members/${editingMember.id}/profile`, profilePayload, getAxiosConfig());
       alert(i18n.language === 'fa' ? 'پروفایل عضو به‌روزرسانی شد' : 'Member profile updated');
       setEditingMember(null);
       fetchMembers();
@@ -188,7 +190,7 @@ const MembersListTab = () => {
 
   const handleDeleteMember = async (memberId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/admin/members/${memberId}`, getAxiosConfig());
+      await axios.delete(`${API_BASE}/api/admin/members/${memberId}`, getAxiosConfig());
       alert(i18n.language === 'fa' ? 'عضو با موفقیت حذف شد' : 'Member deleted successfully');
       fetchMembers();
     } catch (error) {

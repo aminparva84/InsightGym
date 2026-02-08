@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getApiBase } from '../../services/apiBase';
 import './InjuriesTab.css';
 
 const InjuriesTab = () => {
   const { t, i18n } = useTranslation();
+  const API_BASE = getApiBase();
   const [injuries, setInjuries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedInjury, setSelectedInjury] = useState(null);
@@ -16,7 +18,7 @@ const InjuriesTab = () => {
   const loadInjuries = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/injuries?language=${i18n.language}`);
+      const response = await axios.get(`${API_BASE}/api/injuries?language=${i18n.language}`);
       setInjuries(response.data);
     } catch (error) {
       console.error('Error loading injuries:', error);

@@ -1,7 +1,10 @@
 .in-person-sessions-tab {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 1rem 0;
   background-color: var(--color-white);
   min-height: calc(100vh - 200px);
 }

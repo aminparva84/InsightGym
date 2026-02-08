@@ -26,10 +26,11 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file (copy from .env.example if available)
+# Create .env file (copy from project root .env.example if available)
 # Or create manually with:
-# DATABASE_URL=sqlite:///raha_fitness.db
+# DATABASE_URL=postgresql://user:password@localhost:5432/raha_fitness
 # JWT_SECRET_KEY=your-secret-key-here
+# Create the PostgreSQL database first: createdb raha_fitness
 
 # Run the Flask server
 python app.py
@@ -96,7 +97,7 @@ The frontend should now be running on `http://localhost:3000`
 ### Backend Issues
 
 - **Port 5000 already in use**: Change the port in `app.py` (last line) or stop the process using port 5000
-- **Database errors**: Delete `raha_fitness.db` and restart the server to create a fresh database
+- **Database errors**: Ensure PostgreSQL is running and `DATABASE_URL` in `.env` is correct. Create the database (e.g. `createdb raha_fitness`). Run `python init_database.py` to create tables and a demo user. If migrating from SQLite, see [MIGRATION.md](MIGRATION.md).
 - **Module not found**: Make sure you've activated the virtual environment and installed requirements
 
 ### Frontend Issues
