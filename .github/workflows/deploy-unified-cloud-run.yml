@@ -81,6 +81,12 @@ jobs:
         if: steps.check_secrets.outputs.secrets_configured == 'true'
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Set project and enable APIs
+        if: steps.check_secrets.outputs.secrets_configured == 'true'
+        run: |
+          gcloud config set project "${{ env.PROJECT_ID }}"
+          gcloud services enable run.googleapis.com artifactregistry.googleapis.com
+
       - name: Configure Docker for Artifact Registry
         if: steps.check_secrets.outputs.secrets_configured == 'true'
         run: |
