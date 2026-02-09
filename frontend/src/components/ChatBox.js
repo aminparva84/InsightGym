@@ -96,7 +96,6 @@ const ChatBox = () => {
       const response = await axios.get(`${API_BASE}/api/chat/conversations`, getAxiosConfig());
       setConversationsList(Array.isArray(response.data) ? response.data : []);
       setHistoryView('list');
-      setSelectedSessionId(null);
       setSelectedConversationMessages([]);
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -115,7 +114,6 @@ const ChatBox = () => {
       setCurrentSessionId(sessionId);
       setShowHistory(false);
       setHistoryView('list');
-      setSelectedSessionId(null);
       setSelectedConversationMessages([]);
     } catch (error) {
       console.error('Error loading conversation:', error);
