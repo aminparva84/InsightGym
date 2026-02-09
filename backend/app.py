@@ -158,6 +158,58 @@ class User(db.Model):
     assigned_members = db.relationship('User', backref=db.backref('assigned_by', remote_side=[id]), lazy=True)
     # NutritionPlan relationship will be configured after models are imported
 
+
+_admin_seeded = False
+
+
+def ensure_default_admin():
+    global _admin_seeded
+    if _admin_seeded:
+        return
+    _admin_seeded = True
+
+    try:
+        from sqlalchemy import inspect
+
+        inspector = inspect(db.engine)
+        if not inspector.has_table('user'):
+            print("[INFO] Skipping admin seed: user table not found.")
+            return
+
+        existing_admin = db.session.query(User).filter_by(role='admin').first()
+        if existing_admin:
+            return
+
+        username = os.getenv('DEFAULT_ADMIN_USERNAME', 'admin')
+        email = os.getenv('DEFAULT_ADMIN_EMAIL', 'admin@insightgym.com')
+        password = os.getenv('DEFAULT_ADMIN_PASSWORD', 'admin123')
+
+        admin_user = User(
+            username=username,
+            email=email,
+            password_hash=generate_password_hash(password),
+            role='admin',
+            language='fa',
+            created_at=datetime.utcnow()
+        )
+
+        db.session.add(admin_user)
+        db.session.commit()
+        print(f"[INFO] Default admin created: username={username}, email={email}")
+        if password == 'admin123' and not os.getenv('DEFAULT_ADMIN_PASSWORD'):
+            print("[WARN] Using default admin password. Set DEFAULT_ADMIN_PASSWORD in production.")
+    except Exception as exc:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        print(f"[WARN] Admin seed failed: {exc}")
+
+
+@app.before_request
+def _ensure_admin_on_first_request():
+    ensure_default_admin()
+
 class UserExercise(db.Model):
     """User Exercise History - tracks user's completed exercises"""
     __tablename__ = 'user_exercises'
