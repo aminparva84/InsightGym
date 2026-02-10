@@ -171,11 +171,12 @@ const ChatBox = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputMessage.trim() || loading) return;
+    const text = inputMessage.trim();
+    if (!text || loading) return;
 
     const userMessage = {
       role: 'user',
-      content: inputMessage.trim(),
+      content: text,
       timestamp: new Date().toISOString()
     };
 
@@ -187,7 +188,7 @@ const ChatBox = () => {
       const endpoint = mode === 'actions' ? `${API_BASE}/api/ai/plan` : `${API_BASE}/api/chat`;
       const response = await axios.post(
         endpoint,
-        { message: inputMessage.trim(), session_id: currentSessionId || undefined },
+        { message: text, session_id: currentSessionId || undefined },
         getAxiosConfig()
       );
 

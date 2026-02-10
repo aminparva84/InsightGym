@@ -1369,6 +1369,43 @@ def generate_ai_response(message, user_id, language, local_time=None):
     print(f"DEBUG: generate_ai_response called with message='{message}', language='{language}', user_id={user_id}")
     
     try:
+        # ----- Use configured AI provider (Vertex, Gemini, OpenAI, etc.) for real responses -----
+        try:
+            from services.ai_provider import chat_completion
+            lang_instruction = "Respond only in Persian (Farsi)." if language == 'fa' else "Respond only in English."
+            system_parts = [
+                "You are a helpful fitness coach assistant for InsightGYM. You help with workout plans, nutrition, exercise form, and motivation.",
+                lang_instruction,
+                f"User's name: {user_name}.",
+            ]
+            if user_profile:
+                if user_profile.training_level:
+                    system_parts.append(f"Training level: {user_profile.training_level}.")
+                if user_profile.workout_days_per_week:
+                    system_parts.append(f"They work out {user_profile.workout_days_per_week} days per week.")
+                if user_injuries:
+                    system_parts.append(f"Injuries to consider: {', '.join(user_injuries)}. Suggest only safe exercises.")
+                goals = user_profile.get_fitness_goals() if hasattr(user_profile, 'get_fitness_goals') else []
+                if goals:
+                    system_parts.append(f"Goals: {', '.join(goals)}.")
+            if recommended_exercises:
+                names = []
+                for ex in recommended_exercises[:3]:
+                    if hasattr(ex, 'name_fa') and ex.name_fa and language == 'fa':
+                        names.append(ex.name_fa)
+                    elif hasattr(ex, 'name_en') and ex.name_en:
+                        names.append(ex.name_en)
+                if names:
+                    system_parts.append(f"Some exercises you can suggest: {', '.join(names)}.")
+            system_prompt = " ".join(system_parts)
+            ai_response = chat_completion(system_prompt, message, max_tokens=800)
+            if ai_response and ai_response.strip():
+                print(f"DEBUG: AI provider returned response (length={len(ai_response)})")
+                return ai_response.strip()
+        except Exception as ai_err:
+            print(f"DEBUG: AI provider not used or failed: {ai_err}")
+        # Fallback: keyword-based responses when AI is unavailable or fails
+
         # ----- Admin/Assistant: add movement note (AI can add notes for admin) -----
         user_role = getattr(user, 'role', None) if user else None
         if user_role in ('admin', 'assistant'):
