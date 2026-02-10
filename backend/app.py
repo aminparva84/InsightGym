@@ -27,7 +27,7 @@ FRONTEND_BUILD_DIR = os.path.join(os.path.dirname(__file__), '..', 'frontend', '
 app = Flask(__name__, static_folder=FRONTEND_BUILD_DIR, static_url_path='')
 # Database: PostgreSQL by default. Set DATABASE_URL in .env (see .env.example).
 # Normalize postgres:// to postgresql:// (required by SQLAlchemy 1.4+ and many hosts like Heroku).
-_db_url = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/raha_fitness')
+_db_url = os.getenv('DATABASE_URL', '').strip() or 'postgresql://postgres:postgres@localhost:5432/raha_fitness'
 if _db_url.startswith('postgres://'):
     _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
 # If PostgreSQL is configured but not reachable, fall back to SQLite so the app can run
@@ -160,6 +160,36 @@ class User(db.Model):
 
 
 _admin_seeded = False
+_db_initialized = False
+
+
+def ensure_db_initialized():
+    global _db_initialized
+    if _db_initialized:
+        return
+    _db_initialized = True
+
+    try:
+        # Ensure models are registered before create_all
+        try:
+            import models  # noqa: F401
+        except Exception:
+            pass
+        try:
+            from models_workout_log import WorkoutLog, ProgressEntry, WeeklyGoal, WorkoutReminder  # noqa: F401
+        except Exception:
+            pass
+
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if not inspector.has_table('user'):
+            db.create_all()
+    except Exception as exc:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        print(f"[WARN] DB init failed: {exc}")
 
 
 def ensure_default_admin():
@@ -169,6 +199,7 @@ def ensure_default_admin():
     _admin_seeded = True
 
     try:
+        ensure_db_initialized()
         from sqlalchemy import inspect
 
         inspector = inspect(db.engine)
