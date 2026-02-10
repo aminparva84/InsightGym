@@ -1372,10 +1372,9 @@ def generate_ai_response(message, user_id, language, local_time=None):
         # ----- Use configured AI provider (Vertex, Gemini, OpenAI, etc.) for real responses -----
         try:
             from services.ai_provider import chat_completion
-            lang_instruction = "Respond only in Persian (Farsi)." if language == 'fa' else "Respond only in English."
             system_parts = [
                 "You are a helpful fitness coach assistant for InsightGYM. You help with workout plans, nutrition, exercise form, and motivation.",
-                lang_instruction,
+                "Respond in the same language the user writes in. If the user writes in English, respond in English. If the user writes in Persian (Farsi), respond in Persian.",
                 f"User's name: {user_name}.",
             ]
             if user_profile:
