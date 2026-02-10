@@ -1,9 +1,12 @@
 """
-Unified AI provider service: OpenAI, Anthropic, Gemini.
+Unified AI provider service: OpenAI, Anthropic, Gemini, Vertex AI.
 Uses admin-configured API keys and selected provider from SiteSettings.ai_settings_json.
+Vertex AI uses the REST API only (aiplatform.googleapis.com), no SDK.
 """
 
 import os
+import urllib.request
+import urllib.parse
 import json
 from typing import Optional, Dict, Any, Tuple
 from datetime import datetime
@@ -92,11 +95,7 @@ def is_sdk_installed(provider: str) -> bool:
         except ImportError:
             return False
     if provider == 'vertex':
-        try:
-            import google.generativeai
-            return True
-        except ImportError:
-            return False
+        return True  # Vertex uses REST API only, no SDK required
     return False
 
 
@@ -209,11 +208,54 @@ def _gemini_chat(api_key: str, system: str, user_message: str, max_tokens: int) 
     return None
 
 
+# Vertex AI REST API (API key only); model name configurable via env
+VERTEX_MODEL = os.getenv('VERTEX_AI_MODEL', 'gemini-2.5-flash-lite')
+VERTEX_BASE = 'https://aiplatform.googleapis.com/v1/publishers/google/models'
+
+
 def _vertex_chat(api_key: str, system: str, user_message: str, max_tokens: int) -> Optional[str]:
     """
-    Vertex AI Gemini (API key). Uses Google Generative AI SDK with Gemini API key.
+    Vertex AI via REST API only (aiplatform.googleapis.com).
+    Uses API key in query param; model: gemini-2.5-flash-lite (or VERTEX_AI_MODEL).
     """
-    return _gemini_chat(api_key, system, user_message, max_tokens)
+    qs = urllib.parse.urlencode({"key": api_key})
+    url = f"{VERTEX_BASE}/{VERTEX_MODEL}:generateContent?{qs}"
+    body = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": f"{system}\n\n{user_message}".strip()}],
+            }
+        ],
+        "generationConfig": {
+            "maxOutputTokens": max_tokens,
+        },
+    }
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode('utf-8'),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode('utf-8') if e.fp else ''
+        raise RuntimeError(f"Vertex API error {e.code}: {raw}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Vertex API request failed: {e.reason}")
+
+    # Parse response: candidates[0].content.parts[0].text
+    candidates = data.get("candidates") or []
+    if not candidates:
+        block = data.get("promptFeedback") or {}
+        raise RuntimeError(block.get("blockReasonMessage") or "No candidates in response")
+    content = candidates[0].get("content") or {}
+    parts = content.get("parts") or []
+    if not parts:
+        return None
+    return (parts[0].get("text") or "").strip()
 
 
 def test_provider(provider: str, api_key_override: Optional[str] = None) -> Tuple[bool, str]:
@@ -239,7 +281,7 @@ def test_provider(provider: str, api_key_override: Optional[str] = None) -> Tupl
         elif provider == 'gemini':
             out = _gemini_chat(api_key, test_system, test_user, 50)
         else:
-            out = _gemini_chat(api_key, test_system, test_user, 50)
+            out = _vertex_chat(api_key, test_system, test_user, 50)
         if out and 'ok' in out.lower():
             # Update settings: last_tested_at, is_valid
             key = provider

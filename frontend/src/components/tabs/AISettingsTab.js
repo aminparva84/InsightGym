@@ -197,8 +197,8 @@ const AISettingsTab = () => {
       </p>
       <p className="ai-settings-desc">
         {fa
-          ? 'برای Vertex AI می‌توانید از کلید Gemini استفاده کنید.'
-          : 'For Vertex AI, you can use your Gemini API key.'}
+          ? 'Vertex AI از REST API با کلید API (مثلاً از Google Cloud) استفاده می‌کند؛ مدل: gemini-2.5-flash-lite.'
+          : 'Vertex AI uses the REST API with an API key (e.g. from Google Cloud); model: gemini-2.5-flash-lite.'}
       </p>
 
       <div className="ai-settings-selected">

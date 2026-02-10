@@ -44,7 +44,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Get JWT_SECRET_KEY from environment or use default
 # IMPORTANT: This key must be consistent - if it changes, all existing tokens become invalid
-jwt_secret_key = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+jwt_secret_key = os.getenv('JWT_SECRET_KEY', '').strip() or 'your-secret-key-change-in-production'
 app.config['JWT_SECRET_KEY'] = jwt_secret_key
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 
