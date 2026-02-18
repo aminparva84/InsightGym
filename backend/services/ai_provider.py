@@ -5,6 +5,7 @@ Vertex AI uses the REST API only (aiplatform.googleapis.com), no SDK.
 """
 
 import os
+import time
 import urllib.request
 import urllib.parse
 import json
@@ -14,11 +15,26 @@ from datetime import datetime
 PROVIDERS = ('openai', 'anthropic', 'gemini', 'vertex')
 SELECTED_DEFAULT = 'auto'  # Use first available valid provider when not chosen by admin
 
+# Last error from chat_completion (for callers to get details when None is returned)
+_last_chat_error: Optional[str] = None
+
 # Lazy app/settings access to avoid circular import
-def _get_settings() -> Dict[str, Any]:
-    """Load ai_settings_json from SiteSettings. Returns dict with selected_provider and per-provider keys."""
+def _get_settings(db=None) -> Dict[str, Any]:
+    """Load ai_settings_json from SiteSettings. Returns dict with selected_provider and per-provider keys.
+    If db is provided, use it directly (avoids current_app in purchase flow)."""
     try:
-        from app import db
+        if db is None:
+            from flask import current_app
+            db = current_app.extensions.get('sqlalchemy')
+            if db is None:
+                # Flask-SQLAlchemy 3.x may use different key
+                for k, v in (getattr(current_app, 'extensions', {}) or {}).items():
+                    if hasattr(v, 'session') and hasattr(v, 'engine'):
+                        db = v
+                        break
+        if db is None:
+            print("ai_provider: no db available for settings")
+            return {'selected_provider': SELECTED_DEFAULT}
         from models import SiteSettings
         row = db.session.query(SiteSettings).first()
         raw = getattr(row, 'ai_settings_json', None) or ''
@@ -30,12 +46,15 @@ def _get_settings() -> Dict[str, Any]:
         return data
     except Exception as e:
         print(f"ai_provider: could not load settings: {e}")
+        import traceback
+        traceback.print_exc()
         return {'selected_provider': SELECTED_DEFAULT}
 
 
 def _save_settings(settings: Dict[str, Any]) -> bool:
     try:
-        from app import db
+        from flask import current_app
+        db = current_app.extensions['sqlalchemy']
         from models import SiteSettings
         row = db.session.query(SiteSettings).first()
         if not row:
@@ -46,8 +65,13 @@ def _save_settings(settings: Dict[str, Any]) -> bool:
         return True
     except Exception as e:
         print(f"ai_provider: could not save settings: {e}")
-        if db and getattr(db, 'session', None):
-            db.session.rollback()
+        try:
+            from flask import current_app
+            db = current_app.extensions.get('sqlalchemy')
+            if db and getattr(db, 'session', None):
+                db.session.rollback()
+        except Exception:
+            pass
         return False
 
 
@@ -70,8 +94,8 @@ def get_provider_api_key(provider: str, settings: Optional[Dict] = None) -> Tupl
         key = (settings.get('gemini') or {}).get('api_key') or os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
         source = 'database' if (settings.get('gemini') or {}).get('api_key') else ('environment' if (os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')) else '')
     elif provider == 'vertex':
-        key = (settings.get('vertex') or {}).get('api_key') or os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
-        source = 'database' if (settings.get('vertex') or {}).get('api_key') else ('environment' if (os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')) else '')
+        key = (settings.get('vertex') or {}).get('api_key') or os.getenv('VERTEX_API_KEY') or os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+        source = 'database' if (settings.get('vertex') or {}).get('api_key') else ('environment' if (os.getenv('VERTEX_API_KEY') or os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')) else '')
     return (key.strip() if key and isinstance(key, str) else None, source)
 
 
@@ -113,12 +137,13 @@ def _resolve_provider(settings: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def chat_completion(system: str, user_message: str, max_tokens: int = 800) -> Optional[str]:
+def chat_completion(system: str, user_message: str, max_tokens: int = 800, db=None) -> Optional[str]:
     """
     Call the selected AI provider (from settings). Returns response text or None on failure.
     When selected_provider is 'auto', uses the first available valid provider.
+    Pass db to load settings from the given db instance (avoids current_app in purchase flow).
     """
-    settings = _get_settings()
+    settings = _get_settings(db)
     provider = _resolve_provider(settings)
     if not provider:
         print("ai_provider: no provider available (auto: none configured, or selected has no key/SDK)")
@@ -131,18 +156,29 @@ def chat_completion(system: str, user_message: str, max_tokens: int = 800) -> Op
         print("ai_provider: SDK not installed for", provider)
         return None
 
+    global _last_chat_error
+    _last_chat_error = None
     try:
         if provider == 'openai':
-            return _openai_chat(api_key, system, user_message, max_tokens)
-        if provider == 'anthropic':
-            return _anthropic_chat(api_key, system, user_message, max_tokens)
-        if provider == 'gemini':
-            return _gemini_chat(api_key, system, user_message, max_tokens)
-        if provider == 'vertex':
-            return _vertex_chat(api_key, system, user_message, max_tokens)
+            out = _openai_chat(api_key, system, user_message, max_tokens)
+        elif provider == 'anthropic':
+            out = _anthropic_chat(api_key, system, user_message, max_tokens)
+        elif provider == 'gemini':
+            out = _gemini_chat(api_key, system, user_message, max_tokens)
+        elif provider == 'vertex':
+            out = _vertex_chat(api_key, system, user_message, max_tokens)
+        else:
+            out = None
+        return out
     except Exception as e:
+        _last_chat_error = str(e)
         print(f"ai_provider chat error ({provider}): {e}")
-    return None
+        return None
+
+
+def get_last_chat_error() -> Optional[str]:
+    """Return the last error from chat_completion, or None."""
+    return _last_chat_error
 
 
 def _openai_chat(api_key: str, system: str, user_message: str, max_tokens: int) -> Optional[str]:
@@ -217,7 +253,9 @@ def _vertex_chat(api_key: str, system: str, user_message: str, max_tokens: int) 
     """
     Vertex AI via REST API only (aiplatform.googleapis.com).
     Uses API key in query param; model: gemini-2.5-flash-lite (or VERTEX_AI_MODEL).
+    Retries up to 2 times on 429 (Resource exhausted).
     """
+    import urllib.error
     qs = urllib.parse.urlencode({"key": api_key})
     url = f"{VERTEX_BASE}/{VERTEX_MODEL}:generateContent?{qs}"
     body = {
@@ -231,20 +269,32 @@ def _vertex_chat(api_key: str, system: str, user_message: str, max_tokens: int) 
             "maxOutputTokens": max_tokens,
         },
     }
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(body).encode('utf-8'),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode('utf-8'))
-    except urllib.error.HTTPError as e:
-        raw = e.read().decode('utf-8') if e.fp else ''
-        raise RuntimeError(f"Vertex API error {e.code}: {raw}")
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Vertex API request failed: {e.reason}")
+    last_err = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(body).encode('utf-8'),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+            last_err = None
+            break
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode('utf-8') if e.fp else ''
+            last_err = RuntimeError(f"Vertex API error {e.code}: {raw}")
+            if e.code == 429 and attempt < 2:
+                wait = 5 + attempt * 5
+                print(f"Vertex 429, retrying in {wait}s (attempt {attempt + 1}/3)...")
+                time.sleep(wait)
+            else:
+                raise last_err
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Vertex API request failed: {e.reason}")
+    if last_err:
+        raise last_err
 
     # Parse response: candidates[0].content.parts[0].text
     candidates = data.get("candidates") or []

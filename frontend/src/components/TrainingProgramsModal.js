@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import './TrainingProgramsModal.css';
 
 const BASE_PROGRAMS = [
@@ -28,10 +29,9 @@ const EMS_FORM_DEFAULTS = {
 
 const TrainingProgramsModal = ({ isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [selectedProgramId, setSelectedProgramId] = useState(1);
   const [selectedPackages, setSelectedPackages] = useState({});
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [emsStep, setEmsStep] = useState(0);
   const [emsForm, setEmsForm] = useState(EMS_FORM_DEFAULTS);
 
@@ -64,20 +64,25 @@ const TrainingProgramsModal = ({ isOpen, onClose }) => {
     setEmsStep(id === 4 ? 1 : 0);
   };
 
-  const handleBuyNow = async () => {
-    setIsSubmitting(true);
+  const handleBuyNow = () => {
+    const program = BASE_PROGRAMS.find((p) => p.id === selectedProgramId);
+    const packages = PACKAGE_OPTIONS.filter((pkg) => selectedPackages[pkg.id]).map((pkg) => ({
+      id: pkg.id,
+      nameKey: pkg.nameKey,
+      price: pkg.price,
+    }));
+    const payload = {
+      program: program || null,
+      packages,
+      emsForm: isEmsSelected ? emsForm : null,
+    };
     try {
-      // In a full implementation: POST /api/purchase-requests with programId, packageIds, totalPrice, and for EMS: emsForm
-      await new Promise((r) => setTimeout(r, 600));
-      setShowSuccess(true);
-      setTimeout(() => {
-        onClose();
-      }, 2500);
+      localStorage.setItem('pendingPurchase', JSON.stringify(payload));
     } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
+      console.error('Could not save pending purchase:', err);
     }
+    onClose();
+    navigate('/purchase', { state: payload });
   };
 
   if (!isOpen) return null;
@@ -100,21 +105,21 @@ const TrainingProgramsModal = ({ isOpen, onClose }) => {
           </p>
         </div>
 
-        {showSuccess ? (
-          <div className="training-programs-success">
-            <div className="training-programs-success-icon">✓</div>
-            <p className="training-programs-success-text">{t('requestSubmitted')}</p>
-          </div>
-        ) : isEmsSelected && emsStep === 1 ? (
+        {isEmsSelected && emsStep === 1 ? (
           <div className="training-programs-modal-body training-programs-ems-intro">
             <div className="ems-intro-image">
               <div className="ems-intro-image-placeholder">⚡ EMS</div>
             </div>
             <h3 className="ems-intro-title">EMS – {i18n.language === 'fa' ? 'تحریک الکتریکی عضله' : 'Electrical Muscle Stimulation'}</h3>
             <p className="ems-intro-text">{t('emsWhatIs')}</p>
-            <button type="button" className="program-buy-btn" onClick={() => setEmsStep(2)}>
-              {t('emsNextStep')}
-            </button>
+            <div className="training-programs-footer">
+              <button type="button" className="program-buy-btn secondary" onClick={() => setEmsStep(0)}>
+                {t('emsBackToPlans')}
+              </button>
+              <button type="button" className="program-buy-btn" onClick={() => setEmsStep(2)}>
+                {t('emsNextStep')}
+              </button>
+            </div>
           </div>
         ) : isEmsSelected && emsStep === 2 ? (
           <div className="training-programs-modal-body training-programs-ems-form">
@@ -150,13 +155,15 @@ const TrainingProgramsModal = ({ isOpen, onClose }) => {
               </div>
             </div>
             <div className="training-programs-footer">
-              <button type="button" className="program-buy-btn secondary" onClick={() => setEmsStep(1)}>{isRtl ? 'قبلی' : 'Back'}</button>
+              <button type="button" className="program-buy-btn secondary" onClick={() => setEmsStep(0)}>
+                {t('emsBackToPlans')}
+              </button>
               <div className="training-programs-total">
                 <span className="training-programs-total-label">{t('totalPrice')}</span>
                 <span className="training-programs-total-value">${basePrice}</span>
               </div>
-              <button type="button" className="program-buy-btn training-programs-buy-btn" onClick={handleBuyNow} disabled={isSubmitting}>
-                {isSubmitting ? (isRtl ? 'در حال ارسال...' : 'Submitting...') : t('buyNow')}
+              <button type="button" className="program-buy-btn training-programs-buy-btn" onClick={handleBuyNow}>
+                {t('buyNow')}
               </button>
             </div>
           </div>
@@ -219,9 +226,8 @@ const TrainingProgramsModal = ({ isOpen, onClose }) => {
                 type="button"
                 className="program-buy-btn training-programs-buy-btn"
                 onClick={handleBuyNow}
-                disabled={isSubmitting}
               >
-                {isSubmitting ? (isRtl ? 'در حال ارسال...' : 'Submitting...') : t('buyNow')}
+                {t('buyNow')}
               </button>
             </div>
           </div>

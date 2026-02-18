@@ -61,17 +61,6 @@ const TrainingProgramTab = () => {
     }
   }, [API_BASE, getAuthToken, getAxiosConfig]);
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      loadPrograms();
-      loadWeeklyGoals();
-      loadTrainingProgress();
-      loadSessionPhases();
-    } else if (!authLoading && !user) {
-      setLoading(false);
-    }
-  }, [authLoading, user, loadPrograms, loadWeeklyGoals, loadTrainingProgress, loadSessionPhases]);
-
   const loadTrainingProgress = useCallback(async () => {
     const token = getAuthToken();
     if (!token) return;
@@ -290,6 +279,17 @@ const TrainingProgramTab = () => {
       setLoading(false);
     }
   }, [API_BASE, getAuthToken, getAxiosConfig, loadActionNotes]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadPrograms();
+      loadWeeklyGoals();
+      loadTrainingProgress();
+      loadSessionPhases();
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [authLoading, user, loadPrograms, loadWeeklyGoals, loadTrainingProgress, loadSessionPhases]);
 
   const toggleSession = (programId, sessionIdx) => {
     const sessionKey = `${programId}-${sessionIdx}`;

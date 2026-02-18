@@ -73,7 +73,7 @@ const TrainingMovementInfoTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, getAxiosConfig, search]);
+  }, [getAxiosConfig, search]);
 
   useEffect(() => {
     loadExercises();

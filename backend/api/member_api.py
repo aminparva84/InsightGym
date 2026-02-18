@@ -5,6 +5,7 @@ Member API: weekly goals, step counter, break requests (member-only features)
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, date, timedelta
+import json
 from models import (
     MemberWeeklyGoal,
     DailySteps,
@@ -15,6 +16,7 @@ from models import (
     TrainingActionNote,
     Exercise,
     ProgressCheckRequest,
+    PurchaseOrder,
 )
 
 member_bp = Blueprint('member', __name__, url_prefix='/api/member')
@@ -107,9 +109,15 @@ def _seed_weekly_goals_for_user(user_id, language='fa', db=None):
     user_programs = db.session.query(TrainingProgram).filter_by(user_id=user_id).all()
     general_programs = db.session.query(TrainingProgram).filter(TrainingProgram.user_id.is_(None)).all()
 
-    # If user is on active trial, only seed goals for their trial program(s)
+    # Members should only get goals for their own program(s)
     from app import User
     user = db.session.get(User, user_id)
+    if user and getattr(user, 'role', None) == 'member':
+        all_programs = user_programs
+    else:
+        all_programs = user_programs + general_programs
+
+    # If user is on active trial, only seed goals for their trial program(s)
     trial_ends_at = getattr(user, 'trial_ends_at', None) if user else None
     trial_active = (
         user
@@ -117,7 +125,8 @@ def _seed_weekly_goals_for_user(user_id, language='fa', db=None):
         and trial_ends_at
         and trial_ends_at > datetime.utcnow()
     )
-    all_programs = user_programs if trial_active else (user_programs + general_programs)
+    if trial_active:
+        all_programs = user_programs
     added = False
     for program in all_programs:
         duration = program.duration_weeks or 4
@@ -150,6 +159,117 @@ def _seed_weekly_goals_for_user(user_id, language='fa', db=None):
         db.session.commit()
 
 
+def _assign_program_after_purchase(db, user_id, program_id, language='fa'):
+    """
+    Assign a training program to the member after purchase.
+    Tries AI-generated personalized program first (user profile + admin Training Info).
+    Falls back to copying the purchased template if AI fails.
+    """
+    from app import User
+    from models import TrainingProgram, MemberWeeklyGoal, MemberTrainingActionCompletion, TrainingActionNote
+
+    user = db.session.get(User, user_id)
+    if not user or getattr(user, 'role', None) != 'member':
+        return None
+
+    # Remove existing user programs and related rows
+    existing = db.session.query(TrainingProgram).filter_by(user_id=user_id).all()
+    for prog in existing:
+        pid = prog.id
+        db.session.query(MemberWeeklyGoal).filter_by(training_program_id=pid).delete()
+        db.session.query(MemberTrainingActionCompletion).filter_by(training_program_id=pid).delete()
+        db.session.query(TrainingActionNote).filter_by(training_program_id=pid).delete()
+        db.session.delete(prog)
+
+    template = db.session.get(TrainingProgram, program_id)
+    if not template:
+        template = (
+            db.session.query(TrainingProgram)
+            .filter(TrainingProgram.user_id.is_(None))
+            .order_by(TrainingProgram.id)
+            .first()
+        )
+    if not template:
+        return None
+
+    # Try AI-generated personalized program first
+    from services.session_ai_service import generate_personalized_program_after_purchase
+    from services.ai_debug_logger import append_ai_program_log
+    from models import UserProfile
+
+    lang = getattr(user, 'language', language) or language
+    sessions, ai_error = generate_personalized_program_after_purchase(user_id, program_id, lang, db)
+
+    # Build profile summary and purpose for logging
+    profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
+    parts = []
+    if profile:
+        if profile.training_level:
+            parts.append(f"training_level={profile.training_level}")
+        if profile.workout_days_per_week:
+            parts.append(f"workout_days_per_week={profile.workout_days_per_week}")
+        if profile.get_fitness_goals():
+            parts.append("fitness_goals=" + ",".join(profile.get_fitness_goals()))
+    profile_summary = "; ".join(parts) if parts else "default"
+    goals = profile.get_fitness_goals() if profile and hasattr(profile, 'get_fitness_goals') else []
+    purpose = "gain_muscle"
+    goal_to_purpose = {
+        "lose_weight": "lose_weight", "weight_loss": "lose_weight",
+        "gain_muscle": "gain_muscle", "muscle_gain": "gain_muscle", "strength": "gain_muscle",
+        "gain_weight": "gain_weight", "shape_fitting": "shape_fitting", "endurance": "shape_fitting",
+    }
+    for g in (goals or []):
+        g_lower = (g or "").strip().lower()
+        if g_lower in goal_to_purpose:
+            purpose = goal_to_purpose[g_lower]
+            break
+
+    if sessions:
+        copy_program = TrainingProgram(
+            user_id=user_id,
+            name_fa=template.name_fa,
+            name_en=template.name_en,
+            description_fa=template.description_fa,
+            description_en=template.description_en,
+            duration_weeks=template.duration_weeks,
+            training_level=template.training_level,
+            category=template.category,
+            sessions=None,
+        )
+        copy_program.set_sessions(sessions)
+        db.session.add(copy_program)
+    else:
+        # Fallback: copy template
+        copy_program = TrainingProgram(
+            user_id=user_id,
+            name_fa=template.name_fa,
+            name_en=template.name_en,
+            description_fa=template.description_fa,
+            description_en=template.description_en,
+            duration_weeks=template.duration_weeks,
+            training_level=template.training_level,
+            category=template.category,
+            sessions=template.sessions,
+        )
+        db.session.add(copy_program)
+
+    db.session.flush()
+    assigned_id = copy_program.id if copy_program else 0
+    append_ai_program_log(
+        action="ai_generated" if sessions else "template_copy",
+        user_id=user_id,
+        program_id=program_id,
+        template_name=(template.name_fa or template.name_en or ""),
+        purpose=purpose,
+        profile_summary=profile_summary,
+        sessions_count=len(sessions) if sessions else 0,
+        assigned_program_id=assigned_id,
+        error="" if sessions else (ai_error or "AI returned no sessions; fallback to template"),
+    )
+    _seed_weekly_goals_for_user(user_id, language, db)
+    return copy_program
+
+
 @member_bp.route('/weekly-goals/<int:goal_id>', methods=['PATCH'])
 @jwt_required()
 def update_weekly_goal(goal_id):
@@ -175,6 +295,85 @@ def update_weekly_goal(goal_id):
             'id': goal.id,
             'completed': goal.completed,
             'completed_at': goal.completed_at.isoformat() if goal.completed_at else None,
+        }), 200
+    except Exception as e:
+        _get_db().session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+# ---------- Purchase training program ----------
+@member_bp.route('/purchase-training-program', methods=['POST'])
+@jwt_required()
+def purchase_training_program():
+    """Create a purchase order and assign program if paid (no gateway yet)."""
+    try:
+        user_id = _get_user_id()
+        if not user_id:
+            return jsonify({'error': 'Invalid token'}), 401
+
+        data = request.get_json() or {}
+        program_id = data.get('program_id')
+        packages = data.get('packages') or []
+        ems_form = data.get('ems_form') or {}
+        discount_code = (data.get('discount_code') or '').strip()
+        language = data.get('language') or 'fa'
+
+        if not program_id:
+            return jsonify({'error': 'program_id required'}), 400
+
+        def _sum_prices(items):
+            total = 0.0
+            for item in items:
+                try:
+                    total += float(item.get('price', 0))
+                except Exception:
+                    pass
+            return total
+
+        base_price = float(data.get('base_price') or 0)
+        packages_total = _sum_prices(packages)
+        subtotal = base_price + packages_total
+
+        if discount_code.lower() == 'free100':
+            discount_amount = subtotal
+            total = 0.0
+            status = 'paid'
+        else:
+            discount_amount = 0.0
+            total = subtotal
+            status = 'pending_payment'
+
+        db = _get_db()
+        # Ensure purchase_orders table exists (especially after code update)
+        try:
+            PurchaseOrder.__table__.create(db.engine, checkfirst=True)
+        except Exception as create_err:
+            return jsonify({'error': f'Failed to ensure purchase_orders table: {create_err}'}), 500
+        order = PurchaseOrder(
+            user_id=user_id,
+            program_id=int(program_id),
+            packages_json=json.dumps(packages, ensure_ascii=False),
+            ems_form_json=json.dumps(ems_form, ensure_ascii=False) if ems_form else None,
+            discount_code=discount_code or None,
+            subtotal=subtotal,
+            discount_amount=discount_amount,
+            total=total,
+            status=status,
+            paid_at=datetime.utcnow() if status == 'paid' else None,
+        )
+        db.session.add(order)
+
+        assigned_program_id = None
+        if status == 'paid':
+            program = _assign_program_after_purchase(db, user_id, int(program_id), language)
+            assigned_program_id = program.id if program else None
+
+        db.session.commit()
+        return jsonify({
+            'order_id': order.id,
+            'status': order.status,
+            'total': order.total,
+            'assigned_program_id': assigned_program_id,
         }), 200
     except Exception as e:
         _get_db().session.rollback()

@@ -131,13 +131,50 @@ def create_training_programs():
             sessions=json.dumps(program1_sessions, ensure_ascii=False)
         )
         
-        # Add program to database
         db.session.add(program1)
+
+        # Program 2: Intermediate Strength
+        program2_sessions = [{"week": w, "day": d, "name_fa": f"تمرین قدرتی - هفته {w} روز {d}", "name_en": f"Strength - Week {w} Day {d}", "exercises": [{"name_fa": "اسکوات", "name_en": "Squats", "sets": 4, "reps": "8-10", "rest": "90s"}]} for w in range(1, 5) for d in range(1, 4)]
+        program2 = TrainingProgram(
+            name_fa="برنامه قدرتی متوسط",
+            name_en="Intermediate Strength Program",
+            description_fa="برنامه 4 هفته‌ای برای سطح متوسط. افزایش قدرت و حجم عضلانی.",
+            description_en="4-week program for intermediate level. Build strength and muscle.",
+            duration_weeks=4, training_level="intermediate", category="bodybuilding",
+            sessions=json.dumps(program2_sessions, ensure_ascii=False)
+        )
+        db.session.add(program2)
+
+        # Program 3: Advanced Hypertrophy
+        program3_sessions = [{"week": w, "day": d, "name_fa": f"تمرین حجم - هفته {w} روز {d}", "name_en": f"Hypertrophy - Week {w} Day {d}", "exercises": [{"name_fa": "اسکوات", "name_en": "Squats", "sets": 5, "reps": "6-8", "rest": "120s"}]} for w in range(1, 5) for d in range(1, 5)]
+        program3 = TrainingProgram(
+            name_fa="برنامه حجم‌سازی پیشرفته",
+            name_en="Advanced Hypertrophy Program",
+            description_fa="برنامه 4 هفته‌ای پیشرفته برای افزایش حجم عضلانی.",
+            description_en="4-week advanced program for muscle hypertrophy.",
+            duration_weeks=4, training_level="advanced", category="bodybuilding",
+            sessions=json.dumps(program3_sessions, ensure_ascii=False)
+        )
+        db.session.add(program3)
+
+        # Program 4: Functional Home (no gym)
+        program4_sessions = [{"week": w, "day": d, "name_fa": f"تمرین خانگی - هفته {w} روز {d}", "name_en": f"Home Workout - Week {w} Day {d}", "exercises": [{"name_fa": "اسکوات با وزن بدن", "name_en": "Bodyweight Squats", "sets": 3, "reps": "15-20", "rest": "45s"}, {"name_fa": "شنا", "name_en": "Push-ups", "sets": 3, "reps": "10-15", "rest": "45s"}]} for w in range(1, 5) for d in range(1, 4)]
+        program4 = TrainingProgram(
+            name_fa="برنامه فانکشنال خانگی",
+            name_en="Functional Home Program",
+            description_fa="برنامه 4 هفته‌ای بدون نیاز به باشگاه. مناسب برای تمرین در خانه.",
+            description_en="4-week program with no gym required. Perfect for home workouts.",
+            duration_weeks=4, training_level="beginner", category="functional",
+            sessions=json.dumps(program4_sessions, ensure_ascii=False)
+        )
+        db.session.add(program4)
+
         db.session.commit()
-        
-        print("Created 1 training program:")
-        print(f"1. {program1.name_en} (ID: {program1.id})")
-        print("\nTraining program created successfully!")
+
+        print("Created 4 training programs:")
+        for p in [program1, program2, program3, program4]:
+            print(f"  - {p.name_en} (ID: {p.id}, level: {p.training_level}, category: {p.category})")
+        print("\nTraining programs created successfully!")
 
 if __name__ == '__main__':
     create_training_programs()

@@ -14,6 +14,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Ensure INFO logs (e.g. KB embedding debug) show in terminal
+import logging
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+
 # Import models to avoid circular imports - import after db is created
 # We'll import specific classes as needed to avoid conflicts
 
@@ -48,18 +53,6 @@ jwt_secret_key = os.getenv('JWT_SECRET_KEY', '').strip() or 'your-secret-key-cha
 app.config['JWT_SECRET_KEY'] = jwt_secret_key
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 
-# Print JWT_SECRET_KEY on startup for debugging (first 20 chars only for security)
-print(f"\n{'='*70}")
-print(f"JWT Configuration:")
-print(f"  JWT_SECRET_KEY: {jwt_secret_key[:20]}... (length: {len(jwt_secret_key)})")
-print(f"  JWT_ACCESS_TOKEN_EXPIRES: {app.config['JWT_ACCESS_TOKEN_EXPIRES']}")
-print(f"  NOTE: If JWT_SECRET_KEY changes, all existing tokens become invalid")
-print(f"{'='*70}\n")
-
-# Print JWT_SECRET_KEY on startup for debugging (first 20 chars only for security)
-print(f"\n{'='*60}")
-print(f"JWT_SECRET_KEY configured: {jwt_secret_key[:20]}... (length: {len(jwt_secret_key)})")
-print(f"{'='*60}\n")
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads', 'profiles')
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
 
@@ -79,64 +72,34 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import models module: {e}. Some relationships may not work.")
 
-# JWT Error Handlers
+# JWT Error Handlers (no console spam)
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
-    print(f"JWT Token expired: {jwt_payload}")
     return jsonify({'error': 'Token has expired', 'message': 'Please log in again'}), 401
 
 @jwt.invalid_token_loader
 def invalid_token_callback(error_string):
-    """
-    This callback is triggered when Flask-JWT-Extended cannot decode/validate a token.
-    The error_string contains the exact reason why the token is invalid.
-    """
-    print(f"\n{'='*70}")
-    print(f"JWT INVALID TOKEN - ROOT CAUSE")
-    print(f"{'='*70}")
-    print(f"Flask-JWT-Extended Error: {repr(error_string)}")
-    print(f"Current JWT_SECRET_KEY (first 20 chars): {app.config['JWT_SECRET_KEY'][:20]}...")
-    print(f"JWT_SECRET_KEY length: {len(app.config['JWT_SECRET_KEY'])}")
-    
-    # Log the Authorization header
-    auth_header = request.headers.get('Authorization', '')
-    print(f"\nAuthorization header length: {len(auth_header) if auth_header else 0}")
-    
-    if auth_header and auth_header.startswith('Bearer '):
-        token_part = auth_header[7:]
-        parts = token_part.split('.')
-        print(f"Token structure: {len(parts)} parts (should be 3)")
-        print(f"Token (first 50 chars): {token_part[:50]}...")
-        
-        # Most common causes:
-        # 1. "Signature verification failed" = JWT_SECRET_KEY mismatch
-        # 2. "Not enough segments" = Token format issue
-        # 3. "Invalid header padding" = Token corruption
-        if 'signature' in error_string.lower() or 'verification' in error_string.lower():
-            print(f"\n{'='*70}")
-            print(f"ROOT CAUSE: JWT_SECRET_KEY MISMATCH")
-            print(f"The token signature cannot be verified with the current JWT_SECRET_KEY.")
-            print(f"This means the token was created with a DIFFERENT secret key.")
-            print(f"\nSOLUTION:")
-            print(f"1. User must LOG OUT and LOG BACK IN to get a fresh token")
-            print(f"2. Ensure JWT_SECRET_KEY is consistent (check .env file)")
-            print(f"{'='*70}\n")
-        else:
-            print(f"\n{'='*70}")
-            print(f"ROOT CAUSE: {error_string}")
-            print(f"{'='*70}\n")
-    
     return jsonify({'error': 'Invalid token', 'message': 'Token format is invalid. Please log in again'}), 422
 
 @jwt.unauthorized_loader
 def missing_token_callback(error_string):
-    print(f"JWT Missing token: {error_string}")
     return jsonify({'error': 'Authorization token is missing', 'message': 'Please log in'}), 401
 
 @jwt.needs_fresh_token_loader
 def token_not_fresh_callback(jwt_header, jwt_payload):
-    print(f"JWT Token not fresh: {jwt_payload}")
     return jsonify({'error': 'Token is not fresh', 'message': 'Please log in again'}), 401
+
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    """Log 405 so we can see which route/method caused it."""
+    import logging
+    logging.getLogger("app").error(
+        ">>> 405 FROM OUR BACKEND (Flask) <<< path=%s method=%s - client sent wrong HTTP method",
+        request.path, request.method
+    )
+    return jsonify({'error': 'Method not allowed'}), 405
+
 
 # Database Models
 class User(db.Model):
@@ -929,50 +892,120 @@ def exercises():
         db.session.commit()
         return jsonify({'id': exercise.id, 'message': 'Exercise added successfully'}), 201
 
+def _build_action_summary(actions, results, errors):
+    """Build a short human-readable summary of what the AI did (for debugging)."""
+    parts = []
+    for r in (results or []):
+        if not isinstance(r, dict):
+            continue
+        act = r.get('action', '')
+        status = r.get('status', '')
+        if act == 'update_user_profile' and status == 'ok':
+            fields = (r.get('data') or {}).get('updated', {})
+            if fields.get('fitness_goals'):
+                parts.append(f"Updated profile: fitness_goals={fields['fitness_goals']}")
+        elif act == 'suggest_training_plans':
+            if status == 'ask_purpose':
+                parts.append("Asked user for fitness goal")
+            elif status == 'ok':
+                data = r.get('data') or {}
+                plans = data.get('plans') or []
+                names = [p.get('name_fa') or p.get('name_en') or '?' for p in plans[:3]]
+                parts.append(f"Suggested {len(plans)} plan(s): {', '.join(names)}")
+        elif act == 'search_exercises' and status == 'ok':
+            count = len((r.get('data') or []))
+            parts.append(f"Searched exercises: {count} results")
+        elif act == 'create_workout_plan' and status == 'ok':
+            parts.append("Generated workout plan")
+    if errors:
+        parts.append(f"Errors: {errors}")
+    return "; ".join(parts) if parts else "No actions"
+
 @app.route('/api/chat', methods=['POST'])
 @jwt_required()
 def chat():
+    """
+    Unified AI chat endpoint (Real_State style).
+    Uses action planner as primary flow: AI returns action_json, backend executes actions.
+    Fallback to generate_ai_response when USE_ACTION_PLANNER=false or action planner fails.
+    """
     try:
-        # get_jwt_identity() returns a string, convert to int for database query
         user_id_str = get_jwt_identity()
         if not user_id_str:
             return jsonify({'error': 'Invalid token'}), 401
         user_id = int(user_id_str)
-        data = request.get_json()
+        data = request.get_json() or {}
         message = data.get('message')
-        local_time = data.get('local_time')  # Get local time from browser
+        local_time = data.get('local_time')
         user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         user_language = user.language if user else 'fa'
-        
-        if not message:
+
+        if not message or not isinstance(message, str):
             return jsonify({'error': 'Message is required'}), 400
-        
-        # AI agent response (simplified - you can integrate OpenAI or other AI service)
-        # For now, we'll create a simple response system
-        response = generate_ai_response(message, user_id, user_language, local_time)
-        
-        # Session: use provided session_id or create new conversation
+
         session_id = (data.get('session_id') or '').strip() or None
         if not session_id:
             session_id = str(uuid.uuid4())
-        # Save chat history
+
+        use_action_planner = str(os.getenv('USE_ACTION_PLANNER', 'true')).lower() in ('1', 'true', 'yes')
+        assistant_response = ''
+        actions = []
+        results = []
+        errors = []
+
+        if use_action_planner:
+            try:
+                from services.action_planner import plan_and_execute
+                result = plan_and_execute(message, user, user_language)
+                assistant_response = result.get('assistant_response') or ''
+                actions = result.get('actions', [])
+                results = result.get('results', [])
+                errors = result.get('errors', [])
+            except Exception as e:
+                if os.getenv('AI_CONSOLE_LOG', '').lower() in ('1', 'true', 'yes'):
+                    print(f"Action planner failed, falling back to generate_ai_response: {e}")
+                use_action_planner = False
+
+        if not use_action_planner or not assistant_response:
+            assistant_response = generate_ai_response(message, user_id, user_language, local_time)
+
         chat_entry = ChatHistory(
             user_id=user_id,
             session_id=session_id,
             message=message,
-            response=response
+            response=assistant_response
         )
         db.session.add(chat_entry)
-        # Ensure ChatSession row exists for this conversation (for optional rename)
         existing = ChatSession.query.filter_by(session_id=session_id, user_id=user_id).first()
         if not existing:
             db.session.add(ChatSession(session_id=session_id, user_id=user_id, title=None))
         db.session.commit()
-        
+
+        try:
+            from services.ai_debug_logger import append_log
+            append_log(
+                message=message,
+                response=assistant_response,
+                action_json={"actions": actions, "results": results, "errors": errors},
+                error="",
+            )
+        except Exception:
+            pass
+
+        # Build a short human-readable summary of what was done (for debugging/transparency)
+        action_summary = _build_action_summary(actions, results, errors)
+
         return jsonify({
-            'response': response,
+            'response': assistant_response,
+            'assistant_response': assistant_response,
+            'actions': actions,
+            'results': results,
+            'errors': errors,
+            'action_summary': action_summary,
             'timestamp': chat_entry.timestamp.isoformat(),
-            'session_id': session_id
+            'session_id': session_id,
         }), 200
     except Exception as e:
         # This is for errors after authentication
@@ -1005,9 +1038,22 @@ def chat():
         
         error_message_fa = "متأسفانه خطایی رخ داد. لطفاً دوباره تلاش کنید."
         error_message_en = "Sorry, an error occurred. Please try again."
-        
+        err_msg = error_message_fa if user_language == 'fa' else error_message_en
+
+        try:
+            from services.ai_debug_logger import append_log
+            data = request.get_json() or {}
+            append_log(
+                message=data.get('message', ''),
+                response=err_msg,
+                action_json={},
+                error=str(e),
+            )
+        except Exception:
+            pass
+
         return jsonify({
-            'response': error_message_fa if user_language == 'fa' else error_message_en,
+            'response': err_msg,
             'timestamp': datetime.utcnow().isoformat()
         }), 200  # Return 200 so frontend doesn't treat it as an error
 
@@ -2178,11 +2224,11 @@ def get_training_programs():
                 db.session.commit()
                 user_programs = db.session.query(TrainingProgram).filter_by(user_id=user_id).all()
 
+        # Members should only see their own programs (general plans are templates)
+        if user and getattr(user, 'role', None) == 'member':
+            general_programs = []
         # During active trial, show only the trial program (no general plans)
         if trial_active:
-            general_programs = []
-        # For members with their own program(s), hide general templates to avoid duplicates
-        if user and getattr(user, 'role', None) == 'member' and user_programs:
             general_programs = []
         all_programs = user_programs + general_programs
         programs_data = [program.to_dict(language) for program in all_programs]
@@ -2280,9 +2326,9 @@ def serve_frontend(path):
 
 if __name__ == '__main__':
     with app.app_context():
-        # Ensure SiteSettings (and other models) are registered before create_all
+        # Ensure all models are registered before create_all
         try:
-            from models import SiteSettings  # noqa: F401
+            from models import SiteSettings, WebsiteKBSource, WebsiteKBChunk  # noqa: F401
         except ImportError:
             pass
         db.create_all()

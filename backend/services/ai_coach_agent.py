@@ -4,8 +4,14 @@ Professional, empathetic coach that provides safe, personalized workout plans
 """
 
 from typing import Dict, List, Any, Optional
-from app import db
+from flask import current_app
+from app import User
 from models import Exercise, UserProfile
+
+
+def _db():
+    """Get SQLAlchemy instance from current Flask app context."""
+    return current_app.extensions['sqlalchemy']
 from models_workout_log import WorkoutLog, ProgressEntry
 from services.workout_plan_generator import WorkoutPlanGenerator, MONTHLY_RULES
 from services.adaptive_feedback import AdaptiveFeedbackService
@@ -46,8 +52,9 @@ class PersianFitnessCoachAI:
     
     def __init__(self, user_id: int):
         self.user_id = user_id
-        self.user_profile = UserProfile.query.filter_by(user_id=user_id).first()
-        self.user = User.query.get(user_id)
+        db = _db()
+        self.user_profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
+        self.user = db.session.get(User, user_id)
         
     def detect_injuries_in_message(self, message: str) -> List[str]:
         """Detect mentioned injuries in Persian message"""
@@ -77,10 +84,25 @@ class PersianFitnessCoachAI:
         
         return detected
     
+    def _normalize_injury(self, injury: str) -> str:
+        """Map Persian/common injury names to canonical English for matching."""
+        if not injury or not isinstance(injury, str):
+            return ''
+        m = {
+            'زانو': 'knee', 'کمردرد': 'lower_back', 'کمر': 'lower_back',
+            'شانه': 'shoulder', 'گردن': 'neck', 'مچ دست': 'wrist', 'مچ پا': 'ankle',
+            'آرنج': 'elbow', 'hip': 'hip', 'ران': 'hip',
+        }
+        s = injury.strip().lower()
+        return m.get(s, s)
+
     def get_safe_exercises(self, exercise_pool: List[Exercise], user_injuries: List[str]) -> List[Exercise]:
-        """Filter exercises to exclude those with injury contraindications"""
+        """Filter exercises to exclude those with injury contraindications.
+        Also excludes exercises in admin's forbidden_movements for user's injuries."""
         safe_exercises = []
-        
+        normalized_injuries = [self._normalize_injury(i) for i in (user_injuries or []) if i]
+        forbidden_names = self._get_forbidden_exercise_names(normalized_injuries)
+
         for exercise in exercise_pool:
             contraindications = []
             if hasattr(exercise, 'get_injury_contraindications'):
@@ -88,44 +110,176 @@ class PersianFitnessCoachAI:
             elif exercise.injury_contraindications:
                 try:
                     contraindications = json.loads(exercise.injury_contraindications)
-                except:
+                except Exception:
                     contraindications = []
-            
+
             # Check if any user injury matches contraindications
             is_safe = True
-            for injury in user_injuries:
+            for injury in normalized_injuries:
                 injury_lower = injury.lower()
                 for contra in contraindications:
-                    if injury_lower in contra.lower() or contra.lower() in injury_lower:
+                    c = (contra or '').lower()
+                    if injury_lower in c or c in injury_lower:
                         is_safe = False
                         break
                 if not is_safe:
                     break
-            
+
+            # Exclude if exercise name is in admin's forbidden_movements for user's injuries
+            if is_safe and forbidden_names:
+                ex_name_fa = (exercise.name_fa or '').strip().lower()
+                ex_name_en = (exercise.name_en or '').strip().lower()
+                for fn in forbidden_names:
+                    fn_lower = fn.lower()
+                    if fn_lower in ex_name_fa or fn_lower in ex_name_en or ex_name_fa in fn_lower or ex_name_en in fn_lower:
+                        is_safe = False
+                        break
+
             if is_safe:
                 safe_exercises.append(exercise)
-        
+
         return safe_exercises
-    
+
+    def _get_forbidden_exercise_names(self, injuries: List[str]) -> List[str]:
+        """Load admin's forbidden_movements from Configuration.injuries for user's injury types."""
+        if not injuries:
+            return []
+        try:
+            from models import Configuration
+            db = _db()
+            config = db.session.query(Configuration).first()
+            if not config or not config.injuries:
+                return []
+            raw = json.loads(config.injuries) if isinstance(config.injuries, str) else config.injuries
+            names = []
+            for inj in injuries:
+                inj_key = inj.replace(' ', '_').lower()
+                entry = raw.get(inj_key) or raw.get(inj) or {}
+                forbidden = entry.get('forbidden_movements') or []
+                for m in forbidden:
+                    if isinstance(m, dict):
+                        names.extend([m.get('fa', ''), m.get('en', '')])
+                    elif isinstance(m, str) and m.strip():
+                        names.append(m.strip())
+            return [n for n in names if n]
+        except Exception:
+            return []
+
+    def _get_injury_important_notes(self, injuries: List[str], language: str = "fa") -> str:
+        """Get admin's important_notes for user's injuries from Configuration.injuries."""
+        if not injuries:
+            return ""
+        try:
+            from models import Configuration
+            db = _db()
+            config = db.session.query(Configuration).first()
+            if not config or not config.injuries:
+                return ""
+            raw = json.loads(config.injuries) if isinstance(config.injuries, str) else config.injuries
+            parts = []
+            field = 'important_notes_fa' if language == 'fa' else 'important_notes_en'
+            seen_notes = set()
+            for inj in injuries:
+                norm = self._normalize_injury(inj)
+                inj_key = (norm or inj).replace(' ', '_').lower()
+                entry = raw.get(inj_key) or raw.get(inj) or {}
+                note = (entry.get(field) or '').strip()
+                if note and note not in seen_notes:
+                    seen_notes.add(note)
+                    parts.append(f"- {note}")
+            common = (raw.get('common_injury_note_fa' if language == 'fa' else 'common_injury_note_en') or '').strip()
+            if common:
+                parts.insert(0, common)
+            return "\n".join(parts) if parts else ""
+        except Exception:
+            return ""
+
+    def _get_training_levels_config(self, language: str = "fa") -> Optional[Dict]:
+        """Load admin's Training Levels Info (Training Info tab) for user's level and goal."""
+        try:
+            from models import Configuration
+            db = _db()
+            config = db.session.query(Configuration).first()
+            if not config or not config.training_levels:
+                return None
+            raw = json.loads(config.training_levels) if isinstance(config.training_levels, str) else config.training_levels
+            if not raw:
+                return None
+            level = (self.user_profile.training_level or 'beginner').strip().lower()
+            goals = self.user_profile.get_fitness_goals() if self.user_profile and hasattr(self.user_profile, 'get_fitness_goals') else []
+            purpose = 'gain_muscle'
+            goal_to_purpose = {
+                'lose_weight': 'lose_weight', 'کاهش وزن': 'lose_weight', 'weight_loss': 'lose_weight',
+                'gain_weight': 'gain_weight', 'افزایش وزن': 'gain_weight',
+                'gain_muscle': 'gain_muscle', 'افزایش عضله': 'gain_muscle',
+                'muscle_gain': 'gain_muscle', 'strength': 'gain_muscle',
+                'shape_fitting': 'shape_fitting', 'تناسب اندام': 'shape_fitting',
+                'endurance': 'shape_fitting',
+            }
+            for g in (goals or []):
+                g_lower = (g or '').strip().lower()
+                if g_lower in goal_to_purpose:
+                    purpose = goal_to_purpose[g_lower]
+                    break
+            level_data = raw.get(level) or raw.get('beginner') or {}
+            purposes = level_data.get('purposes') or {}
+            purpose_data = purposes.get(purpose) or purposes.get('gain_muscle') or {}
+            training_focus = (purpose_data.get('training_focus_fa') if language == 'fa' else purpose_data.get('training_focus_en')) or ''
+            return {
+                'level': level,
+                'purpose': purpose,
+                'training_levels': raw,
+                'training_focus': training_focus.strip() if training_focus else None,
+            }
+        except Exception:
+            return None
+
     def format_workout_table_markdown(
         self,
         exercises: List[Exercise],
         month: int,
-        day_name: str = "روز تمرین"
+        day_name: str = "روز تمرین",
+        language: str = "fa",
+        training_levels_config: Optional[Dict] = None
     ) -> str:
-        """Format workout plan as Markdown table with Persian terminology"""
+        """Format workout plan as Markdown table. Uses admin's Training Levels Info (sets, reps, focus) when provided."""
         rules = MONTHLY_RULES[month]
         sets = rules['sets_range'][1]  # Use max sets
         reps = rules['reps_range'][1]  # Use max reps
-        
+        rest_seconds = rules.get('rest_seconds', 60)
+
+        # Override with admin's Training Levels Info if provided
+        if training_levels_config:
+            level_key = (training_levels_config.get('level') or 'beginner').strip().lower()
+            purpose_key = (training_levels_config.get('purpose') or 'gain_muscle').strip().lower()
+            level_data = training_levels_config.get('training_levels', {}).get(level_key, {})
+            purposes = level_data.get('purposes') or {}
+            purpose_data = purposes.get(purpose_key) or purposes.get('gain_muscle') or {}
+            if purpose_data.get('sets_per_action'):
+                try:
+                    sets = int(purpose_data['sets_per_action'])
+                except (ValueError, TypeError):
+                    pass
+            if purpose_data.get('reps_per_action'):
+                try:
+                    reps = int(purpose_data['reps_per_action'])
+                except (ValueError, TypeError):
+                    pass
+            if purpose_data.get('break_between_sets'):
+                try:
+                    rest_seconds = int(purpose_data['break_between_sets'])
+                except (ValueError, TypeError):
+                    pass
+
         table = f"\n## {day_name}\n\n"
         table += "| حرکت | عضله هدف | ست | تکرار | استراحت | تنفس و نکات |\n"
         table += "|------|----------|-----|--------|----------|-------------|\n"
-        
+
         for exercise in exercises:
-            # Get breathing instruction
-            breathing = exercise.breathing_guide_fa or "دم هنگام پایین آوردن، بازدم هنگام بالا بردن"
-            
+            # Get breathing instruction (use language)
+            default_breathing = "دم هنگام پایین آوردن، بازدم هنگام بالا بردن" if language == 'fa' else "Breathe in on the way down, breathe out on the way up"
+            breathing = (exercise.breathing_guide_fa if language == 'fa' else exercise.breathing_guide_en) or default_breathing
+
             # Add month-specific breathing emphasis
             if month == 1:
                 breathing += ". تمرکز بر تنفس عمیق و کنترل شده"
@@ -133,14 +287,17 @@ class PersianFitnessCoachAI:
                 breathing += ". تنفس ریتمیک و هماهنگ"
             else:
                 breathing += ". تنفس قدرتمند و کنترل شده"
-            
-            # Get form tips
-            form_tips = exercise.execution_tips_fa or "فرم صحیح را حفظ کنید"
-            
+
+            # Get form tips (execution_tips from exercise)
+            default_tips = "فرم صحیح را حفظ کنید" if language == 'fa' else "Maintain proper form"
+            form_tips = (exercise.execution_tips_fa if language == 'fa' else exercise.execution_tips_en) or default_tips
+
             # Combine breathing and tips
             breathing_tips = f"{breathing}. {form_tips}"
             
-            table += f"| {exercise.name_fa} | {exercise.target_muscle_fa} | {sets} | {reps} | {rules['rest_seconds']}s | {breathing_tips} |\n"
+            ex_name = exercise.name_fa if language == 'fa' else (exercise.name_en or exercise.name_fa)
+            ex_muscle = exercise.target_muscle_fa if language == 'fa' else (exercise.target_muscle_en or exercise.target_muscle_fa)
+            table += f"| {ex_name} | {ex_muscle} | {sets} | {reps} | {rest_seconds}s | {breathing_tips} |\n"
         
         return table
     
@@ -177,7 +334,8 @@ class PersianFitnessCoachAI:
         current_month = 1
         
         # Check if user has workout history to determine progression
-        recent_logs = WorkoutLog.query.filter_by(user_id=self.user_id)\
+        db = _db()
+        recent_logs = db.session.query(WorkoutLog).filter_by(user_id=self.user_id)\
             .order_by(WorkoutLog.workout_date.desc()).limit(10).all()
         
         if recent_logs:
@@ -248,9 +406,10 @@ class PersianFitnessCoachAI:
         message: str,
         month: int,
         injuries: List[str],
-        exercise_pool: List[Exercise]
+        exercise_pool: List[Exercise],
+        language: str = "fa"
     ) -> Dict[str, Any]:
-        """Handle workout plan request"""
+        """Handle workout plan request. Uses user profile + admin's Training Levels Info (Training Info tab)."""
         
         # Determine target muscle groups from message
         muscle_groups = self._extract_muscle_groups(message)
@@ -260,7 +419,8 @@ class PersianFitnessCoachAI:
             safe_exercises = self.get_safe_exercises(exercise_pool, injuries)
         else:
             # Query exercises from database
-            query = Exercise.query
+            db = _db()
+            query = db.session.query(Exercise)
             if self.user_profile and not self.user_profile.gym_access:
                 query = query.filter(Exercise.category == 'functional_home')
             safe_exercises = self.get_safe_exercises(query.all(), injuries)
@@ -314,15 +474,27 @@ class PersianFitnessCoachAI:
                 'safety_checked': True
             }
         
+        # Build training_levels_config from admin's Training Info (Training Levels Info)
+        training_levels_config = self._get_training_levels_config(language)
+
         # Generate response
         response = f"## برنامه تمرینی - ماه {month}: {rules['name_fa']}\n\n"
-        response += f"**تمرکز این ماه:** {rules['name_fa']}\n\n"
-        
+        focus_text = rules['name_fa'] if language == 'fa' else rules.get('name_en', rules['name_fa'])
+        if training_levels_config and training_levels_config.get('training_focus'):
+            focus_text = training_levels_config['training_focus']
+        response += f"**تمرکز این ماه:** {focus_text}\n\n"
+
         if injuries:
             response += f"✅ **بررسی ایمنی:** تمام تمرینات با در نظر گیری {', '.join(injuries)} شما انتخاب شده‌اند.\n\n"
-        
-        # Add workout table
-        response += self.format_workout_table_markdown(selected_exercises, month)
+            injury_notes = self._get_injury_important_notes(injuries, language)
+            if injury_notes:
+                response += f"**نکات مهم برای آسیب‌های شما:**\n{injury_notes}\n\n" if language == 'fa' else f"**Important notes for your injuries:**\n{injury_notes}\n\n"
+
+        # Add workout table (uses admin's sets, reps, rest from Training Levels Info)
+        response += self.format_workout_table_markdown(
+            selected_exercises, month, language=language,
+            training_levels_config=training_levels_config
+        )
         
         response += f"\n\n### نکات مهم:\n"
         response += f"- **گرم کردن:** قبل از شروع، ۵-۱۰ دقیقه {PERSIAN_TERMS['warm_up']} انجام دهید\n"
@@ -378,7 +550,7 @@ class PersianFitnessCoachAI:
         muscle_groups = self._extract_muscle_groups(message)
         
         if not exercise_pool:
-            exercise_pool = Exercise.query.all()
+            exercise_pool = _db().session.query(Exercise).all()
         
         safe_exercises = self.get_safe_exercises(exercise_pool, injuries)
         
@@ -414,7 +586,7 @@ class PersianFitnessCoachAI:
     def _handle_progress_check(self) -> Dict[str, Any]:
         """Handle progress check request"""
         # Get recent progress entries
-        recent_progress = ProgressEntry.query.filter_by(user_id=self.user_id)\
+        recent_progress = _db().session.query(ProgressEntry).filter_by(user_id=self.user_id)\
             .order_by(ProgressEntry.recorded_at.desc()).limit(2).all()
         
         if not recent_progress:

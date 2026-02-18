@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -8,11 +8,64 @@ const API_BASE = getApiBase();
 
 const defaultPhase = () => ({ title_fa: '', title_en: '', steps: [] });
 const defaultStep = () => ({ title_fa: '', title_en: '', body_fa: '', body_en: '' });
+const getRecommendedTemplate = () => ({
+  warming: {
+    title_fa: 'گرم کردن فعال',
+    title_en: 'Active Warm-up',
+    steps: [
+      {
+        title_fa: 'موبیلیتی مفاصل',
+        title_en: 'Joint mobility',
+        body_fa: '۲ تا ۳ دقیقه حرکت نرم برای گردن، شانه، لگن، زانو و مچ‌ها. هدف: آزادسازی دامنه حرکتی.',
+        body_en: '2–3 minutes of gentle mobility for neck, shoulders, hips, knees, and ankles to open range of motion.',
+      },
+      {
+        title_fa: 'فعال‌سازی عضلات اصلی',
+        title_en: 'Primary muscle activation',
+        body_fa: '۲ ست سبک از حرکت‌های مرتبط (مثلاً اسکوات وزن بدن یا پرس سبک) با تمرکز روی فرم.',
+        body_en: '2 light sets of related movements (e.g., bodyweight squat or light press) focusing on form.',
+      },
+      {
+        title_fa: 'آماده‌سازی اختصاصی جلسه',
+        title_en: 'Session-specific prep',
+        body_fa: '۱ تا ۲ ست از اولین حرکت جلسه با وزن کم و ریتم کنترل‌شده.',
+        body_en: '1–2 sets of the first exercise with light load and controlled tempo.',
+      },
+    ],
+  },
+  cooldown: {
+    title_fa: 'سرد کردن و تنفس',
+    title_en: 'Cooldown & Breathing',
+    steps: [
+      {
+        title_fa: 'کاهش ضربان',
+        title_en: 'Lower heart rate',
+        body_fa: '۲ تا ۳ دقیقه راه‌رفتن آرام یا حرکات سبک برای بازگشت ضربان به حالت طبیعی.',
+        body_en: '2–3 minutes of easy walking or light movement to bring heart rate down.',
+      },
+      {
+        title_fa: 'کشش عضلات اصلی',
+        title_en: 'Stretch key muscles',
+        body_fa: 'کشش ملایم عضلات درگیر (۲۰–۳۰ ثانیه برای هر عضله). بدون درد.',
+        body_en: 'Gentle stretching of worked muscles (20–30s each). No pain.',
+      },
+      {
+        title_fa: 'تنفس آرام',
+        title_en: 'Calm breathing',
+        body_fa: '۳ تا ۵ نفس عمیق: دم از بینی، بازدم طولانی از دهان برای آرام‌سازی.',
+        body_en: '3–5 deep breaths: inhale through nose, long exhale through mouth to relax.',
+      },
+    ],
+  },
+  ending_message_fa: 'عالی بود! خسته نباشید. کمی آب بنوشید و ریکاوری را جدی بگیرید.',
+  ending_message_en: 'Great job! Hydrate and take recovery seriously.',
+});
 
 const WarmingCooldownTab = () => {
   const { i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const autoSavedTemplate = useRef(false);
   const [data, setData] = useState({
     warming: defaultPhase(),
     cooldown: defaultPhase(),
@@ -25,12 +78,16 @@ const WarmingCooldownTab = () => {
     headers: { Authorization: `Bearer ${getAuthToken()}`, 'Content-Type': 'application/json' }
   }), [getAuthToken]);
 
+  const saveSessionPhases = useCallback(async (payload) => {
+    await axios.put(`${API_BASE}/api/admin/session-phases`, payload, getAxiosConfig());
+  }, [getAxiosConfig]);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_BASE}/api/admin/session-phases`, getAxiosConfig());
       const d = res.data || {};
-      setData({
+      const next = {
         warming: d.warming && typeof d.warming === 'object'
           ? { title_fa: d.warming.title_fa || '', title_en: d.warming.title_en || '', steps: Array.isArray(d.warming.steps) ? d.warming.steps.map(s => ({ ...defaultStep(), ...s })) : [] }
           : defaultPhase(),
@@ -39,14 +96,31 @@ const WarmingCooldownTab = () => {
           : defaultPhase(),
         ending_message_fa: d.ending_message_fa || '',
         ending_message_en: d.ending_message_en || ''
-      });
+      };
+      const isEmpty = (!next.warming.title_fa && !next.warming.title_en && (next.warming.steps || []).length === 0)
+        && (!next.cooldown.title_fa && !next.cooldown.title_en && (next.cooldown.steps || []).length === 0)
+        && !next.ending_message_fa && !next.ending_message_en;
+      if (isEmpty) {
+        const template = getRecommendedTemplate();
+        setData(template);
+        if (!autoSavedTemplate.current) {
+          try {
+            await saveSessionPhases(template);
+            autoSavedTemplate.current = true;
+          } catch (err) {
+            console.error('Auto-save template failed:', err);
+          }
+        }
+      } else {
+        setData(next);
+      }
     } catch (err) {
       console.error('Error loading session phases:', err);
-      setData({ warming: defaultPhase(), cooldown: defaultPhase(), ending_message_fa: '', ending_message_en: '' });
+      setData(getRecommendedTemplate());
     } finally {
       setLoading(false);
     }
-  }, [getAxiosConfig]);
+  }, [getAxiosConfig, saveSessionPhases]);
 
   useEffect(() => {
     fetchData();
@@ -85,7 +159,7 @@ const WarmingCooldownTab = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await axios.put(`${API_BASE}/api/admin/session-phases`, data, getAxiosConfig());
+      await saveSessionPhases(data);
       alert(i18n.language === 'fa' ? 'ذخیره شد' : 'Saved');
     } catch (err) {
       console.error('Error saving:', err);
@@ -181,9 +255,18 @@ const WarmingCooldownTab = () => {
         <p className="warming-cooldown-desc">
           {fa ? 'محتوای گرم کردن و سرد کردن و تنفس را برای نمایش به اعضا در هر جلسه تمرین تنظیم کنید. زیرمراحل را اضافه کنید.' : 'Set warming and cooldown/breathing content shown to members in each training session. Add sub-steps as needed.'}
         </p>
-        <button type="button" className="btn-primary" onClick={handleSave} disabled={saving}>
-          {saving ? (fa ? 'در حال ذخیره...' : 'Saving...') : (fa ? 'ذخیره' : 'Save')}
-        </button>
+        <div className="warming-cooldown-actions">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setData(getRecommendedTemplate())}
+          >
+            {fa ? 'بارگذاری قالب پیشنهادی' : 'Load recommended template'}
+          </button>
+          <button type="button" className="btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? (fa ? 'در حال ذخیره...' : 'Saving...') : (fa ? 'ذخیره' : 'Save')}
+          </button>
+        </div>
       </div>
       <div className="warming-cooldown-form">
         {renderPhase('warming', data.warming, setWarming)}

@@ -130,6 +130,11 @@ def create_exercise():
         exercise = Exercise(**data)
         db.session.add(exercise)
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify(exercise.to_dict('fa')), 201
     except Exception as e:
         db.session.rollback()
@@ -162,6 +167,11 @@ def update_exercise(exercise_id):
     
     try:
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify(exercise.to_dict('fa')), 200
     except Exception as e:
         db.session.rollback()
@@ -185,6 +195,11 @@ def delete_exercise(exercise_id):
     try:
         db.session.delete(exercise)
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify({'message': 'Exercise deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
@@ -217,6 +232,11 @@ def update_exercise_movement_info(exercise_id):
                 setattr(exercise, key, (val.strip() if isinstance(val, str) else val) or None)
     try:
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify(exercise.to_dict('fa')), 200
     except Exception as e:
         db.session.rollback()
@@ -372,6 +392,11 @@ def bulk_create_exercises():
     
     try:
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify({
             'message': f'Created {len(created)} exercises',
             'created': created,
@@ -1078,6 +1103,11 @@ def save_configuration():
     
     try:
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify({'message': 'Configuration saved successfully'}), 200
     except Exception as e:
         db.session.rollback()
@@ -1322,6 +1352,11 @@ def update_site_settings():
                 setattr(row, key, str(val))
     try:
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify({'message': 'Site settings saved successfully'}), 200
     except Exception as e:
         db.session.rollback()
@@ -1377,6 +1412,11 @@ def update_session_phases():
     row.session_phases_json = json.dumps(data, ensure_ascii=False)
     try:
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify({'message': 'Session phases saved'}), 200
     except Exception as e:
         db.session.rollback()
@@ -1422,6 +1462,11 @@ def update_training_plans_products():
     row.training_plans_products_json = json.dumps(data, ensure_ascii=False)
     try:
         db.session.commit()
+        try:
+            from services.website_kb import trigger_kb_reindex_safe
+            trigger_kb_reindex_safe()
+        except Exception:
+            pass
         return jsonify({'message': 'Training plans & packages saved'}), 200
     except Exception as e:
         db.session.rollback()
@@ -1487,6 +1532,37 @@ def update_ai_settings():
         if not _save_settings(settings):
             return jsonify({'error': 'Failed to save settings'}), 500
         return jsonify({'message': 'AI settings saved'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ---------- Website KB ----------
+@admin_bp.route('/website-kb/status', methods=['GET'])
+@jwt_required()
+def kb_status():
+    if not is_admin(get_jwt_identity()):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from services.website_kb import get_kb_status
+    status = get_kb_status()
+    return jsonify({
+        'updated_at': status.get('updated_at'),
+        'count': status.get('count', 0),
+    }), 200
+
+
+@admin_bp.route('/website-kb/reindex', methods=['POST'])
+@jwt_required()
+def kb_reindex():
+    if not is_admin(get_jwt_identity()):
+        return jsonify({'error': 'Unauthorized'}), 403
+    from services.website_kb import build_kb_index
+    try:
+        payload = build_kb_index()
+        return jsonify({
+            'message': 'KB reindexed',
+            'count': payload.get('count', 0),
+            'updated_at': payload.get('updated_at'),
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

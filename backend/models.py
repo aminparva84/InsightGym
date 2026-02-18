@@ -404,6 +404,40 @@ class TrainingProgram(db.Model):
             'sessions': self.get_sessions()
         }
 
+
+class PurchaseOrder(db.Model):
+    """Training program purchase order (no payment gateway yet)."""
+    __tablename__ = 'purchase_orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    program_id = db.Column(db.Integer, nullable=False)
+    packages_json = db.Column(db.Text)  # JSON array of selected packages
+    ems_form_json = db.Column(db.Text)  # JSON object for EMS form (optional)
+    discount_code = db.Column(db.String(50))
+    subtotal = db.Column(db.Float, default=0)
+    discount_amount = db.Column(db.Float, default=0)
+    total = db.Column(db.Float, default=0)
+    status = db.Column(db.String(30), default='pending_payment')  # pending_payment, paid
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    paid_at = db.Column(db.DateTime)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'program_id': self.program_id,
+            'packages': json.loads(self.packages_json) if self.packages_json else [],
+            'ems_form': json.loads(self.ems_form_json) if self.ems_form_json else {},
+            'discount_code': self.discount_code,
+            'subtotal': self.subtotal,
+            'discount_amount': self.discount_amount,
+            'total': self.total,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'paid_at': self.paid_at.isoformat() if self.paid_at else None,
+        }
+
 class MemberWeeklyGoal(db.Model):
     """Weekly mini-goals for members on a training plan (e.g. 1 month = 4 weekly goals)"""
     __tablename__ = 'member_weekly_goals'
@@ -561,6 +595,26 @@ class SiteSettings(db.Model):
     # JSON: AI provider settings (selected_provider, openai/anthropic/gemini: api_key, source, last_tested_at, is_valid)
     ai_settings_json = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WebsiteKBSource(db.Model):
+    """Website KB raw source content. Single row (singleton)."""
+    __tablename__ = 'website_kb_source'
+
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, default='')
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WebsiteKBChunk(db.Model):
+    """Website KB chunks with embeddings for vector search. Uses local sentence-transformers (no API key)."""
+    __tablename__ = 'website_kb_chunks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    chunk_index = db.Column(db.Integer, nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    embedding_json = db.Column(db.Text, nullable=False)  # JSON array of floats
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

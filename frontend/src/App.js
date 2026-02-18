@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import AdminPage from './components/AdminPage';
+import PurchasePage from './components/PurchasePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 import './themes.css';
@@ -68,6 +69,7 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/" replace />} />
       <Route path="/admin" element={user ? <AdminPage /> : <Navigate to="/" replace />} />
+      <Route path="/purchase" element={user ? <PurchasePage /> : <Navigate to="/" replace />} />
     </Routes>
   );
 }

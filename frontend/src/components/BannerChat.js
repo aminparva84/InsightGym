@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getApiBase } from '../services/apiBase';
 import { useAuth } from '../context/AuthContext';
 import './BannerChat.css';
 
-const BannerChat = () => {
+const BannerChat = ({ onOpenBuyModal }) => {
+  const navigate = useNavigate();
   const { i18n } = useTranslation();
   const API_BASE = getApiBase();
   const { user } = useAuth();
@@ -225,7 +227,8 @@ const BannerChat = () => {
       const assistantMessage = {
         role: 'assistant',
         content: response.data.response || response.data.message || 'No response',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        results: response.data.results || [],
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -367,7 +370,41 @@ const BannerChat = () => {
         {messages.map((msg, index) => (
           <div key={index} className={`banner-chat-message ${msg.role}`}>
             <div className="banner-chat-message-content">
-              {msg.content}
+              {msg.role === 'assistant' && typeof msg.content === 'string' && (msg.content.includes('خرید برنامه') || msg.content.includes('Buy program')) ? (
+                msg.content.split(/(خرید برنامه|Buy program)/).map((part, i) =>
+                  (part === 'خرید برنامه' || part === 'Buy program') ? (
+                    <button
+                      key={i}
+                      type="button"
+                      className="message-content-buy-link"
+                      onClick={() => {
+                        const plan = msg.results?.find((r) => r.action === 'suggest_training_plans')?.data?.plans?.[0];
+                        if (plan && plan.id) {
+                          const program = {
+                            id: plan.id,
+                            name_fa: plan.name_fa || plan.name,
+                            name_en: plan.name_en || plan.name,
+                            price: Number(plan.price) || 99,
+                          };
+                          const payload = { program, packages: [] };
+                          try {
+                            localStorage.setItem('pendingPurchase', JSON.stringify(payload));
+                          } catch (e) { /* ignore */ }
+                          navigate('/purchase', { state: payload });
+                        } else if (onOpenBuyModal) {
+                          onOpenBuyModal();
+                        }
+                      }}
+                    >
+                      {part}
+                    </button>
+                  ) : (
+                    <span key={i}>{part}</span>
+                  )
+                )
+              ) : (
+                msg.content
+              )}
             </div>
           </div>
         ))}

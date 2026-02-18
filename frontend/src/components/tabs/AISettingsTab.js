@@ -19,9 +19,6 @@ const AISettingsTab = () => {
   const [settings, setSettings] = useState({ selected_provider: 'openai', providers: {} });
   const [keys, setKeys] = useState({ openai: '', anthropic: '', gemini: '', vertex: '' });
   const [kbStatus, setKbStatus] = useState(null);
-  const [kbContent, setKbContent] = useState('');
-  const [kbLoading, setKbLoading] = useState(false);
-  const [kbSaving, setKbSaving] = useState(false);
   const [kbIndexing, setKbIndexing] = useState(false);
 
   const getAuthToken = useCallback(() => {
@@ -58,23 +55,10 @@ const AISettingsTab = () => {
     }
   }, [getAxiosConfig]);
 
-  const fetchKbSource = useCallback(async () => {
-    try {
-      setKbLoading(true);
-      const res = await axios.get(`${API_BASE}/api/admin/website-kb/source`, getAxiosConfig());
-      setKbContent(res.data?.content || '');
-    } catch (err) {
-      setKbContent('');
-    } finally {
-      setKbLoading(false);
-    }
-  }, [getAxiosConfig]);
-
   useEffect(() => {
     fetchSettings();
     fetchKbStatus();
-    fetchKbSource();
-  }, [fetchSettings, fetchKbStatus, fetchKbSource]);
+  }, [fetchSettings, fetchKbStatus]);
 
   const handleSaveKey = async (provider) => {
     const key = (keys[provider] || '').trim();
@@ -137,25 +121,6 @@ const AISettingsTab = () => {
     }
   };
 
-  const handleSaveKbSource = async () => {
-    try {
-      setKbSaving(true);
-      await axios.put(
-        `${API_BASE}/api/admin/website-kb/source`,
-        { content: kbContent },
-        getAxiosConfig()
-      );
-      if (fa) alert('محتوا ذخیره شد');
-      else alert('KB content saved');
-      fetchKbStatus();
-    } catch (err) {
-      if (fa) alert('خطا در ذخیره محتوا');
-      else alert('Error saving KB content');
-    } finally {
-      setKbSaving(false);
-    }
-  };
-
   const handleReindexKb = async () => {
     try {
       setKbIndexing(true);
@@ -164,8 +129,8 @@ const AISettingsTab = () => {
       else alert('KB reindexed');
       fetchKbStatus();
     } catch (err) {
-      if (fa) alert('خطا در ایندکس KB');
-      else alert('Error reindexing KB');
+      const msg = err.response?.data?.error || err.message || (fa ? 'خطا در ایندکس KB' : 'Error reindexing KB');
+      alert(msg);
     } finally {
       setKbIndexing(false);
     }
@@ -290,8 +255,8 @@ const AISettingsTab = () => {
         <h3>{fa ? 'پایگاه دانش سایت (KB)' : 'Website Knowledge Base (KB)'}</h3>
         <p className="ai-settings-desc">
           {fa
-            ? 'محتوای دانش سایت را ویرایش کنید و سپس ایندکس را به‌روزرسانی نمایید.'
-            : 'Edit the website KB content and then reindex to update embeddings.'}
+            ? 'با کلیک روی «به‌روزرسانی ایندکس»، تمام اطلاعات سایت ایندکس می‌شوند: تنظیمات سایت، سطوح تمرینی، حرکات اصلاحی، کتابخانه تمرینات، گرم‌کردن و سردکردن.'
+            : 'Click "Reindex" to index all website info: site settings, training levels, corrective movements, exercise library, warming & cooldown.'}
         </p>
         <div className="ai-kb-meta">
           <span>
@@ -301,28 +266,12 @@ const AISettingsTab = () => {
             {fa ? 'آخرین بروزرسانی:' : 'Last updated:'} {kbStatus?.updated_at ? new Date(kbStatus.updated_at).toLocaleString() : '—'}
           </span>
         </div>
-        <textarea
-          className="ai-kb-textarea"
-          rows={10}
-          value={kbContent}
-          onChange={(e) => setKbContent(e.target.value)}
-          placeholder={fa ? 'محتوای KB را اینجا وارد کنید...' : 'Enter KB content here...'}
-          disabled={kbLoading}
-        />
         <div className="ai-kb-actions">
-          <button
-            type="button"
-            className="ai-settings-btn ai-settings-btn-save"
-            onClick={handleSaveKbSource}
-            disabled={kbSaving || kbLoading}
-          >
-            {kbSaving ? (fa ? 'در حال ذخیره...' : 'Saving...') : (fa ? 'ذخیره' : 'Save')}
-          </button>
           <button
             type="button"
             className="ai-settings-btn ai-settings-btn-test"
             onClick={handleReindexKb}
-            disabled={kbIndexing || kbLoading}
+            disabled={kbIndexing}
           >
             {kbIndexing ? (fa ? 'در حال ایندکس...' : 'Indexing...') : (fa ? 'به‌روزرسانی ایندکس' : 'Reindex')}
           </button>

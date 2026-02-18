@@ -126,12 +126,14 @@ def generate_coach_workout_plan():
         # Get safe exercises
         safe_exercises = coach.get_safe_exercises(exercise_pool, user_injuries)
         
-        # Generate workout plan response
+        # Generate workout plan response (uses admin's Training Info - Training Levels Info)
+        message = query if isinstance(query, str) else "برنامه تمرینی"
         response_data = coach._handle_workout_plan_request(
-            query,
+            message,
             month,
             user_injuries,
-            safe_exercises
+            safe_exercises,
+            language
         )
         
         return jsonify({

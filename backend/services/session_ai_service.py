@@ -4,17 +4,70 @@ Uses the admin-configured AI provider (OpenAI, Anthropic, or Gemini) via service
 """
 
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 
-def _ai_chat(system: str, user: str) -> Optional[str]:
-    """Call the configured AI provider (from admin AI settings). Returns None if unavailable."""
+def _ai_chat(system: str, user: str, max_tokens: int = 800, db=None) -> Optional[str]:
+    """Call the configured AI provider (from admin AI settings). Returns None if unavailable.
+    Pass db to load settings from the given db (avoids current_app issues in purchase flow)."""
     try:
         from services.ai_provider import chat_completion
-        return chat_completion(system, user, max_tokens=800)
+        return chat_completion(system, user, max_tokens=max_tokens, db=db)
     except Exception as e:
         print(f"session_ai_service AI chat error: {e}")
+        import traceback
+        traceback.print_exc()
     return None
+
+
+def _extract_json_array(text: str) -> Tuple[Optional[List], Optional[str]]:
+    """
+    Extract a JSON array from AI output. Handles markdown code blocks, extra text, etc.
+    Returns (sessions_list, error_message). error_message is set when extraction fails.
+    """
+    if not text or not isinstance(text, str):
+        return None, "AI returned empty or non-string"
+    cleaned = text.strip()
+    # Strip markdown code block
+    if cleaned.startswith("```"):
+        parts = cleaned.split("```")
+        for i, p in enumerate(parts):
+            p = p.strip()
+            if p.lower().startswith("json"):
+                p = p[4:].lstrip()
+            if p.startswith("["):
+                try:
+                    obj = json.loads(p)
+                    if isinstance(obj, list) and len(obj) > 0:
+                        return obj, None
+                    return None, "JSON is empty array or not a list"
+                except json.JSONDecodeError as e:
+                    return None, f"JSON parse error in code block: {e}"
+    # Try to find [...] in text
+    start = cleaned.find("[")
+    if start != -1:
+        depth = 0
+        for i, c in enumerate(cleaned[start:], start):
+            if c == "[":
+                depth += 1
+            elif c == "]":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        obj = json.loads(cleaned[start : i + 1])
+                        if isinstance(obj, list) and len(obj) > 0:
+                            return obj, None
+                        return None, "Extracted JSON is empty or not a list"
+                    except json.JSONDecodeError as e:
+                        return None, f"JSON parse error: {e}"
+    # Direct parse
+    try:
+        obj = json.loads(cleaned)
+        if isinstance(obj, list) and len(obj) > 0:
+            return obj, None
+        return None, "Parsed JSON is empty array or not a list"
+    except json.JSONDecodeError as e:
+        return None, f"JSON parse error: {e}"
 
 
 def adapt_session_by_mood(
@@ -157,3 +210,148 @@ Rules:
     except json.JSONDecodeError:
         pass
     return None
+
+
+def generate_personalized_program_after_purchase(
+    user_id: int,
+    program_id: int,
+    language: str,
+    db,
+) -> Tuple[Optional[List[Dict[str, Any]]], str]:
+    """
+    Generate a personalized training program using AI after purchase.
+    Uses user profile + admin's Training Info (Configuration, Exercise library).
+    Returns list of session dicts: [{ week, day, name_fa, name_en, exercises: [...] }, ...].
+    """
+    from models import UserProfile, Configuration, Exercise, TrainingProgram
+
+    profile = db.session.query(UserProfile).filter_by(user_id=user_id).first()
+    template = db.session.get(TrainingProgram, program_id)
+    duration_weeks = (template.duration_weeks if template else 4) or 4
+    training_level = (profile.training_level if profile else 'beginner').strip().lower()
+    workout_days = profile.workout_days_per_week if profile and profile.workout_days_per_week else 3
+    workout_days = max(2, min(6, int(workout_days) if workout_days else 3))
+
+    # Build profile summary
+    parts = []
+    if profile:
+        if profile.age:
+            parts.append(f"age={profile.age}")
+        if profile.weight:
+            parts.append(f"weight={profile.weight}kg")
+        if profile.gender:
+            parts.append(f"gender={profile.gender}")
+        if profile.training_level:
+            parts.append(f"training_level={profile.training_level}")
+        if profile.workout_days_per_week:
+            parts.append(f"workout_days_per_week={profile.workout_days_per_week}")
+        if profile.get_fitness_goals():
+            parts.append("fitness_goals=" + ",".join(profile.get_fitness_goals()))
+        if profile.get_injuries():
+            parts.append("injuries=" + ",".join(profile.get_injuries()))
+        if profile.gym_access is not None:
+            parts.append(f"gym_access={profile.gym_access}")
+    profile_summary = "; ".join(parts) if parts else "beginner, 3 days per week"
+
+    # Map user fitness_goals to Configuration purpose key
+    goals = profile.get_fitness_goals() if profile and hasattr(profile, 'get_fitness_goals') else []
+    purpose = 'gain_muscle'
+    goal_to_purpose = {
+        'lose_weight': 'lose_weight', 'کاهش وزن': 'lose_weight', 'weight_loss': 'lose_weight',
+        'gain_weight': 'gain_weight', 'افزایش وزن': 'gain_weight',
+        'gain_muscle': 'gain_muscle', 'افزایش عضله': 'gain_muscle',
+        'muscle_gain': 'gain_muscle', 'strength': 'gain_muscle',
+        'shape_fitting': 'shape_fitting', 'تناسب اندام': 'shape_fitting',
+        'endurance': 'shape_fitting',
+    }
+    for g in (goals or []):
+        g_lower = (g or '').strip().lower()
+        if g_lower in goal_to_purpose:
+            purpose = goal_to_purpose[g_lower]
+            break
+
+    # Get admin's Training Info (Configuration) - use purpose matching user's fitness goals
+    admin_training_info = ""
+    try:
+        config = db.session.query(Configuration).first()
+        if config and config.training_levels:
+            raw = json.loads(config.training_levels) if isinstance(config.training_levels, str) else config.training_levels
+            level_data = raw.get(training_level) or raw.get('beginner') or {}
+            purposes = level_data.get('purposes') or {}
+            purpose_data = purposes.get(purpose) or purposes.get('gain_muscle') or {}
+            admin_training_info = (
+                f"Admin Training Level Config for {training_level}, purpose={purpose}: "
+                f"sets_per_action={purpose_data.get('sets_per_action')}, "
+                f"reps_per_action={purpose_data.get('reps_per_action')}, "
+                f"break_between_sets={purpose_data.get('break_between_sets')}, "
+                f"sessions_per_week={purpose_data.get('sessions_per_week')}, "
+                f"training_focus_fa={purpose_data.get('training_focus_fa', '')}, "
+                f"training_focus_en={purpose_data.get('training_focus_en', '')}"
+            )
+        if config and config.injuries:
+            raw_inj = json.loads(config.injuries) if isinstance(config.injuries, str) else config.injuries
+            injury_notes = []
+            for inj_key, inj_val in (raw_inj or {}).items():
+                if inj_key.startswith('common_'):
+                    continue
+                if isinstance(inj_val, dict):
+                    fa = inj_val.get('purposes_fa', '') or inj_val.get('important_notes_fa', '')
+                    en = inj_val.get('purposes_en', '') or inj_val.get('important_notes_en', '')
+                    if fa or en:
+                        injury_notes.append(f"{inj_key}: {fa[:200]} / {en[:200]}")
+            if injury_notes:
+                admin_training_info += "\nAdmin Injury/Corrective notes: " + " | ".join(injury_notes[:6])
+    except Exception:
+        pass
+
+    # Get exercise library (names for AI to choose from)
+    exercises = db.session.query(Exercise).order_by(Exercise.id).limit(80).all()
+    if profile and profile.gym_access is False:
+        exercises = [e for e in exercises if e.category and 'functional' in (e.category or '').lower()]
+    if not exercises:
+        exercises = db.session.query(Exercise).limit(50).all()
+    exercise_list = []
+    for ex in exercises:
+        exercise_list.append(f"{ex.name_fa} / {ex.name_en} (target: {ex.target_muscle_fa or ex.target_muscle_en})")
+    exercises_text = "\n".join(exercise_list[:50])
+
+    lang_fa = language == 'fa'
+    total_sessions = duration_weeks * workout_days
+    system_fa = f"""تو یک مربی حرفه‌ای تناسب اندام هستی. بر اساس اطلاعات عضو و تنظیمات ادمین (Training Info)، یک برنامه تمرینی {duration_weeks} هفته‌ای طراحی کن.
+قوانین:
+- هدف اصلی عضو (purpose={purpose}) را در طراحی برنامه رعایت کن. sets، reps، rest و تمرکز تمرین باید مطابق Admin Config برای این purpose باشد.
+- خروجی فقط یک آرایه JSON معتبر از جلسات باشد. هر جلسه: week (1 تا {duration_weeks}), day (1 تا {workout_days})، name_fa، name_en، exercises.
+- هر exercise: name_fa, name_en, sets (عدد), reps (رشته مثل "10-12"), rest (مثل "60 seconds"), instructions_fa, instructions_en.
+- فقط از حرکات لیست Exercise Library استفاده کن. نام حرکت را دقیقاً از لیست کپی کن.
+- سطح ({training_level})، اهداف (fitness_goals)، و آسیب‌ها (injuries) را رعایت کن. برای آسیب‌ها از نکات Admin Injury استفاده کن.
+- تعداد کل جلسات: حدود {total_sessions}. بدون توضیح اضافه؛ فقط آرایه JSON."""
+    system_en = f"""You are a professional fitness coach. Based on member info and admin Training Info, design a {duration_weeks}-week training program.
+Rules:
+- The member's primary purpose (purpose={purpose}) MUST drive the program design. Use sets, reps, rest and training focus from Admin Config for this purpose.
+- Output only a valid JSON array of sessions. Each session: week (1 to {duration_weeks}), day (1 to {workout_days}), name_fa, name_en, exercises.
+- Each exercise: name_fa, name_en, sets (number), reps (string e.g. "10-12"), rest (e.g. "60 seconds"), instructions_fa, instructions_en.
+- Use ONLY exercises from the Exercise Library list. Copy exercise names exactly from the list.
+- Respect training level ({training_level}), fitness goals, and injuries. For injuries use Admin Injury notes.
+- Total sessions: about {total_sessions}. No extra text; only the JSON array."""
+
+    user_msg = f"""Member profile: {profile_summary}
+
+Admin Training Info:
+{admin_training_info}
+
+Exercise Library (use only these - copy names exactly):
+{exercises_text}"""
+
+    out = _ai_chat(system_fa if lang_fa else system_en, user_msg, max_tokens=8000, db=db)
+    if not out:
+        from services.ai_provider import get_last_chat_error
+        api_err = get_last_chat_error()
+        msg = api_err if api_err else "AI provider returned no response (check API key, provider config, or console for errors)"
+        return None, msg
+    sessions, parse_err = _extract_json_array(out)
+    if sessions:
+        return sessions, ""
+    raw_preview = (out[:300] + "...") if len(out) > 300 else out
+    err = parse_err or "Unknown parse error"
+    print(f"[generate_personalized_program] AI output parse failed: {err}. Raw preview: {raw_preview}")
+    return None, err

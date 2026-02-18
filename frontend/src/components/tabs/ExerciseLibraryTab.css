@@ -18,6 +18,55 @@
   border-bottom: 2px solid var(--color-primary-200);
 }
 
+.exercise-library-info {
+  background: var(--color-primary-50);
+  border: 1px solid var(--color-primary-200);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.exercise-library-info h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  color: var(--color-primary-800);
+}
+
+.exercise-library-info p {
+  margin: 0 0 1rem 0;
+  color: var(--color-primary-700);
+}
+
+.exercise-library-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.exercise-library-info-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-primary-100);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+}
+
+.exercise-library-info-card h4 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1rem;
+  color: var(--color-primary-800);
+}
+
+.exercise-library-info-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.exercise-library-info-card li {
+  margin: 0.25rem 0;
+  color: var(--color-primary-700);
+  font-size: 0.9rem;
+}
+
 .exercise-library-header h2 {
   font-size: 1.8rem;
   font-weight: 700;

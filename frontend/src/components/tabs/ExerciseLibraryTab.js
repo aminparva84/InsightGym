@@ -28,6 +28,55 @@ const GENDER_SUITABILITY = [
 ];
 const INJURY_OPTIONS = ['knee', 'shoulder', 'lower_back', 'neck', 'wrist', 'ankle'];
 
+const EXERCISES_INFO = {
+  title_en: 'Exercises',
+  title_fa: 'تمرینات',
+  intro_en: 'This section defines how exercises are added to the library so the AI and training plans can use them safely and consistently.',
+  intro_fa: 'این بخش توضیح می‌دهد تمرین‌ها چگونه به کتابخانه اضافه شوند تا AI و برنامه‌های تمرینی با کیفیت و ایمنی استفاده کنند.',
+  sections: [
+    {
+      title_en: 'Required fields',
+      title_fa: 'فیلدهای ضروری',
+      items_en: [
+        'Name (FA/EN), Target muscle (FA/EN)',
+        'Category, Level, Intensity, Gender suitability',
+        'Execution tips & Breathing guide (recommended)',
+      ],
+      items_fa: [
+        'نام (فارسی/انگلیسی)، عضله هدف (فارسی/انگلیسی)',
+        'دسته‌بندی، سطح، شدت، مناسب‌بودن برای جنسیت',
+        'نکات اجرا و راهنمای تنفس (ترجیحاً تکمیل شود)',
+      ],
+    },
+    {
+      title_en: 'Quality checklist',
+      title_fa: 'چک‌لیست کیفیت',
+      items_en: [
+        'Write short, clear cues for form and breathing',
+        'Match intensity to level; avoid advanced cues for beginners',
+        'List injuries that should avoid this movement',
+      ],
+      items_fa: [
+        'راهنمای کوتاه و واضح برای فرم و تنفس بنویسید',
+        'شدت را با سطح تمرینی هماهنگ کنید؛ برای مبتدی‌ها پیشرفته ننویسید',
+        'آسیب‌هایی که این حرکت برایشان ممنوع است را مشخص کنید',
+      ],
+    },
+    {
+      title_en: 'Media & notes',
+      title_fa: 'رسانه و یادداشت',
+      items_en: [
+        'Optional video/image URLs help members perform correctly',
+        'Trainer notes can be reused across programs',
+      ],
+      items_fa: [
+        'ویدیو/تصویر اختیاری برای اجرای صحیح اعضا مفید است',
+        'یادداشت مربی می‌تواند در برنامه‌ها استفاده مجدد شود',
+      ],
+    },
+  ],
+};
+
 const defaultExerciseForm = () => ({
   category: 'bodybuilding_machine',
   name_fa: '',
@@ -91,7 +140,7 @@ const ExerciseLibraryTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, categoryFilter, getAxiosConfig, i18n.language, levelFilter, page]);
+  }, [categoryFilter, getAxiosConfig, i18n.language, levelFilter, page]);
 
   useEffect(() => {
     fetchExercises();
@@ -215,6 +264,23 @@ const ExerciseLibraryTab = () => {
         <button type="button" className="btn-primary" onClick={openCreate}>
           {i18n.language === 'fa' ? '+ افزودن تمرین' : '+ Add Exercise'}
         </button>
+      </div>
+
+      <div className="exercise-library-info">
+        <h3>{i18n.language === 'fa' ? EXERCISES_INFO.title_fa : EXERCISES_INFO.title_en}</h3>
+        <p>{i18n.language === 'fa' ? EXERCISES_INFO.intro_fa : EXERCISES_INFO.intro_en}</p>
+        <div className="exercise-library-info-grid">
+          {EXERCISES_INFO.sections.map((sec, idx) => (
+            <div key={idx} className="exercise-library-info-card">
+              <h4>{i18n.language === 'fa' ? sec.title_fa : sec.title_en}</h4>
+              <ul>
+                {(i18n.language === 'fa' ? sec.items_fa : sec.items_en).map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="exercise-library-filters">

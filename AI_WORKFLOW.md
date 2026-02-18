@@ -1,6 +1,6 @@
 # AI Workflow (InsightGYM)
 
-This document defines the AI workflow for the fitness platform and aligns it with the current backend endpoints and services.
+This document defines the AI workflow for the fitness platform. The flow follows the Real_State pattern: unified chat endpoint with action planner as primary flow.
 
 ## 1. Purpose
 - Goal: Provide AI-assisted coaching, workout planning, and safe exercise guidance.
@@ -15,32 +15,33 @@ This document defines the AI workflow for the fitness platform and aligns it wit
 - AI provider selection: `auto | openai | anthropic | gemini | vertex`.
 - API keys stored in `SiteSettings.ai_settings_json` (managed via Admin API).
 - Provider resolution: `auto` selects the first available provider with a valid key and SDK installed.
+- Feature flag: `USE_ACTION_PLANNER=true` (default) enables action planner; when false, falls back to plain chat.
 
 ## 4. Entry Points
+- **`POST /api/chat`** — Main unified AI chat (Real_State style). Uses action planner by default.
+- `POST /api/ai/plan` — Legacy action-planning endpoint (same logic; prefer /api/chat).
 - `POST /api/ai-coach/chat` for AI coach conversation.
 - `POST /api/ai-coach/workout-plan` for AI-generated workout plans.
 - `GET /api/training-programs` for trial program auto-generation (AI-assisted) when needed.
 - `POST /api/vector-search/search` for vector-based exercise lookup (requires vector DB setup).
 - `GET /api/vector-search/recommendations` for profile-based exercise recommendations (requires vector DB setup).
-- `POST /api/ai/plan` for AI action planning with structured JSON actions.
 - `GET /api/admin/website-kb/status` for KB index status (admin only).
-- `GET|PUT /api/admin/website-kb/source` for editing KB source content (admin only).
-- `POST /api/admin/website-kb/reindex` to rebuild KB embeddings (admin only).
+- `POST /api/admin/website-kb/reindex` to rebuild KB embeddings from all website data (site settings, training levels, injuries, exercise library, warming & cooldown) (admin only).
 - `POST /api/website-kb/query` for KB semantic search (auth required).
 - `GET|PUT /api/admin/ai-settings` and `POST /api/admin/ai-settings/test` for AI provider configuration.
 
-## 5. Request Handling Flow
-1. Member sends a message or workout request.
-2. Backend resolves user context (JWT identity, role, language, profile).
-3. If vector search is available, exercise candidates are fetched; otherwise, a database fallback is used.
-4. Safety checks are applied (injury contraindications, medical conditions).
-5. AI provider generates a response or workout plan.
-6. Response is returned with metadata (injuries detected, safety checks, suggested exercises).
+## 5. Request Handling Flow (Real_State Style)
+1. Admin sets AI provider in admin dashboard.
+2. User (based on privileges) sends a message to `POST /api/chat`.
+3. Backend resolves user context (JWT identity, role, language, profile).
+4. If `USE_ACTION_PLANNER=true`: AI understands message and returns `action_json` (assistant_response + actions).
+5. Backend executes allowed actions (search_exercises, create_workout_plan, etc.) via internal services.
+6. Response is returned with `response`, `assistant_response`, `actions`, `results`, `errors`, `session_id`.
+7. If action planner fails or is disabled, falls back to `generate_ai_response` (plain text).
 
 ## 6. AI Response Structure
-- For chat: text response plus metadata (`injuries_detected`, `safety_checked`, `exercises_suggested`, `month`).
+- Unified chat response: `response`, `assistant_response`, `actions`, `results`, `errors`, `session_id`, `timestamp`.
 - For workout plan: text response plus `month`, `safety_checked`, and exercise list.
-- For action planner: `assistant_response`, `actions` (validated JSON), `results` (structured execution results), `errors`.
 
 ## 6.1 Action Planner (JSON)
 The LLM returns only JSON with an `actions` array:

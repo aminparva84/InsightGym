@@ -51,7 +51,7 @@ const MembersProgramsTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, getAxiosConfig, i18n.language]);
+  }, [getAxiosConfig, i18n.language]);
 
   const loadActionNotes = useCallback(async (programId) => {
     if (!programId) return;
@@ -76,7 +76,7 @@ const MembersProgramsTab = () => {
       console.error('Error loading action notes:', err);
       setActionNotes([]);
     }
-  }, [API_BASE, getAxiosConfig, i18n.language]);
+  }, [getAxiosConfig, i18n.language]);
 
   useEffect(() => {
     if (selectedProgram) {

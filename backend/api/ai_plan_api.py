@@ -1,5 +1,6 @@
 """
 API endpoint for AI action planning and execution.
+Prefer POST /api/chat for unified flow (Real_State style); this endpoint is kept for backward compatibility.
 """
 
 import uuid
@@ -8,6 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app import db, User, ChatHistory, ChatSession
 from services.action_planner import plan_and_execute
+from services.ai_debug_logger import append_log
 
 
 ai_plan_bp = Blueprint('ai_plan', __name__, url_prefix='/api/ai')
@@ -49,6 +51,20 @@ def plan_actions_endpoint():
         if not existing:
             db.session.add(ChatSession(session_id=session_id, user_id=user_id, title=None))
         db.session.commit()
+
+        try:
+            append_log(
+                message=message,
+                response=result.get('assistant_response') or '',
+                action_json={
+                    'actions': result.get('actions', []),
+                    'results': result.get('results', []),
+                    'errors': result.get('errors', []),
+                },
+                error='',
+            )
+        except Exception:
+            pass
 
         return jsonify({
             'assistant_response': result.get('assistant_response'),

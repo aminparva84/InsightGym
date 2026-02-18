@@ -37,7 +37,7 @@ const TrainerInbox = () => {
     } finally {
       setLoadingProgressRequests(false);
     }
-  }, [ADMIN_BASE, getAxiosConfig]);
+  }, [getAxiosConfig]);
 
   const respondProgressCheck = async (reqId, action) => {
     setRespondingId(reqId);
@@ -75,7 +75,7 @@ const TrainerInbox = () => {
     } finally {
       setLoadingThreads(false);
     }
-  }, [API_BASE, ADMIN_BASE, getAxiosConfig]);
+  }, [getAxiosConfig]);
 
   const loadThread = async (memberId, username) => {
     if (!memberId) return;

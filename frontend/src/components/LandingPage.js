@@ -71,6 +71,7 @@ const LandingPage = () => {
       }
     };
     fetchSiteSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Check if user has a training program
@@ -226,7 +227,7 @@ const LandingPage = () => {
             <div className="banner-chatbox-wrapper">
               {user ? (
                 <div className="banner-chatbox">
-                  <BannerChat />
+                  <BannerChat onOpenBuyModal={() => setShowTrainingProgramsModal(true)} />
                 </div>
               ) : (
                 <div className="banner-chatbox-placeholder">
@@ -346,7 +347,7 @@ const LandingPage = () => {
               {/* Gain Muscle Card */}
               <div className="feature-card">
                 <div className="feature-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9 3.57 6 6.57 4.57 5 3 6.57 2 8.14 4.57 9.71 7 6.57 10.14 4.57 11.57 6 13l2-2 2.43 2.43 1.43-1.43-2.43-2.43L22 8.14 20.57 6.71 17 10.29 8.43 1.71 12-1.86 10.57-3.29 9-1.71 6-4.71 4.57-6.29 3-4.71 2-3.14 4.57-1.57 7 4.29 10.14 2.57 11.57 4 13l2-2 4.29 4.29 1.43-1.43-4.29-4.29L22 6.29 20.57 4.86 17 8.43 8.43-0.14 12-3.71 10.57-5.14 9-3.57 6-6.57 4.57-8 3-6.57 2-5 4.57-3.43 7 5.43 10.14 3.57 11.57 5 13.43 5.43 15.86 8.29 18.71 12 15.43l2.57 2.57-1.43 1.43-2.57-2.57L17 20.57 20.57 24 22 22.57 18.43 19.43 20.57 14.86z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" dir="ltr"><path d="M6.5 5.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S8.33 4 7.5 4 6.5 4.67 6.5 5.5zM20.5 5.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5-1.5.67-1.5 1.5zM4 10h2v4H4v-4zm14 0h2v4h-2v-4zm-8 2h4v6h-4v-6z"/></svg>
                 </div>
                 <h3 className="feature-title">
                   {i18n.language === 'fa' ? 'افزایش عضله' : 'Gain Muscle'}
