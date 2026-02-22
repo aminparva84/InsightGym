@@ -411,7 +411,11 @@ const BannerChat = ({ onOpenBuyModal }) => {
         {loading && (
           <div className="banner-chat-message assistant">
             <div className="banner-chat-message-content loading">
-              {i18n.language === 'fa' ? 'در حال تایپ...' : 'Typing...'}
+              <span className="typing-dots" aria-label={i18n.language === 'fa' ? 'در حال تایپ' : 'Typing'}>
+                <span />
+                <span />
+                <span />
+              </span>
             </div>
           </div>
         )}

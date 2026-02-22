@@ -453,7 +453,11 @@ const ChatBox = () => {
         {loading && (
           <div className="message assistant">
             <div className="message-content loading">
-              {i18n.language === 'fa' ? 'در حال تایپ...' : 'Typing...'}
+              <span className="typing-dots" aria-label={i18n.language === 'fa' ? 'در حال تایپ' : 'Typing'}>
+                <span />
+                <span />
+                <span />
+              </span>
             </div>
           </div>
         )}

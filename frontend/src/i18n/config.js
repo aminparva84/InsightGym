@@ -179,6 +179,7 @@ const resources = {
       purchasePay: 'پرداخت و ثبت سفارش',
       purchaseGoToProgram: 'رفتن به برنامه تمرینی',
       purchaseSubmitting: 'در حال ثبت...',
+      purchaseGenerating: 'AI در حال طراحی برنامه شخصی‌سازی شده شماست...',
       purchaseSuccess: 'پرداخت موفق بود و برنامه شما فعال شد.',
       purchasePending: 'سفارش ثبت شد. برای پرداخت با پشتیبانی تماس بگیرید.',
       purchaseError: 'خطا در ثبت سفارش. دوباره تلاش کنید.',
@@ -261,6 +262,7 @@ const resources = {
       tpErrorFeedback: 'خطا در دریافت بازخورد.',
       tpSessionFinishedFallback: 'جلسه امروز را با موفقیت به پایان رساندید. 💪',
       tpTired: 'خسته',
+      tpExhausted: 'خسته یا بدحال',
       tpDepressed: 'افسرده یا بی‌حوصله',
       tpEnergy: 'پرانرژی',
       tpNormal: 'معمولی',
@@ -269,7 +271,8 @@ const resources = {
       tpIntermediate: 'متوسط',
       tpAdvanced: 'پیشرفته',
       tpNotDone: 'انجام نشده',
-      tpMarkNotDone: 'علامت انجام نشده'
+      tpMarkNotDone: 'علامت انجام نشده',
+      tpLoadNextSessions: 'بارگذاری جلسات بعدی (AI طراحی می‌کند)'
     }
   },
   en: {
@@ -449,6 +452,7 @@ const resources = {
       purchasePay: 'Place order',
       purchaseGoToProgram: 'Go to training program',
       purchaseSubmitting: 'Submitting...',
+      purchaseGenerating: 'AI is designing your personalized program...',
       purchaseSuccess: 'Payment successful and your program is active.',
       purchasePending: 'Order saved. Contact support to complete payment.',
       purchaseError: 'Could not place order. Please try again.',
@@ -533,6 +537,7 @@ const resources = {
       tpErrorFeedback: 'Error getting feedback.',
       tpSessionFinishedFallback: "You finished today's session. 💪",
       tpTired: 'Tired',
+      tpExhausted: 'Exhausted / not feeling well',
       tpDepressed: 'Depressed / low energy',
       tpEnergy: 'Full of energy',
       tpNormal: 'Normal',
@@ -541,7 +546,8 @@ const resources = {
       tpIntermediate: 'Intermediate',
       tpAdvanced: 'Advanced',
       tpNotDone: 'Not done',
-      tpMarkNotDone: 'Mark not done'
+      tpMarkNotDone: 'Mark not done',
+      tpLoadNextSessions: 'Load next sessions (AI designs them)'
     }
   }
 };

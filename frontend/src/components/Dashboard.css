@@ -467,10 +467,196 @@
   min-width: 0;
 }
 
+.dashboard-member-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.member-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-base);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  line-height: 1.2;
+}
+
+.member-action-btn:hover {
+  border-color: var(--color-accent-300);
+  background: var(--color-accent-50);
+}
+
+.member-action-icon {
+  display: inline-flex;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--accent);
+}
+
+.member-action-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
+}
+
+.progress-check-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.progress-check-modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.progress-check-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.progress-check-modal-header button {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
 .dashboard-chat-row {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+}
+
+.floating-chat-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-accent-500);
+  color: #fff;
+  font-size: 1.6rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.floating-chat-btn svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  display: block;
+}
+
+.floating-chat-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+.floating-chat-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 1190;
+}
+
+.floating-chat-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  width: min(420px, calc(100vw - 32px));
+  height: min(600px, calc(100vh - 140px));
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1210;
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+.floating-chat-panel-open {
+  animation: floatingChatIn 180ms ease-out forwards;
+}
+
+@keyframes floatingChatIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.floating-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary-50);
+  border-bottom: 1px solid var(--color-primary-200);
+  font-weight: 600;
+}
+
+.floating-chat-header button {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.floating-chat-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .floating-chat-panel {
+    right: 12px;
+    left: 12px;
+    bottom: 84px;
+    width: auto;
+    height: min(70vh, 520px);
+  }
+  .floating-chat-btn {
+    right: 16px;
+    bottom: 16px;
+  }
 }
 
 /* Dashboard tabs: glass effect (male=blue tint, female=pink tint, unisex=neutral) */
@@ -516,6 +702,7 @@
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.85rem;
+  line-height: 1.2;
   border-radius: 10px;
   transition: all 0.3s;
   position: relative;
@@ -548,9 +735,9 @@
 }
 
 .tab-icon svg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
 }
 
 .tab-content {

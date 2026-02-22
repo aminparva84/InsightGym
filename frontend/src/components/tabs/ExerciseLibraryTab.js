@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
+import type1Groups from '../../data/exerciseLibraryType1.json';
+import type2Groups from '../../data/exerciseLibraryType2.json';
+import type3Groups from '../../data/exerciseLibraryType3.json';
 import './ExerciseLibraryTab.css';
 
 const API_BASE = getApiBase();
@@ -159,37 +162,45 @@ const ExerciseLibraryTab = () => {
   };
 
   const openEdit = async (exercise) => {
+    let ex = exercise;
     try {
       const response = await axios.get(
         `${API_BASE}/api/admin/exercises/${exercise.id}`,
         getAxiosConfig()
       );
-      const ex = response.data;
-      setFormData({
-        category: ex.category || 'bodybuilding_machine',
-        name_fa: ex.name_fa || '',
-        name_en: ex.name_en || '',
-        target_muscle_fa: ex.target_muscle_fa || '',
-        target_muscle_en: ex.target_muscle_en || '',
-        level: ex.level || 'beginner',
-        intensity: ex.intensity || 'medium',
-        gender_suitability: ex.gender_suitability || 'both',
-        execution_tips_fa: ex.execution_tips_fa || '',
-        execution_tips_en: ex.execution_tips_en || '',
-        breathing_guide_fa: ex.breathing_guide_fa || '',
-        breathing_guide_en: ex.breathing_guide_en || '',
-        injury_contraindications: Array.isArray(ex.injury_contraindications) ? ex.injury_contraindications : [],
-        equipment_needed_fa: ex.equipment_needed_fa || '',
-        equipment_needed_en: ex.equipment_needed_en || '',
-        video_url: ex.video_url || '',
-        image_url: ex.image_url || ''
-      });
-      setEditingExercise(exercise);
-      setShowForm(true);
+      ex = response.data || exercise;
     } catch (error) {
+      const status = error.response?.status;
+      if (status === 404) {
+        alert(i18n.language === 'fa' ? 'تمرین یافت نشد. لیست به‌روزرسانی می‌شود.' : 'Exercise not found. Refreshing list.');
+        fetchExercises();
+        return;
+      }
       console.error('Error fetching exercise:', error);
       alert(i18n.language === 'fa' ? 'خطا در دریافت تمرین' : 'Error fetching exercise');
+      return;
     }
+    setFormData({
+      category: ex.category || 'bodybuilding_machine',
+      name_fa: ex.name_fa || '',
+      name_en: ex.name_en || '',
+      target_muscle_fa: ex.target_muscle_fa || '',
+      target_muscle_en: ex.target_muscle_en || '',
+      level: ex.level || 'beginner',
+      intensity: ex.intensity || 'medium',
+      gender_suitability: ex.gender_suitability || 'both',
+      execution_tips_fa: ex.execution_tips_fa || '',
+      execution_tips_en: ex.execution_tips_en || '',
+      breathing_guide_fa: ex.breathing_guide_fa || '',
+      breathing_guide_en: ex.breathing_guide_en || '',
+      injury_contraindications: Array.isArray(ex.injury_contraindications) ? ex.injury_contraindications : [],
+      equipment_needed_fa: ex.equipment_needed_fa || '',
+      equipment_needed_en: ex.equipment_needed_en || '',
+      video_url: ex.video_url || '',
+      image_url: ex.image_url || ''
+    });
+    setEditingExercise(exercise);
+    setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
@@ -242,16 +253,27 @@ const ExerciseLibraryTab = () => {
         ? `آیا از حذف "${exercise.name_fa || exercise.name_en}" مطمئن هستید؟`
         : `Delete "${exercise.name_fa || exercise.name_en}"?`
     )) return;
+    const token = getAuthToken();
+    if (!token) {
+      alert(i18n.language === 'fa' ? 'ابتدا وارد شوید' : 'Please log in first');
+      return;
+    }
     try {
-      await axios.delete(
+      const res = await axios.delete(
         `${API_BASE}/api/admin/exercises/${exercise.id}`,
         getAxiosConfig()
       );
-      alert(i18n.language === 'fa' ? 'تمرین حذف شد' : 'Exercise deleted');
-      fetchExercises();
+      if (res.status === 200) {
+        setExercises((prev) => prev.filter((ex) => ex.id !== exercise.id));
+        alert(i18n.language === 'fa' ? 'تمرین حذف شد' : 'Exercise deleted');
+        fetchExercises();
+        return;
+      }
+      alert(i18n.language === 'fa' ? 'حذف انجام نشد' : 'Delete did not complete');
     } catch (error) {
       console.error('Error deleting exercise:', error);
-      alert(i18n.language === 'fa' ? 'خطا در حذف تمرین' : 'Error deleting exercise');
+      const msg = error.response?.data?.error || error.message || 'Error';
+      alert(i18n.language === 'fa' ? `خطا در حذف تمرین: ${msg}` : `Error deleting exercise: ${msg}`);
     }
   };
 
@@ -278,6 +300,132 @@ const ExerciseLibraryTab = () => {
                   <li key={i}>{item}</li>
                 ))}
               </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="exercise-library-machine">
+        <h3>{i18n.language === 'fa' ? 'حالت ۱ – دستگاهی' : 'Type 1 – Machine'}</h3>
+        <p className="exercise-library-machine-desc">
+          {i18n.language === 'fa'
+            ? 'لیست استاندارد حرکات دستگاهی به تفکیک عضلات (ویرایش و بازبینی).'
+            : 'Standard machine exercise list by muscle group (review/edit).'}
+        </p>
+        <div className="exercise-library-machine-groups">
+          {type1Groups.map((group, idx) => (
+            <div key={idx} className="exercise-library-machine-group">
+              <h4>{group.title}</h4>
+              <div className="exercise-library-machine-table-wrap">
+                <table className="exercise-library-machine-table">
+                  <thead>
+                    <tr>
+                      <th>{i18n.language === 'fa' ? 'نام حرکت' : 'Exercise name'}</th>
+                      <th>{i18n.language === 'fa' ? 'عضله هدف' : 'Target muscle'}</th>
+                      <th>{i18n.language === 'fa' ? 'سطح' : 'Level'}</th>
+                      <th>{i18n.language === 'fa' ? 'نکات اجرا' : 'Tips'}</th>
+                      <th>{i18n.language === 'fa' ? 'تنفس' : 'Breathing'}</th>
+                      <th>{i18n.language === 'fa' ? 'جنسیت' : 'Gender'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.items.map((item) => (
+                      <tr key={`${item.name_en}-${item.index}`}>
+                        <td>{item.name_en} / {item.name_fa}</td>
+                        <td>{item.target_group_en} / {item.target_group_fa}</td>
+                        <td>{item.level_fa}</td>
+                        <td>{item.tips_fa}</td>
+                        <td>{item.breathing_fa}</td>
+                        <td>{item.gender_fa}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="exercise-library-machine">
+        <h3>{i18n.language === 'fa' ? 'حالت ۲ – فانکشنال بدون دستگاه' : 'Type 2 – Functional (No Equipment)'}</h3>
+        <p className="exercise-library-machine-desc">
+          {i18n.language === 'fa'
+            ? 'لیست استاندارد حرکات فانکشنال بدون دستگاه به تفکیک عضلات (ویرایش و بازبینی).'
+            : 'Standard functional (no equipment) exercise list by muscle group (review/edit).'}
+        </p>
+        <div className="exercise-library-machine-groups">
+          {type2Groups.map((group, idx) => (
+            <div key={idx} className="exercise-library-machine-group">
+              <h4>{group.title}</h4>
+              <div className="exercise-library-machine-table-wrap">
+                <table className="exercise-library-machine-table">
+                  <thead>
+                    <tr>
+                      <th>{i18n.language === 'fa' ? 'نام حرکت' : 'Exercise name'}</th>
+                      <th>{i18n.language === 'fa' ? 'عضله هدف' : 'Target muscle'}</th>
+                      <th>{i18n.language === 'fa' ? 'سطح' : 'Level'}</th>
+                      <th>{i18n.language === 'fa' ? 'نکات اجرا' : 'Tips'}</th>
+                      <th>{i18n.language === 'fa' ? 'تنفس' : 'Breathing'}</th>
+                      <th>{i18n.language === 'fa' ? 'جنسیت' : 'Gender'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.items.map((item) => (
+                      <tr key={`${item.name_en}-${item.index}`}>
+                        <td>{item.name_en} / {item.name_fa}</td>
+                        <td>{item.target_group_en} / {item.target_group_fa}</td>
+                        <td>{item.level_fa}</td>
+                        <td>{item.tips_fa}</td>
+                        <td>{item.breathing_fa}</td>
+                        <td>{item.gender_fa}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="exercise-library-machine">
+        <h3>{i18n.language === 'fa' ? 'حالت ۳ – ترکیبی (دستگاه + فانکشنال)' : 'Type 3 – Hybrid (Machine + Functional)'}</h3>
+        <p className="exercise-library-machine-desc">
+          {i18n.language === 'fa'
+            ? 'لیست استاندارد حرکات ترکیبی دستگاهی و فانکشنال به تفکیک عضلات (ویرایش و بازبینی).'
+            : 'Standard hybrid (machine + functional) exercise list by muscle group (review/edit).'}
+        </p>
+        <div className="exercise-library-machine-groups">
+          {type3Groups.map((group, idx) => (
+            <div key={idx} className="exercise-library-machine-group">
+              <h4>{group.title}</h4>
+              <div className="exercise-library-machine-table-wrap">
+                <table className="exercise-library-machine-table">
+                  <thead>
+                    <tr>
+                      <th>{i18n.language === 'fa' ? 'نام حرکت' : 'Exercise name'}</th>
+                      <th>{i18n.language === 'fa' ? 'عضله هدف' : 'Target muscle'}</th>
+                      <th>{i18n.language === 'fa' ? 'سطح' : 'Level'}</th>
+                      <th>{i18n.language === 'fa' ? 'نکات اجرا' : 'Tips'}</th>
+                      <th>{i18n.language === 'fa' ? 'تنفس' : 'Breathing'}</th>
+                      <th>{i18n.language === 'fa' ? 'جنسیت' : 'Gender'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.items.map((item) => (
+                      <tr key={`${item.name_en}-${item.index}`}>
+                        <td>{item.name_en} / {item.name_fa}</td>
+                        <td>{item.target_group_en} / {item.target_group_fa}</td>
+                        <td>{item.level_fa}</td>
+                        <td>{item.tips_fa}</td>
+                        <td>{item.breathing_fa}</td>
+                        <td>{item.gender_fa}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
         </div>

@@ -25,6 +25,7 @@ import BreakRequestModal from './BreakRequestModal';
 import ChatWithTabs from './ChatWithTabs';
 import TrainingWithAgent from './TrainingWithAgent';
 import DashboardIcon from './DashboardIcon';
+import AskProgressCheck from './AskProgressCheck';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -37,7 +38,9 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState(null);
   const [profileComplete, setProfileComplete] = useState(true);
   const [breakRequestModalOpen, setBreakRequestModalOpen] = useState(false);
+  const [progressCheckOpen, setProgressCheckOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [chatOpen, setChatOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState(null);
@@ -372,12 +375,19 @@ const Dashboard = () => {
           </div>
         )}
         <div className="dashboard-layout">
-          {/* 1. Chatbox - full width */}
-          <div className="dashboard-chat-row">
-            <ChatWithTabs userRole={userRole} />
-          </div>
-
-          {/* 2. Tabs - full width */}
+          {userRole === 'member' && (
+            <div className="dashboard-member-actions">
+              <button
+                type="button"
+                className="member-action-btn"
+                onClick={() => setProgressCheckOpen(true)}
+              >
+                <span className="member-action-icon"><DashboardIcon name="bar_chart" /></span>
+                {i18n.language === 'fa' ? 'درخواست بررسی پیشرفت' : 'Ask for progress check'}
+              </button>
+            </div>
+          )}
+          {/* 1. Tabs - full width */}
           <div className="tabs-container">
             {tabs.map(tab => (
               <button
@@ -396,7 +406,7 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* 3. Tab content - full width */}
+          {/* 2. Tab content - full width */}
           <div className="tab-content">
             {activeTab === 'profile' && <ProfileTab />}
             {activeTab === 'training-with-agent' && <TrainingWithAgent />}
@@ -418,6 +428,43 @@ const Dashboard = () => {
             {activeTab === 'psychology-test' && <PsychologyTest />}
           </div>
         </div>
+
+        <button
+          type="button"
+          className="floating-chat-btn"
+          onClick={() => setChatOpen((prev) => !prev)}
+          aria-label={i18n.language === 'fa' ? 'باز کردن چت' : 'Open chat'}
+        >
+          <DashboardIcon name="chat" />
+        </button>
+        {chatOpen && (
+          <>
+            <div className="floating-chat-backdrop" onClick={() => setChatOpen(false)} />
+            <div className="floating-chat-panel floating-chat-panel-open" role="dialog" aria-modal="true">
+              <div className="floating-chat-header">
+                <span>{i18n.language === 'fa' ? 'چت' : 'Chat'}</span>
+                <button type="button" onClick={() => setChatOpen(false)} aria-label={i18n.language === 'fa' ? 'بستن' : 'Close'}>
+                  ×
+                </button>
+              </div>
+              <div className="floating-chat-content">
+                <ChatWithTabs userRole={userRole} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {progressCheckOpen && (
+          <div className="progress-check-modal-overlay" onClick={() => setProgressCheckOpen(false)} role="dialog" aria-modal="true">
+            <div className="progress-check-modal" onClick={(e) => e.stopPropagation()} dir="ltr">
+              <div className="progress-check-modal-header">
+                <span>{i18n.language === 'fa' ? 'درخواست بررسی پیشرفت' : 'Ask for progress check'}</span>
+                <button type="button" onClick={() => setProgressCheckOpen(false)} aria-label={i18n.language === 'fa' ? 'بستن' : 'Close'}>×</button>
+              </div>
+              <AskProgressCheck />
+            </div>
+          </div>
+        )}
       </div>
       <BreakRequestModal
         isOpen={breakRequestModalOpen}

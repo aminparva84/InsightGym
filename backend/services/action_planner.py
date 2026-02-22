@@ -11,7 +11,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from flask import current_app
 
 from app import User, TrainerMessage
-from models import Exercise, UserProfile, SiteSettings, ProgressCheckRequest, TrainingProgram
+from models import Exercise, UserProfile, SiteSettings, ProgressCheckRequest, TrainingProgram, MemberTrainingActionCompletion
+from models_workout_log import ProgressEntry
 
 
 def _db():
@@ -32,6 +33,12 @@ ALLOWED_ACTIONS = (
     'site_settings',
     'schedule_meeting',
     'schedule_appointment',
+    'get_dashboard_progress',
+    'add_progress_entry',
+    'get_todays_training',
+    'get_dashboard_tab_info',
+    'get_trainers_info',
+    'get_member_progress',
 )
 
 ACTION_SPECS = {
@@ -70,6 +77,30 @@ ACTION_SPECS = {
     'schedule_appointment': {
         'required': [],
         'optional': ['appointment_date', 'appointment_time', 'duration', 'notes', 'property_id'],
+    },
+    'get_dashboard_progress': {
+        'required': [],
+        'optional': ['language', 'fields'],
+    },
+    'add_progress_entry': {
+        'required': [],
+        'optional': ['weight_kg', 'chest_cm', 'waist_cm', 'hips_cm', 'arm_left_cm', 'arm_right_cm', 'thigh_left_cm', 'thigh_right_cm', 'form_level', 'body_fat_percentage', 'muscle_mass_kg'],
+    },
+    'get_todays_training': {
+        'required': [],
+        'optional': ['language'],
+    },
+    'get_dashboard_tab_info': {
+        'required': ['tab'],
+        'optional': ['language'],
+    },
+    'get_trainers_info': {
+        'required': [],
+        'optional': ['language'],
+    },
+    'get_member_progress': {
+        'required': [],
+        'optional': ['member_id', 'member_username', 'language'],
     },
 }
 
@@ -125,7 +156,8 @@ def _build_prompt(message: str, language: str, role: str, user_profile_summary: 
         "Each action must be an object with keys: action (string), params (object). "
         "Allowed actions: "
         "search_exercises, create_workout_plan, suggest_training_plans, update_user_profile, "
-        "progress_check, trainer_message, site_settings, schedule_meeting, schedule_appointment. "
+        "progress_check, trainer_message, site_settings, schedule_meeting, schedule_appointment, "
+        "get_dashboard_progress, add_progress_entry, get_todays_training, get_dashboard_tab_info, get_trainers_info, get_member_progress. "
         "Do not include markdown or explanations. "
         "If no action is needed, return an empty actions array. "
         "IMPORTANT: Perform actions directly. Do NOT ask the user to confirm or clarify intent. "
@@ -150,6 +182,12 @@ def _build_prompt(message: str, language: str, role: str, user_profile_summary: 
         "- trainer_message: params { recipient_id?, body }\n"
         "- site_settings: params { fields (object) }\n"
         "- schedule_meeting / schedule_appointment: params { appointment_date?, appointment_time?, duration?, notes?, property_id? }\n"
+        "- get_dashboard_progress: params { language?, fields? } - use when user asks about BMI, weight, progress, dashboard, روند تغییرات, پیشرفت. Returns profile weight/height, BMI, progress entries. ALWAYS ask if they want to add new weight to Progress Trend.\n"
+        "- add_progress_entry: params { weight_kg?, chest_cm?, waist_cm?, hips_cm?, arm_left_cm?, arm_right_cm?, thigh_left_cm?, thigh_right_cm? } - use when user wants to add/record weight or measurements to Progress Trend. Extract numbers from message (e.g. 'add 76 kg' -> weight_kg: 76).\n"
+        "- get_todays_training: params { language? } - use when user asks 'what is my training today', 'جلسه امروز', 'برنامه امروز', 'today workout', 'my workout today'. Returns next session to do.\n"
+        "- get_dashboard_tab_info: params { tab: 'psychology-test'|'online-lab', language? } - use when user asks about Psychology Test (تست روانشناسی), Online Laboratory (آزمایشگاه آنلاین), or what info those tabs need. tab='psychology-test' or 'online-lab'.\n"
+        "- get_trainers_info: params { language? } - use when admin or assistant asks about trainers, assistants, مربی‌ها, دستیاران, list of trainers, my assigned members. Admin sees all assistants; assistant sees only their own info (their trainees count). Admin/assistant only.\n"
+        "- get_member_progress: params { member_id?, member_username?, language? } - use when admin or assistant asks about a specific member's progress, weight, BMI, situation, وضعیت عضو, پیشرفت عضو. Assistant can only query their assigned members (assigned_to=assistant). Admin can query any member. Provide member_id or member_username to identify the member.\n"
         "Return JSON now."
     )
     return system, user
@@ -247,6 +285,191 @@ def plan_actions(message: str, user: User, language: str) -> Dict[str, Any]:
     }
 
 
+def _format_dashboard_progress_response(results: List[Dict[str, Any]], language: str) -> Optional[str]:
+    """Build user-facing response when get_dashboard_progress succeeded. Include data and ask if they want to add new weight."""
+    for r in results:
+        if r.get('action') != 'get_dashboard_progress' or r.get('status') != 'ok':
+            continue
+        data = r.get('data') or {}
+        weight = data.get('weight_kg')
+        height = data.get('height_cm')
+        bmi = data.get('bmi')
+        entries = data.get('progress_entries') or []
+        fa = language == 'fa'
+        lines = []
+        if bmi is not None:
+            if fa:
+                lines.append(f"BMI فعلی شما: **{bmi}** است.")
+                if weight is not None:
+                    lines.append(f"وزن: {weight} کیلوگرم.")
+                if height is not None:
+                    lines.append(f"قد: {height} سانتی‌متر.")
+            else:
+                lines.append(f"Your current BMI is **{bmi}**.")
+                if weight is not None:
+                    lines.append(f"Weight: {weight} kg.")
+                if height is not None:
+                    lines.append(f"Height: {height} cm.")
+        elif weight is not None:
+            if fa:
+                lines.append(f"وزن فعلی شما: **{weight}** کیلوگرم است.")
+            else:
+                lines.append(f"Your current weight is **{weight}** kg.")
+        else:
+            if fa:
+                lines.append("هنوز وزن یا قد در پروفایل ثبت نشده. لطفاً در بخش پروفایل آن‌ها را وارد کنید.")
+            else:
+                lines.append("Weight and height are not set in your profile yet. Please add them in the Profile section.")
+        if fa:
+            lines.append("\nآیا می‌خواهید وزن جدید را به روند تغییرات اضافه کنید؟")
+        else:
+            lines.append("\nWould you like to add new weight to your Progress Trend?")
+        return "\n".join(lines)
+    return None
+
+
+def _format_add_progress_response(results: List[Dict[str, Any]], language: str) -> Optional[str]:
+    """Build user-facing response when add_progress_entry succeeded."""
+    for r in results:
+        if r.get('action') != 'add_progress_entry' or r.get('status') != 'ok':
+            continue
+        data = r.get('data') or {}
+        return data.get('message_fa') if language == 'fa' else data.get('message_en')
+    return None
+
+
+def _format_todays_training_response(results: List[Dict[str, Any]], language: str) -> Optional[str]:
+    """Build user-facing response when get_todays_training succeeded."""
+    for r in results:
+        if r.get('action') != 'get_todays_training' or r.get('status') != 'ok':
+            continue
+        data = r.get('data') or {}
+        if data.get('all_done'):
+            return data.get('message_fa') if language == 'fa' else data.get('message_en')
+        if not data.get('has_program'):
+            return data.get('message_fa') if language == 'fa' else data.get('message_en')
+        fa = language == 'fa'
+        lines = []
+        if fa:
+            lines.append(f"**{data.get('session_name', '')}** از برنامه {data.get('program_name', '')}:\n\n")
+        else:
+            lines.append(f"**{data.get('session_name', '')}** from {data.get('program_name', '')}:\n\n")
+        for i, ex in enumerate((data.get('exercises') or []), 1):
+            name = ex.get('name', '')
+            sets = ex.get('sets', '')
+            reps = ex.get('reps', '')
+            if fa:
+                lines.append(f"{i}. {name} – {sets} ست × {reps} تکرار\n")
+            else:
+                lines.append(f"{i}. {name} – {sets} sets × {reps} reps\n")
+        if fa:
+            lines.append("\nبرای شروع به داشبورد > برنامه تمرینی بروید.")
+        else:
+            lines.append("\nGo to Dashboard > Training Program to start.")
+        return "".join(lines)
+    return None
+
+
+def _format_dashboard_tab_info_response(results: List[Dict[str, Any]], language: str) -> Optional[str]:
+    """Build user-facing response when get_dashboard_tab_info succeeded."""
+    for r in results:
+        if r.get('action') != 'get_dashboard_tab_info' or r.get('status') != 'ok':
+            continue
+        data = r.get('data') or {}
+        return data.get('description_fa') if language == 'fa' else data.get('description_en')
+    return None
+
+
+def _format_member_progress_response(results: List[Dict[str, Any]], language: str) -> Optional[str]:
+    """Build user-facing response when get_member_progress succeeded."""
+    for r in results:
+        if r.get('action') != 'get_member_progress' or r.get('status') != 'ok':
+            continue
+        data = r.get('data') or {}
+        member_name = data.get('member_username') or data.get('member_name') or 'Member'
+        weight = data.get('weight_kg')
+        height = data.get('height_cm')
+        bmi = data.get('bmi')
+        entries = data.get('progress_entries') or []
+        fa = language == 'fa'
+        lines = []
+        if fa:
+            lines.append(f"**وضعیت عضو {member_name}:**\n\n")
+        else:
+            lines.append(f"**{member_name}'s progress:**\n\n")
+        if bmi is not None:
+            if fa:
+                lines.append(f"BMI: **{bmi}**")
+                if weight is not None:
+                    lines.append(f" | وزن: {weight} کیلوگرم")
+                if height is not None:
+                    lines.append(f" | قد: {height} سانتی‌متر")
+            else:
+                lines.append(f"BMI: **{bmi}**")
+                if weight is not None:
+                    lines.append(f" | Weight: {weight} kg")
+                if height is not None:
+                    lines.append(f" | Height: {height} cm")
+            lines.append("\n")
+        elif weight is not None:
+            if fa:
+                lines.append(f"وزن فعلی: **{weight}** کیلوگرم\n")
+            else:
+                lines.append(f"Current weight: **{weight}** kg\n")
+        else:
+            if fa:
+                lines.append("هنوز وزن یا قد در پروفایل ثبت نشده.\n")
+            else:
+                lines.append("Weight and height are not set in profile yet.\n")
+        if entries:
+            if fa:
+                lines.append(f"آخرین {len(entries)} رکورد روند تغییرات:\n")
+            else:
+                lines.append(f"Last {len(entries)} progress entries:\n")
+            for e in entries[:5]:
+                rec = e.get('recorded_at') or ''
+                if rec:
+                    try:
+                        dt = datetime.fromisoformat(rec.replace('Z', '+00:00'))
+                        rec = dt.strftime('%Y-%m-%d')
+                    except Exception:
+                        pass
+                w = e.get('weight_kg')
+                if w is not None:
+                    if fa:
+                        lines.append(f"  • {rec}: {w} کیلوگرم\n")
+                    else:
+                        lines.append(f"  • {rec}: {w} kg\n")
+        return "".join(lines)
+    return None
+
+
+def _format_trainers_info_response(results: List[Dict[str, Any]], language: str) -> Optional[str]:
+    """Build user-facing response when get_trainers_info succeeded."""
+    for r in results:
+        if r.get('action') != 'get_trainers_info' or r.get('status') != 'ok':
+            continue
+        data = r.get('data') or {}
+        trainers = data.get('trainers') or []
+        if not trainers:
+            return 'لیست مربیان خالی است.' if language == 'fa' else 'No trainers found.'
+        fa = language == 'fa'
+        lines = []
+        if fa:
+            lines.append(f"**{len(trainers)} مربی/دستیار:**\n\n")
+        else:
+            lines.append(f"**{len(trainers)} trainer(s):**\n\n")
+        for i, t in enumerate(trainers, 1):
+            name = t.get('username', '') or t.get('email', '')
+            count = t.get('assigned_members_count', 0)
+            if fa:
+                lines.append(f"{i}. {name} – {count} عضو تخصیص یافته\n")
+            else:
+                lines.append(f"{i}. {name} – {count} assigned member(s)\n")
+        return "".join(lines)
+    return None
+
+
 def _format_suggest_plans_response(results: List[Dict[str, Any]], language: str) -> Optional[str]:
     """Build user-facing response when suggest_training_plans succeeded or asks for purpose."""
     for r in results:
@@ -280,6 +503,64 @@ def _format_suggest_plans_response(results: List[Dict[str, Any]], language: str)
                 lines.append("To buy, click 'Buy program'.")
             return "".join(lines)
     return None
+
+
+def _is_todays_training_message(message: str) -> bool:
+    """Detect if user asks about today's training/workout."""
+    if not message or not isinstance(message, str):
+        return False
+    m = message.strip().lower()
+    return (
+        'training today' in m or 'workout today' in m or 'today workout' in m or 'today training' in m or
+        'my training' in m or 'my workout' in m or 'what is my training' in m or 'what is my workout' in m or
+        'جلسه امروز' in m or 'برنامه امروز' in m or 'تمرین امروز' in m or 'ورزش امروز' in m
+    )
+
+
+def _is_member_progress_message(message: str) -> bool:
+    """Detect if admin/assistant asks about a member's progress/situation."""
+    if not message or not isinstance(message, str):
+        return False
+    m = message.strip().lower()
+    return (
+        'member' in m and ('progress' in m or 'weight' in m or 'bmi' in m or 'situation' in m or 'وضعیت' in m or 'پیشرفت' in m) or
+        'وضعیت عضو' in m or 'پیشرفت عضو' in m or 'چک کن' in m and 'عضو' in m or
+        'check member' in m or 'member progress' in m or 'member situation' in m
+    )
+
+
+def _is_trainers_info_message(message: str) -> bool:
+    """Detect if admin/assistant asks about trainers, assistants."""
+    if not message or not isinstance(message, str):
+        return False
+    m = message.strip().lower()
+    return (
+        'trainer' in m or 'assistant' in m or 'مربی' in m or 'دستیار' in m or
+        'list of trainers' in m or 'assigned members' in m or 'اعضای تخصیص' in m
+    )
+
+
+def _is_dashboard_tab_message(message: str) -> bool:
+    """Detect if user asks about Psychology Test or Online Laboratory."""
+    if not message or not isinstance(message, str):
+        return False
+    m = message.strip().lower()
+    return (
+        'psychology' in m or 'تست روانشناسی' in m or 'روانشناسی' in m or
+        'online lab' in m or 'online laboratory' in m or 'آزمایشگاه آنلاین' in m or 'آزمایشگاه' in m
+    )
+
+
+def _is_dashboard_progress_message(message: str) -> bool:
+    """Detect if user asks about BMI, weight, progress, dashboard."""
+    if not message or not isinstance(message, str):
+        return False
+    m = message.strip().lower()
+    return (
+        'bmi' in m or 'وزن' in m or 'قد' in m or 'weight' in m or 'height' in m or
+        'پیشرفت' in m or 'progress' in m or 'روند تغییرات' in m or 'progress trend' in m or
+        'داشبورد' in m or 'dashboard' in m or 'اندازه' in m or 'measurement' in m
+    )
 
 
 def _is_buy_or_suggest_program_message(message: str) -> bool:
@@ -337,6 +618,28 @@ def plan_and_execute(message: str, user: User, language: str) -> Dict[str, Any]:
                 actions = [a for a in actions if a.get('action') not in wrong_actions] + [suggest_action]
             else:
                 actions = actions + [suggest_action]
+    # If user asks about dashboard/progress but planner didn't return get_dashboard_progress, inject it
+    if _is_dashboard_progress_message(message):
+        has_progress = any(a.get('action') == 'get_dashboard_progress' for a in actions)
+        if not has_progress:
+            actions = actions + [{'action': 'get_dashboard_progress', 'params': {'language': language}}]
+    # If user asks about today's training but planner didn't return get_todays_training, inject it
+    if _is_todays_training_message(message):
+        has_training = any(a.get('action') == 'get_todays_training' for a in actions)
+        if not has_training:
+            actions = actions + [{'action': 'get_todays_training', 'params': {'language': language}}]
+    # If admin/assistant asks about trainers but planner didn't return get_trainers_info, inject it
+    if getattr(user, 'role', None) in ('admin', 'assistant') and _is_trainers_info_message(message):
+        has_trainers = any(a.get('action') == 'get_trainers_info' for a in actions)
+        if not has_trainers:
+            actions = actions + [{'action': 'get_trainers_info', 'params': {'language': language}}]
+    # If user asks about Psychology Test or Online Lab but planner didn't return get_dashboard_tab_info, inject it
+    if _is_dashboard_tab_message(message):
+        has_tab_info = any(a.get('action') == 'get_dashboard_tab_info' for a in actions)
+        if not has_tab_info:
+            m = message.lower()
+            tab = 'online-lab' if ('lab' in m or 'آزمایشگاه' in m or 'laboratory' in m) else 'psychology-test'
+            actions = actions + [{'action': 'get_dashboard_tab_info', 'params': {'tab': tab, 'language': language}}]
     # When user states their goal in message, save it to profile before suggesting plans
     extracted_goal = _extract_goal_from_message(message)
     if extracted_goal and any(a.get('action') == 'suggest_training_plans' for a in actions):
@@ -358,6 +661,31 @@ def plan_and_execute(message: str, user: User, language: str) -> Dict[str, Any]:
     formatted = _format_suggest_plans_response(results, language)
     if formatted:
         assistant_response = formatted
+    # Override when get_dashboard_progress or add_progress_entry succeeded
+    if not formatted:
+        formatted = _format_dashboard_progress_response(results, language)
+        if formatted:
+            assistant_response = formatted
+    if not formatted:
+        formatted = _format_add_progress_response(results, language)
+        if formatted:
+            assistant_response = formatted
+    if not formatted:
+        formatted = _format_todays_training_response(results, language)
+        if formatted:
+            assistant_response = formatted
+    if not formatted:
+        formatted = _format_dashboard_tab_info_response(results, language)
+        if formatted:
+            assistant_response = formatted
+    if not formatted:
+        formatted = _format_trainers_info_response(results, language)
+        if formatted:
+            assistant_response = formatted
+    if not formatted:
+        formatted = _format_member_progress_response(results, language)
+        if formatted:
+            assistant_response = formatted
     return {
         'assistant_response': assistant_response,
         'actions': plan.get('actions', []),
@@ -460,6 +788,18 @@ def execute_actions(actions: List[Dict[str, Any]], user: User, language: str, me
                 results.append(_exec_site_settings(params, user, language))
             elif action in ('schedule_meeting', 'schedule_appointment'):
                 results.append(_exec_schedule_meeting(params, user, language))
+            elif action == 'get_dashboard_progress':
+                results.append(_exec_get_dashboard_progress(params, user, language))
+            elif action == 'add_progress_entry':
+                results.append(_exec_add_progress_entry(params, user, language))
+            elif action == 'get_todays_training':
+                results.append(_exec_get_todays_training(params, user, language))
+            elif action == 'get_dashboard_tab_info':
+                results.append(_exec_get_dashboard_tab_info(params, user, language))
+            elif action == 'get_trainers_info':
+                results.append(_exec_get_trainers_info(params, user, language))
+            elif action == 'get_member_progress':
+                results.append(_exec_get_member_progress(params, user, language))
             else:
                 results.append({'action': action, 'status': 'error', 'error': 'unsupported_action'})
         except Exception as e:
@@ -774,6 +1114,313 @@ def _exec_site_settings(params: Dict[str, Any], user: User, language: str) -> Di
         'action': 'site_settings',
         'status': 'ok',
         'data': {'updated': updated},
+    }
+
+
+def _exec_get_dashboard_progress(params: Dict[str, Any], user: User, language: str) -> Dict[str, Any]:
+    """Fetch user's profile (weight, height), BMI, and progress entries for dashboard/progress queries."""
+    db = _db()
+    profile = db.session.query(UserProfile).filter_by(user_id=user.id).first()
+    weight = profile.weight if profile and profile.weight is not None else None
+    height = profile.height if profile and profile.height is not None else None
+    bmi = None
+    if weight and height and height > 0:
+        height_m = height / 100.0
+        bmi = round(weight / (height_m * height_m), 1)
+    limit = 10
+    entries = db.session.query(ProgressEntry).filter_by(user_id=user.id)\
+        .order_by(ProgressEntry.recorded_at.desc()).limit(limit).all()
+    progress_entries = [{
+        'weight_kg': e.weight_kg,
+        'chest_cm': e.chest_cm,
+        'waist_cm': e.waist_cm,
+        'hips_cm': e.hips_cm,
+        'recorded_at': e.recorded_at.isoformat() if e.recorded_at else None,
+    } for e in entries]
+    return {
+        'action': 'get_dashboard_progress',
+        'status': 'ok',
+        'data': {
+            'weight_kg': weight,
+            'height_cm': height,
+            'bmi': bmi,
+            'progress_entries': progress_entries,
+            'language': params.get('language') or language,
+        },
+    }
+
+
+def _exec_add_progress_entry(params: Dict[str, Any], user: User, language: str) -> Dict[str, Any]:
+    """Add a new progress entry (weight, measurements) to Progress Trend."""
+    db = _db()
+
+    def _float_or_none(v):
+        if v is None:
+            return None
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return None
+
+    weight_kg = _float_or_none(params.get('weight_kg'))
+    chest_cm = _float_or_none(params.get('chest_cm'))
+    waist_cm = _float_or_none(params.get('waist_cm'))
+    hips_cm = _float_or_none(params.get('hips_cm'))
+    arm_left_cm = _float_or_none(params.get('arm_left_cm'))
+    arm_right_cm = _float_or_none(params.get('arm_right_cm'))
+    thigh_left_cm = _float_or_none(params.get('thigh_left_cm'))
+    thigh_right_cm = _float_or_none(params.get('thigh_right_cm'))
+    form_level = params.get('form_level')
+    form_level = int(form_level) if form_level is not None else None
+    body_fat_percentage = _float_or_none(params.get('body_fat_percentage'))
+    muscle_mass_kg = _float_or_none(params.get('muscle_mass_kg'))
+
+    if weight_kg is None and chest_cm is None and waist_cm is None and hips_cm is None:
+        return {
+            'action': 'add_progress_entry',
+            'status': 'error',
+            'error': 'at_least_one_field_required',
+            'message_fa': 'لطفاً حداقل وزن یا یکی از اندازه‌گیری‌ها را وارد کنید.',
+            'message_en': 'Please provide at least weight or one measurement.',
+        }
+    if weight_kg is not None:
+        profile = db.session.query(UserProfile).filter_by(user_id=user.id).first()
+        if profile:
+            profile.weight = weight_kg
+            db.session.flush()
+    entry = ProgressEntry(
+        user_id=user.id,
+        weight_kg=weight_kg,
+        chest_cm=chest_cm,
+        waist_cm=waist_cm,
+        hips_cm=hips_cm,
+        arm_left_cm=arm_left_cm,
+        arm_right_cm=arm_right_cm,
+        thigh_left_cm=thigh_left_cm,
+        thigh_right_cm=thigh_right_cm,
+        form_level=int(form_level) if form_level is not None else None,
+        body_fat_percentage=float(body_fat_percentage) if body_fat_percentage is not None else None,
+        muscle_mass_kg=float(muscle_mass_kg) if muscle_mass_kg is not None else None,
+    )
+    db.session.add(entry)
+    db.session.commit()
+    return {
+        'action': 'add_progress_entry',
+        'status': 'ok',
+        'data': {
+            'progress_entry_id': entry.id,
+            'weight_kg': weight_kg,
+            'message_fa': f'وزن {weight_kg} کیلوگرم به روند تغییرات اضافه شد.' if weight_kg else 'اطلاعات به روند تغییرات اضافه شد.',
+            'message_en': f'Weight {weight_kg} kg added to Progress Trend.' if weight_kg else 'Data added to Progress Trend.',
+        },
+    }
+
+
+def _exec_get_todays_training(params: Dict[str, Any], user: User, language: str) -> Dict[str, Any]:
+    """Fetch user's next training session (first incomplete session) for 'today's training' queries."""
+    db = _db()
+    programs = db.session.query(TrainingProgram).filter_by(user_id=user.id).all()
+    if not programs:
+        return {
+            'action': 'get_todays_training',
+            'status': 'ok',
+            'data': {
+                'has_program': False,
+                'message_fa': 'شما هنوز برنامه تمرینی ندارید. برای خرید برنامه به بخش برنامه تمرینی مراجعه کنید.',
+                'message_en': "You don't have a training program yet. Go to the Training Program section to purchase one.",
+            },
+        }
+    fa = language == 'fa'
+    for program in programs:
+        sessions = program.get_sessions() or []
+        for idx, session in enumerate(sessions):
+            exercises = session.get('exercises') or []
+            if not exercises:
+                continue
+            completed = db.session.query(MemberTrainingActionCompletion).filter_by(
+                user_id=user.id,
+                training_program_id=program.id,
+                session_index=idx,
+            ).count()
+            if completed < len(exercises):
+                session_name = (session.get('name_fa') if fa else session.get('name_en')) or session.get('name_fa') or session.get('name_en') or ''
+                program_name = (program.name_fa if fa else program.name_en) or program.name_fa or program.name_en
+                ex_list = []
+                for ex in exercises[:12]:
+                    name = (ex.get('name_fa') if fa else ex.get('name_en')) or ex.get('name_fa') or ex.get('name_en') or ''
+                    sets = ex.get('sets', '')
+                    reps = ex.get('reps', '')
+                    ex_list.append({'name': name, 'sets': sets, 'reps': reps})
+                return {
+                    'action': 'get_todays_training',
+                    'status': 'ok',
+                    'data': {
+                        'has_program': True,
+                        'program_name': program_name,
+                        'session_name': session_name,
+                        'session_index': idx,
+                        'exercises': ex_list,
+                        'language': language,
+                    },
+                }
+    return {
+        'action': 'get_todays_training',
+        'status': 'ok',
+        'data': {
+            'has_program': True,
+            'all_done': True,
+            'message_fa': 'همه جلسات شما انجام شده! استراحت کنید یا برنامه جدیدی شروع کنید.',
+            'message_en': "All your sessions are done! Rest or start a new program.",
+        },
+    }
+
+
+def _exec_get_trainers_info(params: Dict[str, Any], user: User, language: str) -> Dict[str, Any]:
+    """Return list of trainers (assistants). Admin sees all; assistant sees only their own trainees info."""
+    if getattr(user, 'role', None) not in ('admin', 'assistant'):
+        return {
+            'action': 'get_trainers_info',
+            'status': 'error',
+            'error': 'forbidden',
+            'message_fa': 'فقط ادمین و دستیار می‌توانند اطلاعات مربیان را ببینند.',
+            'message_en': 'Only admin and assistant can view trainers info.',
+        }
+    db = _db()
+    if user.role == 'assistant':
+        # Assistant sees only their own info (their trainees count)
+        count = db.session.query(User).filter_by(assigned_to=user.id).count()
+        trainers_data = [{
+            'id': user.id,
+            'username': user.username or '',
+            'email': user.email or '',
+            'assigned_members_count': count,
+        }]
+    else:
+        # Admin sees all assistants
+        assistants = db.session.query(User).filter_by(role='assistant').all()
+        trainers_data = []
+        for a in assistants:
+            count = db.session.query(User).filter_by(assigned_to=a.id).count()
+            trainers_data.append({
+                'id': a.id,
+                'username': a.username or '',
+                'email': a.email or '',
+                'assigned_members_count': count,
+            })
+    return {
+        'action': 'get_trainers_info',
+        'status': 'ok',
+        'data': {
+            'trainers': trainers_data,
+            'language': params.get('language') or language,
+        },
+    }
+
+
+def _exec_get_member_progress(params: Dict[str, Any], user: User, language: str) -> Dict[str, Any]:
+    """Return a specific member's progress (weight, BMI, progress entries). Assistant: only their assigned members. Admin: any member."""
+    if getattr(user, 'role', None) not in ('admin', 'assistant'):
+        return {
+            'action': 'get_member_progress',
+            'status': 'error',
+            'error': 'forbidden',
+            'message_fa': 'فقط ادمین و دستیار می‌توانند پیشرفت اعضا را ببینند.',
+            'message_en': 'Only admin and assistant can view member progress.',
+        }
+    db = _db()
+    member_id = params.get('member_id')
+    member_username = (params.get('member_username') or '').strip()
+    member = None
+    if member_id is not None:
+        try:
+            member = db.session.get(User, int(member_id))
+        except (ValueError, TypeError):
+            pass
+    if not member and member_username:
+        member = db.session.query(User).filter_by(username=member_username, role='member').first()
+    if not member or member.role != 'member':
+        return {
+            'action': 'get_member_progress',
+            'status': 'error',
+            'error': 'member_not_found',
+            'message_fa': 'عضو یافت نشد. لطفاً شناسه یا نام کاربری عضو را مشخص کنید.',
+            'message_en': 'Member not found. Please specify member_id or member_username.',
+        }
+    if user.role == 'assistant' and getattr(member, 'assigned_to', None) != user.id:
+        return {
+            'action': 'get_member_progress',
+            'status': 'error',
+            'error': 'forbidden',
+            'message_fa': 'شما فقط می‌توانید پیشرفت اعضای تخصیص‌یافته به خود را ببینید.',
+            'message_en': 'You can only view progress of members assigned to you.',
+        }
+    profile = db.session.query(UserProfile).filter_by(user_id=member.id).first()
+    weight = profile.weight if profile and profile.weight is not None else None
+    height = profile.height if profile and profile.height is not None else None
+    bmi = None
+    if weight and height and height > 0:
+        height_m = height / 100.0
+        bmi = round(weight / (height_m * height_m), 1)
+    limit = 10
+    entries = db.session.query(ProgressEntry).filter_by(user_id=member.id)\
+        .order_by(ProgressEntry.recorded_at.desc()).limit(limit).all()
+    progress_entries = [{
+        'weight_kg': e.weight_kg,
+        'chest_cm': e.chest_cm,
+        'waist_cm': e.waist_cm,
+        'hips_cm': e.hips_cm,
+        'recorded_at': e.recorded_at.isoformat() if e.recorded_at else None,
+    } for e in entries]
+    return {
+        'action': 'get_member_progress',
+        'status': 'ok',
+        'data': {
+            'member_id': member.id,
+            'member_username': member.username or '',
+            'member_name': member.username or '',
+            'weight_kg': weight,
+            'height_cm': height,
+            'bmi': bmi,
+            'progress_entries': progress_entries,
+            'language': params.get('language') or language,
+        },
+    }
+
+
+def _exec_get_dashboard_tab_info(params: Dict[str, Any], user: User, language: str) -> Dict[str, Any]:
+    """Return info about Psychology Test or Online Laboratory dashboard tabs."""
+    tab = (params.get('tab') or '').strip().lower()
+    fa = language == 'fa'
+    if tab == 'psychology-test':
+        return {
+            'action': 'get_dashboard_tab_info',
+            'status': 'ok',
+            'data': {
+                'tab': 'psychology-test',
+                'title_fa': 'تست روانشناسی',
+                'title_en': 'Psychology Test',
+                'description_fa': 'در این بخش سه تست روانشناسی ورزشی وجود دارد: ۱) ارزیابی شخصیت تمرینی (۱۵ سوال) ۲) هوش هیجانی در ورزش (۱۲ سوال) ۳) ارزیابی پتانسیل تمرینی (۱۲ سوال). هر تست پاسخ‌های چندگزینه‌ای دارد. پس از پاسخ به سوالات، نتیجه و امتیاز نمایش داده می‌شود. برای استفاده به داشبورد > تست روانشناسی بروید.',
+                'description_en': 'This section has three sports psychology tests: 1) Exercise Personality Assessment (15 questions) 2) Emotional Intelligence in Sports (12 questions) 3) Exercise Potential Assessment (12 questions). Each test has multiple-choice answers. After answering, results and scores are shown. Go to Dashboard > Psychology Test to use it.',
+            },
+        }
+    if tab == 'online-lab':
+        return {
+            'action': 'get_dashboard_tab_info',
+            'status': 'ok',
+            'data': {
+                'tab': 'online-lab',
+                'title_fa': 'آزمایشگاه آنلاین',
+                'title_en': 'Online Laboratory',
+                'description_fa': 'آزمایشگاه آنلاین شامل ماشین‌حساب‌های سلامتی است: BMI، درصد چربی بدن، وزن ایده‌آل، ضربان قلب استراحت، نیاز روزانه آب، یک‌حداکثر تکرار (RM)، اندازه قاب بدن، و BMR. فرم‌ها با اطلاعات پروفایل شما پیش‌پر می‌شوند. برای استفاده به داشبورد > آزمایشگاه آنلاین بروید.',
+                'description_en': 'Online Laboratory includes health calculators: BMI, BFP, IBW, RHR, daily water needs, 1RM, frame size, and BMR. Forms are pre-filled with your profile data. Go to Dashboard > Online Laboratory to use it.',
+            },
+        }
+    return {
+        'action': 'get_dashboard_tab_info',
+        'status': 'error',
+        'error': 'invalid_tab',
+        'message_fa': 'تب مورد نظر یافت نشد. لطفاً psychology-test یا online-lab را مشخص کنید.',
+        'message_en': 'Tab not found. Please specify psychology-test or online-lab.',
     }
 
 

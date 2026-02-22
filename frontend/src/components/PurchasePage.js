@@ -103,7 +103,13 @@ const PurchasePage = () => {
 
   return (
     <div className="purchase-page" dir={i18n.language === 'fa' ? 'rtl' : 'ltr'}>
-      <div className="purchase-card">
+      {isSubmitting && (
+        <div className="purchase-loading-overlay" aria-live="polite">
+          <div className="purchase-loading-spinner" />
+          <p className="purchase-loading-text">{t('purchaseGenerating')}</p>
+        </div>
+      )}
+      <div className={`purchase-card ${isSubmitting ? 'purchase-card-loading' : ''}`}>
         <div className="purchase-header">
           <h2>{t('purchaseTitle')}</h2>
           <button type="button" className="program-buy-btn secondary" onClick={() => navigate(-1)}>

@@ -291,13 +291,26 @@ def get_kb_source_text() -> str:
 
 
 def trigger_kb_reindex_safe() -> bool:
-    """Reindex KB after website content changes."""
+    """Reindex KB after website content changes (synchronous)."""
     try:
         build_kb_index()
         return True
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("KB auto-reindex failed: %s", e)
+        return False
+
+
+def trigger_kb_reindex_async() -> bool:
+    """Reindex KB in background so UI responses return immediately."""
+    try:
+        import threading
+        t = threading.Thread(target=trigger_kb_reindex_safe, daemon=True)
+        t.start()
+        return True
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("KB async reindex failed: %s", e)
         return False
 
 

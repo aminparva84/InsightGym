@@ -131,8 +131,8 @@ def create_exercise():
         db.session.add(exercise)
         db.session.commit()
         try:
-            from services.website_kb import trigger_kb_reindex_safe
-            trigger_kb_reindex_safe()
+            from services.website_kb import trigger_kb_reindex_async
+            trigger_kb_reindex_async()
         except Exception:
             pass
         return jsonify(exercise.to_dict('fa')), 201
@@ -168,8 +168,8 @@ def update_exercise(exercise_id):
     try:
         db.session.commit()
         try:
-            from services.website_kb import trigger_kb_reindex_safe
-            trigger_kb_reindex_safe()
+            from services.website_kb import trigger_kb_reindex_async
+            trigger_kb_reindex_async()
         except Exception:
             pass
         return jsonify(exercise.to_dict('fa')), 200
@@ -196,8 +196,8 @@ def delete_exercise(exercise_id):
         db.session.delete(exercise)
         db.session.commit()
         try:
-            from services.website_kb import trigger_kb_reindex_safe
-            trigger_kb_reindex_safe()
+            from services.website_kb import trigger_kb_reindex_async
+            trigger_kb_reindex_async()
         except Exception:
             pass
         return jsonify({'message': 'Exercise deleted successfully'}), 200
@@ -233,8 +233,8 @@ def update_exercise_movement_info(exercise_id):
     try:
         db.session.commit()
         try:
-            from services.website_kb import trigger_kb_reindex_safe
-            trigger_kb_reindex_safe()
+            from services.website_kb import trigger_kb_reindex_async
+            trigger_kb_reindex_async()
         except Exception:
             pass
         return jsonify(exercise.to_dict('fa')), 200
@@ -393,8 +393,8 @@ def bulk_create_exercises():
     try:
         db.session.commit()
         try:
-            from services.website_kb import trigger_kb_reindex_safe
-            trigger_kb_reindex_safe()
+            from services.website_kb import trigger_kb_reindex_async
+            trigger_kb_reindex_async()
         except Exception:
             pass
         return jsonify({
@@ -1104,8 +1104,8 @@ def save_configuration():
     try:
         db.session.commit()
         try:
-            from services.website_kb import trigger_kb_reindex_safe
-            trigger_kb_reindex_safe()
+            from services.website_kb import trigger_kb_reindex_async
+            trigger_kb_reindex_async()
         except Exception:
             pass
         return jsonify({'message': 'Configuration saved successfully'}), 200
@@ -1353,8 +1353,8 @@ def update_site_settings():
     try:
         db.session.commit()
         try:
-            from services.website_kb import trigger_kb_reindex_safe
-            trigger_kb_reindex_safe()
+            from services.website_kb import trigger_kb_reindex_async
+            trigger_kb_reindex_async()
         except Exception:
             pass
         return jsonify({'message': 'Site settings saved successfully'}), 200
@@ -1413,8 +1413,8 @@ def update_session_phases():
     try:
         db.session.commit()
         try:
-            from services.website_kb import trigger_kb_reindex_safe
-            trigger_kb_reindex_safe()
+            from services.website_kb import trigger_kb_reindex_async
+            trigger_kb_reindex_async()
         except Exception:
             pass
         return jsonify({'message': 'Session phases saved'}), 200

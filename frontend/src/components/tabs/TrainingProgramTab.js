@@ -357,32 +357,52 @@ const TrainingProgramTab = () => {
 
   const handleMoodSubmit = async (moodOrMessage) => {
     if (moodModal.programId == null || moodModal.sessionIndex == null) return;
-    const program = programs.find(p => (p.id || 0) === moodModal.programId);
-    if (!program?.sessions?.[moodModal.sessionIndex]) return;
+    const programId = moodModal.programId;
+    const sessionIndex = moodModal.sessionIndex;
+    const program = programs.find(p => (p.id || 0) === programId);
+    if (!program?.sessions?.[sessionIndex]) return;
     setAdaptingSession(true);
     try {
       const config = getAxiosConfig();
       const res = await axios.post(`${API_BASE}/api/member/adapt-session`, {
-        program_id: moodModal.programId,
-        session_index: moodModal.sessionIndex,
+        program_id: programId,
+        session_index: sessionIndex,
         mood_or_message: moodOrMessage,
         language: i18n.language || 'fa',
       }, { ...config, headers: { ...config.headers, 'Content-Type': 'application/json' } });
-      const sessionObj = program.sessions[moodModal.sessionIndex];
+      const sessionObj = program.sessions[sessionIndex];
       setActiveSessionStart({
-        programId: moodModal.programId,
-        sessionIndex: moodModal.sessionIndex,
+        programId,
+        sessionIndex,
         session: { ...sessionObj, exercises: res.data?.session?.exercises ?? sessionObj.exercises },
         extraAdvice: res.data?.extra_advice || '',
       });
       setMoodModal({ open: false, programId: null, sessionIndex: null });
       setCompletedSetsInSession({});
+
+      // Background: generate next session when user starts current one (for sessions after the first 2)
+      if (program.user_id != null) {
+        const sessions = program.sessions || [];
+        const nextIdx = sessionIndex + 1;
+        if (nextIdx === sessions.length) {
+          axios.post(
+            `${API_BASE}/api/member/programs/${programId}/generate-sessions`,
+            { start_session_index: sessions.length, count: 1, language: i18n.language || 'fa' },
+            { ...config, headers: { ...config.headers, 'Content-Type': 'application/json' } }
+          ).then((r) => {
+            if (r.data?.program) {
+              setPrograms((prev) => prev.map((p) => (p.id === programId ? r.data.program : p)));
+              if (programId) loadActionNotes(programId);
+            }
+          }).catch((err) => console.warn('Background session generation failed:', err?.response?.data?.error || err.message));
+        }
+      }
     } catch (err) {
       console.error('Adapt session error:', err);
-      const sessionObj = program.sessions[moodModal.sessionIndex];
+      const sessionObj = program.sessions[sessionIndex];
       setActiveSessionStart({
-        programId: moodModal.programId,
-        sessionIndex: moodModal.sessionIndex,
+        programId,
+        sessionIndex,
         session: sessionObj,
         extraAdvice: '',
       });
@@ -485,11 +505,13 @@ const TrainingProgramTab = () => {
   if (activeSessionStart) {
     const { programId, sessionIndex, session, extraAdvice } = activeSessionStart;
     const fa = i18n.language === 'fa';
-    const warming = sessionPhases.warming || {};
-    const cooldown = sessionPhases.cooldown || {};
+    // Prefer warming/cooldown from session (AI-generated), else from sessionPhases
+    const warming = session?.warming && (session.warming.steps?.length > 0 || session.warming.title_fa || session.warming.title_en)
+      ? session.warming : (sessionPhases.warming || {});
+    const cooldown = session?.cooldown && (session.cooldown.steps?.length > 0 || session.cooldown.title_fa || session.cooldown.title_en)
+      ? session.cooldown : (sessionPhases.cooldown || {});
     const warmingTitle = fa ? (warming.title_fa || 'گرم کردن') : (warming.title_en || 'Warming');
     const cooldownTitle = fa ? (cooldown.title_fa || 'سرد کردن و تنفس') : (cooldown.title_en || 'Cooldown & Breathing');
-    const endingMsg = fa ? (sessionPhases.ending_message_fa || '') : (sessionPhases.ending_message_en || '');
     const exercises = session?.exercises || [];
     const allDone = isActiveSessionFullyCompleted();
 
@@ -587,10 +609,6 @@ const TrainingProgramTab = () => {
                 ))}
               </ul>
             ) : <p className="session-phase-placeholder">{t('tpCooldownShort')}</p>}
-          </div>
-          <div className="session-step-block session-step-ending">
-            <h6>4. {t('tpEndingMessage')}</h6>
-            {endingMsg ? <p className="session-ending-message">{endingMsg}</p> : <p className="session-phase-placeholder">—</p>}
           </div>
           {allDone && (
             <div className="session-end-row">
@@ -836,11 +854,12 @@ const TrainingProgramTab = () => {
                                 <div className="session-exercises">
                                   {(() => {
                                     const fa = i18n.language === 'fa';
-                                    const warming = sessionPhases.warming || {};
-                                    const cooldown = sessionPhases.cooldown || {};
+                                    const warming = session?.warming && (session.warming.steps?.length > 0 || session.warming.title_fa || session.warming.title_en)
+                                      ? session.warming : (sessionPhases.warming || {});
+                                    const cooldown = session?.cooldown && (session.cooldown.steps?.length > 0 || session.cooldown.title_fa || session.cooldown.title_en)
+                                      ? session.cooldown : (sessionPhases.cooldown || {});
                                     const warmingTitle = fa ? (warming.title_fa || t('tpWarming')) : (warming.title_en || t('tpWarming'));
                                     const cooldownTitle = fa ? (cooldown.title_fa || t('tpCooldown')) : (cooldown.title_en || t('tpCooldown'));
-                                    const endingMsg = fa ? (sessionPhases.ending_message_fa || '') : (sessionPhases.ending_message_en || '');
                                     return (
                                       <>
                                         <div className="session-step-block session-step-warming">
@@ -942,12 +961,8 @@ const TrainingProgramTab = () => {
                                             <p className="session-phase-placeholder">{t('tpNoExercisesSession')}</p>
                                           )}
                                         </div>
-                                        <div className="session-step-block session-step-corrective">
-                                          <h6>3. {t('tpCorrectiveMovements')}</h6>
-                                          <p className="session-phase-placeholder">{t('tpCorrectiveByTrainer')}</p>
-                                        </div>
                                         <div className="session-step-block session-step-cooldown">
-                                          <h6>4. {cooldownTitle}</h6>
+                                          <h6>3. {cooldownTitle}</h6>
                                           {(cooldown.steps || []).length > 0 ? (
                                             <ul className="session-phase-steps">
                                               {(cooldown.steps || []).map((step, i) => (
@@ -960,10 +975,6 @@ const TrainingProgramTab = () => {
                                           ) : (
                                             <p className="session-phase-placeholder">{t('tpCooldownContentAdmin')}</p>
                                           )}
-                                        </div>
-                                        <div className="session-step-block session-step-ending">
-                                          <h6>5. {t('tpEndingMessage')}</h6>
-                                          {endingMsg ? <p className="session-ending-message">{endingMsg}</p> : <p className="session-phase-placeholder">{t('tpEncouragementByAdmin')}</p>}
                                         </div>
                                       </>
                                     );
@@ -1013,6 +1024,7 @@ const TrainingProgramTab = () => {
             <div className="mood-options">
               {[
                 { id: 'tired', key: 'tpTired' },
+                { id: 'exhausted', key: 'tpExhausted' },
                 { id: 'depressed', key: 'tpDepressed' },
                 { id: 'energy', key: 'tpEnergy' },
                 { id: 'normal', key: 'tpNormal' },

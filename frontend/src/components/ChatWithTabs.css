@@ -1,4 +1,4 @@
-/* Single chat box with tabs: AI Chat | Trainer / Messages */
+/* Single chat box with AI header */
 .chat-with-tabs {
   display: flex;
   flex-direction: column;
@@ -14,43 +14,38 @@
 
 .chat-with-tabs-header {
   display: flex;
+  align-items: center;
+  justify-content: flex-start;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--surface-subtle);
   flex-shrink: 0;
 }
 
-.chat-with-tabs-btn {
+.chat-with-tabs-title {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.4rem;
-  padding: 0.65rem 1rem;
-  border: none;
-  background: none;
-  cursor: pointer;
+  padding: 0.75rem 1rem;
   font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  transition: all 0.2s;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-}
-
-.chat-with-tabs-btn:hover {
-  color: var(--text-primary);
-  background: var(--surface-raised);
-}
-
-.chat-with-tabs-btn.active {
-  color: var(--accent);
   font-weight: 600;
-  border-bottom-color: var(--color-accent-300);
-  background: var(--color-accent-50);
+  color: var(--text-primary);
 }
 
 .chat-tab-icon {
-  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--accent);
+}
+
+.chat-tab-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
 }
 
 .chat-with-tabs-content {
@@ -61,10 +56,9 @@
   flex-direction: column;
 }
 
-/* When ChatBox/TrainerChat/TrainerInbox are inside, they fill the content area without their own outer box */
+/* When ChatBox is inside, fill content area without outer box */
 .chat-with-tabs-content .chatbox-container,
-.chat-with-tabs-content .trainer-chat-container,
-.chat-with-tabs-content .trainer-inbox-container {
+.chat-with-tabs-content .trainer-chat-container {
   height: 100%;
   border: none;
   border-radius: 0;
@@ -73,12 +67,6 @@
 }
 
 .chat-with-tabs-content .chatbox-header,
-.chat-with-tabs-content .trainer-chat-header,
-.chat-with-tabs-content .trainer-inbox-header {
+.chat-with-tabs-content .trainer-chat-header {
   display: none;
-}
-
-.chat-with-tabs-content .trainer-inbox-body {
-  flex: 1;
-  min-height: 0;
 }

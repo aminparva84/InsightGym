@@ -239,7 +239,13 @@ def _assign_program_after_purchase(db, user_id, program_id, language='fa'):
         copy_program.set_sessions(sessions)
         db.session.add(copy_program)
     else:
-        # Fallback: copy template
+        # Fallback: copy template and inject warming/cooldown from admin
+        template_sessions = template.get_sessions() if hasattr(template, 'get_sessions') else []
+        if isinstance(template_sessions, list):
+            from services.session_ai_service import _inject_session_phases
+            for s in template_sessions:
+                if isinstance(s, dict):
+                    _inject_session_phases(s, db)
         copy_program = TrainingProgram(
             user_id=user_id,
             name_fa=template.name_fa,
@@ -249,7 +255,7 @@ def _assign_program_after_purchase(db, user_id, program_id, language='fa'):
             duration_weeks=template.duration_weeks,
             training_level=template.training_level,
             category=template.category,
-            sessions=template.sessions,
+            sessions=json.dumps(template_sessions, ensure_ascii=False) if template_sessions else template.sessions,
         )
         db.session.add(copy_program)
 
@@ -940,6 +946,97 @@ def _get_member_program(user_id, program_id):
     return db.session.query(TrainingProgram).filter_by(id=program_id, user_id=user_id).first()
 
 
+@member_bp.route('/programs/<int:program_id>/generate-sessions', methods=['POST'])
+@jwt_required()
+def generate_next_sessions(program_id):
+    """
+    Generate the next session(s) for a member's program.
+    Body: { start_session_index?: number, count?: 1|2 } - count=1 for background (next session only), count=2 for manual load.
+    Returns: { sessions: [...], program: {...} } or error.
+    """
+    try:
+        user_id = _get_user_id()
+        if not user_id:
+            return jsonify({'error': 'Invalid token'}), 401
+        data = request.get_json() or {}
+        start_session_index = data.get('start_session_index')
+        count = data.get('count', 2)
+        count = 1 if count == 1 else 2
+        language = data.get('language') or 'fa'
+
+        program = _get_member_program(user_id, program_id)
+        if not program:
+            return jsonify({'error': 'Program not found'}), 404
+
+        sessions_list = program.get_sessions() or []
+        if start_session_index is None:
+            start_session_index = len(sessions_list)
+
+        if start_session_index < 0:
+            return jsonify({'error': 'Invalid start_session_index'}), 400
+
+        # Need previous session for context when not at the beginning
+        previous_session = None
+        if start_session_index > 0:
+            if start_session_index > len(sessions_list):
+                return jsonify({
+                    'error': 'Cannot generate: previous sessions missing. Generate in order (e.g. complete session 1 before generating 2-3).',
+                }), 400
+            previous_session = sessions_list[start_session_index - 1]
+
+        # Get template program_id for AI config (use purchased template if available)
+        template_id = program_id
+        db = _get_db()
+        from app import User
+        user = db.session.get(User, user_id) if db else None
+        lang = (user.language if user and user.language else language) or language
+
+        from services.session_ai_service import generate_sessions_for_position
+        from services.ai_debug_logger import append_ai_program_log
+
+        new_sessions, ai_error = generate_sessions_for_position(
+            user_id=user_id,
+            program_id=template_id,
+            start_session_index=start_session_index,
+            previous_session=previous_session,
+            language=lang,
+            db=db,
+            count=count,
+        )
+
+        if not new_sessions:
+            append_ai_program_log(
+                action="generate_next_sessions_failed",
+                user_id=user_id,
+                program_id=program_id,
+                start_session_index=start_session_index,
+                error=ai_error or "AI returned no sessions",
+            )
+            return jsonify({'error': ai_error or 'AI could not generate sessions'}), 500
+
+        # Append new sessions to program
+        updated_sessions = sessions_list + new_sessions
+        program.set_sessions(updated_sessions)
+        db.session.commit()
+
+        append_ai_program_log(
+            action="generate_next_sessions",
+            user_id=user_id,
+            program_id=program_id,
+            start_session_index=start_session_index,
+            sessions_count=len(new_sessions),
+        )
+
+        return jsonify({
+            'sessions': new_sessions,
+            'program': program.to_dict(lang),
+        }), 200
+    except Exception as e:
+        import traceback
+        print(f"[generate_next_sessions] Error: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
 @member_bp.route('/training-programs/<int:program_id>', methods=['DELETE'])
 @jwt_required()
 def cancel_training_plan(program_id):
@@ -992,9 +1089,29 @@ def adapt_session():
         session_obj = sessions_list[session_index]
         from services.session_ai_service import adapt_session_by_mood
         result = adapt_session_by_mood(session_obj, mood_or_message, language)
+        adapted_exercises = result.get('exercises', session_obj.get('exercises', []))
+        extra_advice = result.get('extra_advice', '')
+        try:
+            from services.ai_debug_logger import append_log
+            append_log(
+                message=f"Mood adapt | user_id={user_id} program_id={program_id} session_index={session_index} mood={mood_or_message[:100]}",
+                response=extra_advice[:200] if extra_advice else "Session adapted (sets/reps adjusted)",
+                action_json={
+                    "action": "adapt_session_by_mood",
+                    "user_id": user_id,
+                    "program_id": program_id,
+                    "session_index": session_index,
+                    "mood_or_message": mood_or_message[:200],
+                    "exercises_count": len(adapted_exercises),
+                    "has_extra_advice": bool(extra_advice),
+                },
+                error="",
+            )
+        except Exception:
+            pass
         return jsonify({
-            'session': {**session_obj, 'exercises': result.get('exercises', session_obj.get('exercises', []))},
-            'extra_advice': result.get('extra_advice', ''),
+            'session': {**session_obj, 'exercises': adapted_exercises},
+            'extra_advice': extra_advice,
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1003,7 +1120,7 @@ def adapt_session():
 @member_bp.route('/session-end-message', methods=['POST'])
 @jwt_required()
 def session_end_message():
-    """Get an encouraging message after session end. Body: language (optional), session_name (optional)."""
+    """Get AI-generated encouraging message after session end."""
     try:
         user_id = _get_user_id()
         if not user_id:

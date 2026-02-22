@@ -54,8 +54,9 @@ function AppRoutes() {
   const { user, loading } = useAuth();
   const { i18n } = useTranslation();
   
-  // Ensure direction stays LTR when language changes
+  // Sync html lang with i18n (for Persian font: html[lang="fa"] loads Vazirmatn)
   useEffect(() => {
+    document.documentElement.lang = i18n.language || 'fa';
     document.documentElement.dir = 'ltr';
     document.body.dir = 'ltr';
   }, [i18n.language]);

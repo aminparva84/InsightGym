@@ -1,0 +1,125 @@
+# Deploy unified frontend+backend to AWS App Runner (Mumbai ap-south-1)
+# Triggers on push to main. Requires one-time setup: ECR repo + IAM role for App Runner ECR access.
+
+name: Deploy to AWS App Runner (Mumbai)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: apprunner-unified-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: insightgym
+  SERVICE_NAME: insightgym
+  IMAGE_TAG_LATEST: latest
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to App Runner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check AWS secrets
+        id: check_aws
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] || [ -z "${{ secrets.AWS_APP_RUNNER_ECR_ACCESS_ROLE_ARN }}" ]; then
+            echo "Missing required secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_APP_RUNNER_ECR_ACCESS_ROLE_ARN."
+            exit 1
+          fi
+          echo "ok=1" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        if: steps.check_aws.outputs.ok == '1'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get AWS account ID
+        if: steps.check_aws.outputs.ok == '1'
+        id: account
+        run: |
+          ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          echo "account=$ACCOUNT" >> $GITHUB_OUTPUT
+          echo "ECR_URI=$ACCOUNT.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}" >> $GITHUB_OUTPUT
+
+      - name: Create ECR repository if not exists
+        if: steps.check_aws.outputs.ok == '1'
+        run: |
+          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} 2>/dev/null || \
+          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: steps.check_aws.outputs.ok == '1'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        if: steps.check_aws.outputs.ok == '1'
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          docker build -f Dockerfile -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.sha }} -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG_LATEST }} .
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG_LATEST }}
+
+      - name: Create or update App Runner service
+        if: steps.check_aws.outputs.ok == '1'
+        env:
+          IMAGE_URI: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG_LATEST }}
+        run: |
+          set -e
+          # Build env vars JSON for ImageConfiguration
+          ENV_JSON='{"FLASK_ENV":"production"}'
+          if [ -n "${{ secrets.DATABASE_URL }}" ]; then
+            ENV_JSON=$(echo "$ENV_JSON" | jq -c --arg db "${{ secrets.DATABASE_URL }}" '. + {"DATABASE_URL": $db}')
+          fi
+          if [ -n "${{ secrets.JWT_SECRET_KEY }}" ]; then
+            ENV_JSON=$(echo "$ENV_JSON" | jq -c --arg jwt "${{ secrets.JWT_SECRET_KEY }}" '. + {"JWT_SECRET_KEY": $jwt}')
+          fi
+
+          SOURCE_CONFIG=$(jq -n \
+            --arg image "$IMAGE_URI" \
+            --arg role "${{ secrets.AWS_APP_RUNNER_ECR_ACCESS_ROLE_ARN }}" \
+            --argjson env "$ENV_JSON" \
+            '{
+              "ImageRepository": {
+                "ImageIdentifier": $image,
+                "ImageRepositoryType": "ECR",
+                "ImageConfiguration": {
+                  "Port": "8080",
+                  "RuntimeEnvironmentVariables": $env
+                }
+              },
+              "AuthenticationConfiguration": { "AccessRoleArn": $role }
+            }')
+
+          echo "$SOURCE_CONFIG" > /tmp/source-config.json
+
+          SERVICE_ARN=$(aws apprunner list-services --region ${{ env.AWS_REGION }} --query "ServiceSummaryList[?ServiceName=='${{ env.SERVICE_NAME }}'].ServiceArn" --output text 2>/dev/null || true)
+          if [ -z "$SERVICE_ARN" ] || [ "$SERVICE_ARN" == "None" ]; then
+            echo "Creating new App Runner service..."
+            aws apprunner create-service \
+              --service-name ${{ env.SERVICE_NAME }} \
+              --source-configuration file:///tmp/source-config.json \
+              --instance-configuration 'Cpu=1 vCPU,Memory=2 GB' \
+              --health-check-configuration 'Protocol=HTTP,Path=/health,Interval=10,Timeout=5,HealthyThreshold=1,UnhealthyThreshold=5' \
+              --region ${{ env.AWS_REGION }}
+            echo "Service creation started. Check AWS Console for status and URL."
+          else
+            echo "Updating existing App Runner service..."
+            aws apprunner update-service \
+              --service-arn "$SERVICE_ARN" \
+              --source-configuration file:///tmp/source-config.json \
+              --region ${{ env.AWS_REGION }}
+            echo "Deployment started. Service ARN: $SERVICE_ARN"
+          fi

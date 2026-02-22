@@ -270,7 +270,8 @@ def _vertex_chat(api_key: str, system: str, user_message: str, max_tokens: int) 
         },
     }
     last_err = None
-    for attempt in range(3):
+    max_attempts = 4
+    for attempt in range(max_attempts):
         try:
             req = urllib.request.Request(
                 url,
@@ -285,9 +286,9 @@ def _vertex_chat(api_key: str, system: str, user_message: str, max_tokens: int) 
         except urllib.error.HTTPError as e:
             raw = e.read().decode('utf-8') if e.fp else ''
             last_err = RuntimeError(f"Vertex API error {e.code}: {raw}")
-            if e.code == 429 and attempt < 2:
-                wait = 5 + attempt * 5
-                print(f"Vertex 429, retrying in {wait}s (attempt {attempt + 1}/3)...")
+            if e.code == 429 and attempt < max_attempts - 1:
+                wait = 10 + attempt * 10
+                print(f"Vertex 429 (rate limit), retrying in {wait}s (attempt {attempt + 1}/{max_attempts})...")
                 time.sleep(wait)
             else:
                 raise last_err
