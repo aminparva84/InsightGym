@@ -1,0 +1,1 @@
+{"commands":["sudo sed -i 's/\\${}/\\${/g' /opt/insightgym/run.sh","sudo /opt/insightgym/run.sh"]}

@@ -1,9 +1,7 @@
 name: Deploy Unified App to Google Cloud Run
 
+# Disabled: no longer runs on push to main. Run manually from Actions tab if needed.
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 concurrency:

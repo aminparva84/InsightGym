@@ -1,0 +1,247 @@
+# CloudFormation: InsightGYM on EC2 + RDS in me-south-1 (Bahrain)
+# Uses EC2 + Elastic IP on port 8080 (no ALB). Run: aws cloudformation create-stack ...
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'InsightGYM - EC2 + RDS PostgreSQL in me-south-1 (no ALB)'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC (use default VPC; list with aws ec2 describe-vpcs --region me-south-1)
+  SubnetId1:
+    Type: AWS::EC2::Subnet::Id
+    Description: First subnet (for ALB and RDS; pick one AZ)
+  SubnetId2:
+    Type: AWS::EC2::Subnet::Id
+    Description: Second subnet (for ALB/RDS; different AZ)
+  EC2SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet for EC2 instance (can be same as SubnetId1)
+  DBUsername:
+    Type: String
+    Default: postgres
+    NoEcho: true
+    Description: RDS master username
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: RDS master password (min 8 chars)
+  DBName:
+    Type: String
+    Default: raha_fitness
+    Description: Database name
+  JwtSecretKey:
+    Type: String
+    NoEcho: true
+    Description: JWT secret for the app (e.g. long random string)
+  KeyName:
+    Type: String
+    Description: (Optional) EC2 key pair name for SSH (leave blank for no SSH)
+    Default: ''
+  ECRRepositoryName:
+    Type: String
+    Default: insightgym
+    Description: ECR repository name
+  AWSRegion:
+    Type: String
+    Default: me-south-1
+    Description: AWS region
+  LiteralDollar:
+    Type: String
+    Default: '$'
+    Description: (Internal) Used to output literal $ in UserData
+
+Conditions:
+  HasKey: !Not [!Equals [!Ref KeyName, '']]
+
+Resources:
+  # ECR repository in me-south-1
+  ECRRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref ECRRepositoryName
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {"rules":[{"rulePriority":1,"description":"Keep last 5 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},"action":{"type":"expire"}}]}
+
+  # Security group for EC2 (8080 app, 80/443 for Caddy HTTPS, 22 SSH)
+  SGEC2:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EC2 app (8080, 80, 443, 22)
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  # Security group for RDS (allow 5432 from EC2 only)
+  SGRDS:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS PostgreSQL
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref SGEC2
+
+  # RDS subnet group (2 subnets in different AZs)
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: InsightGYM RDS subnets
+      SubnetIds: [!Ref SubnetId1, !Ref SubnetId2]
+
+  # RDS PostgreSQL
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: insightgym-db
+      Engine: postgres
+      EngineVersion: '15'
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      StorageType: gp2
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBName: !Ref DBName
+      VPCSecurityGroups: [!Ref SGRDS]
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      PubliclyAccessible: false
+      MultiAZ: false
+
+  # IAM role for EC2 (ECR pull + SSM read)
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  EC2RoleSSM:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: SSMParameterStore
+      Roles: [!Ref EC2Role]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [ssm:GetParameters]
+            Resource: !Sub 'arn:aws:ssm:${AWSRegion}:${AWS::AccountId}:parameter/insightgym/*'
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref EC2Role]
+
+  # EC2 instance
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}'
+      InstanceType: t3.small
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet: [!Ref SGEC2]
+          SubnetId: !Ref EC2SubnetId
+      KeyName: !If [HasKey, !Ref KeyName, !Ref 'AWS::NoValue']
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          yum install -y docker
+          systemctl enable docker && systemctl start docker
+          usermod -aG docker ec2-user
+          mkdir -p /opt/insightgym
+          cat > /opt/insightgym/run.sh << 'RUNSCRIPT'
+          #!/bin/bash
+          set -e
+          REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+          ACCOUNT=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | sed -n 's/.*"accountId" *: *"\([^"]*\)".*/\1/p')
+          REPO=insightgym
+          IMAGE="${LiteralDollar}{ACCOUNT}.dkr.ecr.${LiteralDollar}{REGION}.amazonaws.com/${LiteralDollar}{REPO}:latest"
+          aws ecr get-login-password --region "${LiteralDollar}REGION" | docker login --username AWS --password-stdin "${LiteralDollar}ACCOUNT.dkr.ecr.${LiteralDollar}REGION.amazonaws.com"
+          docker pull "${LiteralDollar}IMAGE" || true
+          DATABASE_URL=${LiteralDollar}(aws ssm get-parameter --name /insightgym/DATABASE_URL --with-decryption --query Parameter.Value --output text --region "${LiteralDollar}REGION" 2>/dev/null || echo "")
+          JWT_SECRET_KEY=${LiteralDollar}(aws ssm get-parameter --name /insightgym/JWT_SECRET_KEY --with-decryption --query Parameter.Value --output text --region "${LiteralDollar}REGION" 2>/dev/null || echo "")
+          if [ -z "${LiteralDollar}DATABASE_URL" ] || [ -z "${LiteralDollar}JWT_SECRET_KEY" ]; then
+            echo "Missing SSM params. Set /insightgym/DATABASE_URL and /insightgym/JWT_SECRET_KEY then run: sudo /opt/insightgym/run.sh"
+            exit 1
+          fi
+          docker stop insightgym 2>/dev/null || true
+          docker rm insightgym 2>/dev/null || true
+          docker run -d --name insightgym --restart unless-stopped -p 8080:8080 \
+            -e DATABASE_URL="${LiteralDollar}DATABASE_URL" -e JWT_SECRET_KEY="${LiteralDollar}JWT_SECRET_KEY" -e FLASK_ENV=production \
+            "${LiteralDollar}IMAGE"
+          RUNSCRIPT
+          chmod +x /opt/insightgym/run.sh
+          /opt/insightgym/run.sh || true
+
+  # Elastic IP for stable public URL (app on port 8080)
+  EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: EC2Instance
+    Properties:
+      Domain: vpc
+  EIPAssoc:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt EIP.AllocationId
+      InstanceId: !Ref EC2Instance
+
+Outputs:
+  ApplicationUrl:
+    Description: Application URL (HTTP, port 8080)
+    Value: !Sub 'http://${EIP.PublicIp}:8080'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApplicationUrl'
+  EIPAddress:
+    Description: EC2 public IP
+    Value: !Ref EIP
+    Export:
+      Name: !Sub '${AWS::StackName}-EIPAddress'
+  RDSEndpoint:
+    Description: RDS endpoint for DATABASE_URL
+    Value: !GetAtt DBInstance.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-RDSEndpoint'
+  EC2InstanceId:
+    Description: EC2 instance ID
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub '${AWS::StackName}-EC2InstanceId'
+  CreateSSMParamsCommand:
+    Description: Run after first deploy to set secrets (replace YOUR_DB_PASSWORD and YOUR_JWT_SECRET)
+    Value: !Sub
+      - |
+        # Replace YOUR_DB_PASSWORD with your RDS password and YOUR_JWT_SECRET with a long random string.
+        aws ssm put-parameter --name /insightgym/DATABASE_URL --value "postgresql://${DBUser}:YOUR_DB_PASSWORD@${RDSAddr}:5432/${DBName}" --type SecureString --region ${Region} --overwrite
+        aws ssm put-parameter --name /insightgym/JWT_SECRET_KEY --value "YOUR_JWT_SECRET" --type SecureString --region ${Region} --overwrite
+        # Then start the app on EC2: sudo /opt/insightgym/run.sh
+      - { RDSAddr: !GetAtt DBInstance.Endpoint.Address, DBUser: !Ref DBUsername, DBName: !Ref DBName, Region: !Ref AWSRegion }

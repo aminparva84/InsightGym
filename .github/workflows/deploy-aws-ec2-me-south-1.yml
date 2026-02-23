@@ -1,0 +1,100 @@
+# Deploy to AWS EC2 in me-south-1 (Bahrain)
+# Builds image, pushes to ECR, optionally runs app update on EC2 via SSM.
+# Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY. Optional: AWS_EC2_ME_SOUTH_1_INSTANCE_ID for SSM deploy.
+
+name: Deploy to AWS EC2 (me-south-1)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ec2-me-south-1-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: me-south-1
+  ECR_REPOSITORY: insightgym
+  IMAGE_TAG: latest
+
+jobs:
+  build-and-push:
+    name: Build and push to ECR (me-south-1)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check AWS secrets
+        id: check
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "Missing AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY"
+            exit 1
+          fi
+          echo "ok=1" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        if: steps.check.outputs.ok == '1'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create ECR repository if not exists
+        if: steps.check.outputs.ok == '1'
+        run: |
+          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} 2>/dev/null || \
+          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: steps.check.outputs.ok == '1'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        if: steps.check.outputs.ok == '1'
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          docker build -f Dockerfile -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.sha }} -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+  deploy-ec2:
+    name: Update app on EC2 (SSM)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run app update on EC2 via SSM
+        env:
+          INSTANCE_ID_VAR: ${{ vars.AWS_EC2_ME_SOUTH_1_INSTANCE_ID }}
+          INSTANCE_ID_SECRET: ${{ secrets.AWS_EC2_ME_SOUTH_1_INSTANCE_ID }}
+        run: |
+          INSTANCE_ID="${INSTANCE_ID_VAR:-$INSTANCE_ID_SECRET}"
+          if [ -z "$INSTANCE_ID" ]; then
+            echo "::warning::AWS_EC2_ME_SOUTH_1_INSTANCE_ID not set. Set it (repo variable or secret) to auto-update EC2 on push to main."
+            exit 0
+          fi
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters file://infra/aws/ssm-params.json \
+            --region ${{ env.AWS_REGION }} \
+            --timeout-seconds 120 \
+            --query 'Command.CommandId' \
+            --output text
+          echo "Deploy command sent. EC2 will pull latest image and restart the app."

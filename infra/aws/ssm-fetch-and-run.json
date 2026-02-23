@@ -1,0 +1,1 @@
+{"commands":["aws ssm get-parameter --name /insightgym/run_sh_script --query Parameter.Value --output text --region me-south-1 | sudo tee /opt/insightgym/run.sh","sudo chmod +x /opt/insightgym/run.sh","sudo /opt/insightgym/run.sh"]}
