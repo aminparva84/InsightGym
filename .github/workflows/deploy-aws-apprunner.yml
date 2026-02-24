@@ -1,10 +1,12 @@
 # Deploy unified frontend+backend to AWS App Runner (Mumbai ap-south-1)
-# Triggers on push to main. Requires one-time setup: ECR repo + IAM role for App Runner ECR access.
+# Triggers on push to main. Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_APP_RUNNER_ECR_ACCESS_ROLE_ARN.
 
 name: Deploy to AWS App Runner (Mumbai)
 
-# Disabled: no longer runs on push to main. Run manually from Actions tab if needed.
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
