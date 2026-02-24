@@ -1,13 +1,10 @@
 # Deploy to AWS EC2 in me-south-1 (Bahrain)
-# Builds image, pushes to ECR, optionally runs app update on EC2 via SSM.
+# Run manually when EC2 is started (workflow_dispatch). Does NOT run on push to main.
 # Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY. Optional: AWS_EC2_ME_SOUTH_1_INSTANCE_ID for SSM deploy.
 
 name: Deploy to AWS EC2 (me-south-1)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 concurrency:
