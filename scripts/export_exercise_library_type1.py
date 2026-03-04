@@ -272,6 +272,70 @@ RAW_TEXT = r"""
 GROUP_RE = re.compile(r'^[🟥🟦🟩🟧🟪🟫⬛🟨]?\s*\d+\)\s*(.*?)\s*–\s*\d+\s*حرکت', re.M)
 ITEM_RE = re.compile(r'^\s*(\d+)\.\s*([A-Za-z0-9\-\(\)\/\+\s°]+)', re.M)
 
+TARGET_KEYWORDS = [
+    ("بالاسینه", "سینه بالا"),
+    ("زیرسینه", "سینه پایین"),
+    ("سینه بالا", "سینه بالا"),
+    ("سینه پایین", "سینه پایین"),
+    ("سینه", "سینه"),
+    ("میان‌پشت", "میان پشت"),
+    ("میان پشت", "میان پشت"),
+    ("پشت بالایی", "پشت بالا"),
+    ("پشت بالا", "پشت بالا"),
+    ("پشت پایین", "پشت پایین"),
+    ("پشت", "پشت"),
+    ("دلتوئید جانبی", "شانه جانبی"),
+    ("شانه جانبی", "شانه جانبی"),
+    ("شانه جلو", "شانه جلو"),
+    ("شانه عقب", "شانه عقب"),
+    ("شانه پشت", "شانه عقب"),
+    ("شانه فوقانی", "شانه فوقانی"),
+    ("شانه", "شانه"),
+    ("چهارسر", "چهارسر"),
+    ("همسترینگ", "همسترینگ"),
+    ("باسن", "باسن"),
+    ("ساق", "ساق"),
+    ("داخل ران", "داخل ران"),
+    ("اداکتور داخلی", "داخل ران"),
+    ("اداکتور جانبی", "خارج ران"),
+    ("خارج ران", "خارج ران"),
+    ("جلو بازو", "جلو بازو"),
+    ("پشت بازو", "پشت بازو"),
+    ("شکم", "شکم"),
+    ("پهلو", "پهلو"),
+    ("مایل", "پهلو"),
+    ("ساعد", "ساعد"),
+    ("کل بدن", "کل بدن"),
+]
+
+TARGET_FA_TO_EN = {
+    "سینه": "Chest",
+    "سینه بالا": "Upper chest",
+    "سینه پایین": "Lower chest",
+    "سینه میانی": "Mid chest",
+    "میان پشت": "Mid back",
+    "پشت": "Back",
+    "پشت بالا": "Upper back",
+    "پشت پایین": "Lower back",
+    "شانه": "Shoulders",
+    "شانه جانبی": "Lateral deltoid",
+    "شانه جلو": "Front deltoid",
+    "شانه عقب": "Rear deltoid",
+    "شانه فوقانی": "Upper traps",
+    "چهارسر": "Quadriceps",
+    "همسترینگ": "Hamstrings",
+    "باسن": "Glutes",
+    "ساق": "Calves",
+    "داخل ران": "Inner thigh (adductors)",
+    "خارج ران": "Outer thigh (abductors)",
+    "جلو بازو": "Biceps",
+    "پشت بازو": "Triceps",
+    "شکم": "Abs",
+    "پهلو": "Obliques",
+    "ساعد": "Forearms",
+    "کل بدن": "Full body",
+}
+
 
 def _normalize_name(name: str) -> str:
     return re.sub(r'\s+', ' ', name.strip().lower())
@@ -320,6 +384,23 @@ def _extract_fa_name_and_notes(text: str):
         return text.strip(), ''
     return left.strip(), right.strip()
 
+def _extract_target_detail_fa(detail: str, fa_name: str, title: str) -> str:
+    chunk = detail.replace('،', ',').split(',', 1)[0].strip()
+    if chunk and all(x not in chunk for x in ['مبتدی', 'متوسط', 'حرفه‌ای']):
+        return chunk
+    for key, value in TARGET_KEYWORDS:
+        if key in (fa_name or ''):
+            return value
+    title_fa = title.split('(')[0].replace('عضلات', '').strip()
+    return title_fa
+
+def _target_fa_to_en(text: str) -> str:
+    if not text:
+        return ''
+    parts = [p.strip() for p in text.split(' و ') if p.strip()]
+    mapped = [TARGET_FA_TO_EN.get(p, p) for p in parts]
+    return ' & '.join(mapped)
+
 
 def parse_raw():
     groups = []
@@ -352,6 +433,8 @@ def parse_raw():
             level = _extract_level(detail)
             gender = _extract_gender(detail)
             breathing = _extract_breathing(detail)
+            target_detail_fa = _extract_target_detail_fa(detail, fa_name, title)
+            target_detail_en = _target_fa_to_en(target_detail_fa)
             key = _normalize_name(name_en)
             if key in seen:
                 continue
@@ -360,8 +443,8 @@ def parse_raw():
                 "index": int(idx),
                 "name_en": name_en,
                 "name_fa": fa_name,
-                "target_group_fa": title,
-                "target_group_en": title.split('(')[-1].replace(')', '').strip() if '(' in title else '',
+                "target_group_fa": target_detail_fa,
+                "target_group_en": target_detail_en,
                 "level_fa": level,
                 "tips_fa": notes,
                 "breathing_fa": breathing,

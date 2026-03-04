@@ -1,3 +1,4 @@
+/* Steps Tab - Design system aligned */
 .steps-tab {
   box-sizing: border-box;
   width: 100%;
@@ -5,7 +6,7 @@
   min-width: 0;
   margin: 0;
   padding: 0 0 1rem 0;
-  background-color: #fff;
+  background-color: var(--surface-base);
 }
 
 .steps-header {
@@ -14,49 +15,49 @@
 
 .steps-header h2 {
   margin: 0 0 0.5rem 0;
-  font-size: 1.8rem;
-  color: #000;
+  font-size: 1.5rem;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
 .steps-subtitle {
   margin: 0;
-  color: #666;
+  color: var(--text-muted);
   font-size: 0.95rem;
 }
 
 .steps-loading {
   text-align: center;
   padding: 2rem;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .steps-today-card {
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  background: var(--color-accent-50);
   padding: 1.5rem 2rem;
-  border-radius: 12px;
-  border: 1px solid #a5d6a7;
+  border-radius: 16px;
+  border: 1px solid var(--color-accent-200);
   margin-bottom: 2rem;
 }
 
 .steps-today-card h3 {
   margin: 0 0 0.5rem 0;
   font-size: 1.1rem;
-  color: #2e7d32;
+  color: var(--color-accent-600);
   font-weight: 600;
 }
 
 .steps-today-value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #1b5e20;
+  color: var(--color-accent-600);
   margin: 0.25rem 0;
 }
 
 .steps-source {
   margin: 0 0 1rem 0;
   font-size: 0.9rem;
-  color: #388e3c;
+  color: var(--text-muted);
 }
 
 .steps-manual-form {
@@ -69,7 +70,7 @@
 
 .steps-manual-form label {
   font-size: 0.95rem;
-  color: #333;
+  color: var(--text-secondary);
   width: 100%;
 }
 
@@ -77,23 +78,32 @@
   flex: 1;
   min-width: 120px;
   padding: 0.6rem 0.75rem;
-  border: 1px solid #a5d6a7;
-  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
   font-size: 1rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.steps-manual-form input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .steps-manual-form button {
   padding: 0.6rem 1.25rem;
-  background: #2e7d32;
+  background: var(--gradient-accent);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.25s ease;
 }
 
 .steps-manual-form button:hover:not(:disabled) {
-  background: #1b5e20;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .steps-manual-form button:disabled {
@@ -104,18 +114,18 @@
 .steps-device-error {
   margin: 0.75rem 0 0 0;
   font-size: 0.9rem;
-  color: #c62828;
+  color: var(--error);
 }
 
 .steps-history h3 {
   margin: 0 0 1rem 0;
   font-size: 1.2rem;
-  color: #000;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
 .steps-no-history {
-  color: #666;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -132,16 +142,17 @@
   display: flex;
   justify-content: space-between;
   padding: 0.5rem 0.75rem;
-  background: #f5f5f5;
-  border-radius: 6px;
+  background: var(--surface-subtle);
+  border-radius: 10px;
   font-size: 0.95rem;
+  border: 1px solid var(--border-subtle);
 }
 
 .steps-history-date {
-  color: #333;
+  color: var(--text-secondary);
 }
 
 .steps-history-steps {
   font-weight: 600;
-  color: #1b5e20;
+  color: var(--color-accent-600);
 }

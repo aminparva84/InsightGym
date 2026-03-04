@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -6,7 +6,7 @@ import { getApiBase } from '../services/apiBase';
 import { useAuth } from '../context/AuthContext';
 import './BannerChat.css';
 
-const BannerChat = ({ onOpenBuyModal }) => {
+const BannerChat = forwardRef(({ onOpenBuyModal, hideHeader }, ref) => {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
   const API_BASE = getApiBase();
@@ -121,6 +121,16 @@ const BannerChat = ({ onOpenBuyModal }) => {
     setHistoryView('list');
   };
 
+  const openHistory = () => {
+    setShowHistory(true);
+    fetchConversations();
+  };
+
+  useImperativeHandle(ref, () => ({
+    startNewConversation,
+    openHistory,
+  }), []);
+
   const fetchConversations = async () => {
     setHistoryLoading(true);
     try {
@@ -151,11 +161,6 @@ const BannerChat = ({ onOpenBuyModal }) => {
     } finally {
       setHistoryLoading(false);
     }
-  };
-
-  const openHistory = () => {
-    setShowHistory(true);
-    fetchConversations();
   };
 
   const formatConversationDate = (iso) => {
@@ -253,27 +258,29 @@ const BannerChat = ({ onOpenBuyModal }) => {
 
   return (
     <div className="banner-chat-container" style={{ position: 'relative' }}>
-      <div className="banner-chat-header">
-        <span className="banner-chat-header-title">
-          {i18n.language === 'fa' ? 'چت' : 'Chat'}
-        </span>
-        <div className="banner-chat-header-actions">
-          <button
-            type="button"
-            className="banner-chat-header-btn"
-            onClick={openHistory}
-          >
-            {i18n.language === 'fa' ? 'تاریخچه' : 'History'}
-          </button>
-          <button
-            type="button"
-            className="banner-chat-header-btn"
-            onClick={startNewConversation}
-          >
-            {i18n.language === 'fa' ? 'گفتگوی جدید' : 'New conversation'}
-          </button>
+      {!hideHeader && (
+        <div className="banner-chat-header">
+          <span className="banner-chat-header-title">
+            {i18n.language === 'fa' ? 'چت' : 'Chat'}
+          </span>
+          <div className="banner-chat-header-actions">
+            <button
+              type="button"
+              className="banner-chat-header-btn"
+              onClick={openHistory}
+            >
+              {i18n.language === 'fa' ? 'تاریخچه' : 'History'}
+            </button>
+            <button
+              type="button"
+              className="banner-chat-header-btn"
+              onClick={startNewConversation}
+            >
+              {i18n.language === 'fa' ? 'گفتگوی جدید' : 'New conversation'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {showHistory && (
         <div className="banner-chat-history-overlay">
@@ -435,7 +442,9 @@ const BannerChat = ({ onOpenBuyModal }) => {
       </form>
     </div>
   );
-};
+});
+
+BannerChat.displayName = 'BannerChat';
 
 export default BannerChat;
 

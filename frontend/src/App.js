@@ -1,10 +1,12 @@
 import React, { useEffect, useLayoutEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import AppLayout from './components/AppLayout';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import AdminPage from './components/AdminPage';
 import PurchasePage from './components/PurchasePage';
+import ContactPage from './components/ContactPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 import './themes.css';
@@ -67,10 +69,13 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/" replace />} />
-      <Route path="/admin" element={user ? <AdminPage /> : <Navigate to="/" replace />} />
-      <Route path="/purchase" element={user ? <PurchasePage /> : <Navigate to="/" replace />} />
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/" replace />} />
+        <Route path="/admin" element={user ? <AdminPage /> : <Navigate to="/" replace />} />
+        <Route path="/purchase" element={user ? <PurchasePage /> : <Navigate to="/" replace />} />
+        <Route path="/contact" element={<ContactPage />} />
+      </Route>
     </Routes>
   );
 }

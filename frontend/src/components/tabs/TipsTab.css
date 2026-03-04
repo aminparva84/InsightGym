@@ -1,3 +1,4 @@
+/* Tips Tab - Design system aligned */
 .tips-tab {
   box-sizing: border-box;
   width: 100%;
@@ -5,21 +6,22 @@
   min-width: 0;
   margin: 0;
   padding: 0 0 1rem 0;
-  background-color: #ffffff;
+  background-color: var(--surface-base);
 }
 
 .tips-tab h2 {
-  color: #000000;
+  color: var(--text-primary);
   margin-bottom: 2rem;
-  background-color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .no-data {
   text-align: center;
   padding: 3rem;
-  color: #000000;
+  color: var(--text-muted);
   font-size: 1.1rem;
-  background-color: #ffffff;
+  background-color: var(--surface-base);
 }
 
 .tips-list {
@@ -29,22 +31,22 @@
 }
 
 .tip-card {
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
   padding: 1.5rem;
   transition: transform 0.3s, box-shadow 0.3s;
   min-height: 200px;
 }
 
 .tip-card * {
-  color: #000000 !important;
+  color: inherit;
 }
 
 .tip-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 5px 20px rgba(246, 243, 194, 0.2);
-  border-color: #F6F3C2;
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent-200);
 }
 
 .tip-header {
@@ -56,37 +58,37 @@
 }
 
 .tip-header h3 {
-  color: #000000;
+  color: var(--text-primary);
   margin: 0;
   flex: 1;
 }
 
 .tip-category {
-  background-color: #f8f9fa;
+  background-color: var(--surface-raised);
   padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.85rem;
-  color: #000000;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .tip-content {
-  color: #000000;
+  color: var(--text-secondary);
   line-height: 1.8;
   margin-bottom: 1rem;
 }
 
 .tip-date {
   font-size: 0.85rem;
-  color: #000000;
+  color: var(--text-muted);
   text-align: left;
 }
 
 .loading {
   text-align: center;
   padding: 3rem;
-  color: #000000;
-  background-color: #ffffff;
+  color: var(--text-muted);
+  background-color: var(--surface-base);
 }
 
 @media (max-width: 768px) {
@@ -94,6 +96,3 @@
     grid-template-columns: 1fr;
   }
 }
-
-
-

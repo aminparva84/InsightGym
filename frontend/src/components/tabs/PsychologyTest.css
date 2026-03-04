@@ -5,7 +5,7 @@
   min-width: 0;
   margin: 0;
   padding: 0 0 1rem 0;
-  background-color: var(--color-white);
+  background-color: var(--surface-base);
 }
 
 .psychology-test-header {
@@ -68,7 +68,7 @@
 .start-test-btn {
   padding: 0.75rem 1.5rem;
   background: var(--gradient-accent);
-  color: var(--color-white);
+  color: var(--surface-base);
   border: none;
   border-radius: 6px;
   font-size: 1rem;
@@ -141,7 +141,7 @@
 
 .option-btn {
   padding: 1rem 1.5rem;
-  background-color: var(--color-white);
+  background-color: var(--surface-base);
   border: 2px solid var(--color-primary-200);
   border-radius: 8px;
   color: var(--color-primary-800);
@@ -172,7 +172,7 @@
 .nav-btn {
   padding: 0.75rem 2rem;
   background: var(--gradient-accent);
-  color: var(--color-white);
+  color: var(--surface-base);
   border: none;
   border-radius: 6px;
   font-size: 1rem;
@@ -245,7 +245,7 @@
 .retake-test-btn {
   padding: 0.75rem 2rem;
   background: var(--gradient-accent);
-  color: var(--color-white);
+  color: var(--surface-base);
   border: none;
   border-radius: 6px;
   font-size: 1rem;

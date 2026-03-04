@@ -1,201 +1,100 @@
-/* Dashboard - Theme from themes.css (html[data-theme]).
-   Where to see male vs female theme:
-   - Top bar: thick colored line under the bar (blue = male, pink/rose = female).
-   - Site title (top left): gradient text (blue gradient = male, pink/purple = female).
-   - Language toggle circle: same gradient as title.
-   - Tab bar: background tint (light blue = male, warm white = female) and active tab underline in accent color.
-   - Buttons/links that use --color-accent-* or --color-secondary-* will follow the theme. */
+/* Dashboard - Uses theme variables from themes.css (html[data-theme]).
+   Topbar, tabs, and content use --surface-base, --text-primary, --accent, etc.
+   Theme varies by user profile (unisex/male/female) when logged in. */
 
 .dashboard {
   min-height: 100vh;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
-  padding-top: 80px;
+  padding-top: 1rem;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
 }
 
-/* Dashboard Topbar - Theme accent bar under topbar (male=blue, female=rose, unisex=teal/orange) */
-.dashboard-topbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  max-width: 100%;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  padding: 0.8rem clamp(1rem, 2rem, 4vw);
-  z-index: 1000;
-  box-shadow: 0 12px 32px -24px rgba(15, 23, 42, 0.4);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-  transition: all 0.3s ease;
-  overflow: visible; /* allow notifications dropdown to show below header */
-}
-
-.topbar-container {
+/* Dashboard bar - inline, below AppLayout header */
+.dashboard-bar {
   max-width: min(1400px, 100%);
   width: 100%;
-  min-width: 0;
-  margin: 0 auto;
+  margin: 0 auto 1rem;
+  padding: 0.5rem clamp(1rem, 2rem, 4vw);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.35rem 0.5rem;
+  direction: ltr;
 }
 
-.topbar-title {
-  font-size: 1.8rem;
+.dashboard-bar-title {
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: color 0.2s;
 }
 
-.topbar-title:hover {
-  transform: translateY(-1px);
+.dashboard-bar-title:hover {
   color: var(--accent);
 }
 
-.topbar-actions {
+.dashboard-bar-actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
-  direction: ltr; /* Always LTR for topbar */
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 999px;
-  padding: 0.35rem 0.5rem;
-  box-shadow: var(--shadow-sm);
 }
 
-/* Language Toggle - Material 3 segmented button (compact) */
-.lang-toggle {
-  position: relative;
-  width: 92px;
-  height: 36px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  padding: 0;
-  overflow: hidden;
-  direction: ltr;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12), 0 6px 16px -12px rgba(15, 23, 42, 0.35);
-}
-
-.lang-toggle:hover {
-  transform: translateY(-1px);
-  border-color: var(--border-strong);
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2), 0 10px 22px -16px rgba(15, 23, 42, 0.4);
-}
-
-.lang-toggle:active {
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
-}
-
-/* Sliding circle - centered vertically and in each half horizontally */
-.lang-toggle-slider {
-  position: absolute;
-  top: 50%;
-  left: 3px;
-  width: 30px;
-  height: 30px;
-  margin-top: -15px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-secondary-500) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 10px 18px -12px rgba(14, 165, 233, 0.6);
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
-  z-index: 2;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.02em;
-}
-
-.lang-toggle-slider::before {
-  content: 'EN';
-}
-
-/* When Persian is active: circle in right half */
-.lang-toggle.fa-active .lang-toggle-slider {
-  transform: translateX(56px);
-}
-
-.lang-toggle.fa-active .lang-toggle-slider::before {
-  content: 'فا';
-}
-
-/* When English is active: circle on the left */
-.lang-toggle.en-active .lang-toggle-slider {
-  transform: translateX(0);
-}
-
-.lang-toggle.en-active .lang-toggle-slider::before {
-  content: 'EN';
-}
-
-/* Labels in each half (optional context; circle shows selected) */
-.lang-label-fa,
-.lang-label-en {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--text-muted);
-  transition: color 0.2s ease;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Labels centered in each half, same spacing as circle */
-.lang-label-en {
-  left: 14px;
-  transform: translateY(-50%);
-}
-
-.lang-label-fa {
-  right: 14px;
-  transform: translateY(-50%);
-}
-
-/* Mute the label that is under the circle (selected side) so circle text stands out */
-.lang-toggle.fa-active .lang-label-fa,
-.lang-toggle.en-active .lang-label-en {
-  visibility: hidden;
-}
-
-.lang-toggle.fa-active .lang-label-en,
-.lang-toggle.en-active .lang-label-fa {
-  color: var(--text-muted);
-}
-
-.username {
+.dashboard-username {
   color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
-/* Notifications bell (members only) */
-.topbar-notifications-wrap {
+.dashboard-break-btn,
+.dashboard-logout-btn {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--color-primary-300);
+  background: var(--color-primary-50);
+  color: var(--color-primary-800);
+  transition: background 0.2s;
+}
+
+.dashboard-break-btn:hover,
+.dashboard-logout-btn:hover {
+  background: var(--color-primary-100);
+}
+
+.dashboard-logout-btn {
+  background: transparent;
+  border-color: var(--color-primary-200);
+}
+
+.dashboard-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #b91c1c;
+}
+
+.dashboard-break-btn {
+  background: var(--color-accent-soft, rgba(80, 239, 255, 0.2));
+  color: var(--color-accent-600, #0ea5e9);
+  border-color: transparent;
+}
+
+.dashboard-break-btn:hover {
+  background: var(--color-accent-100, rgba(80, 239, 255, 0.3));
+  color: var(--color-accent-600, #0ea5e9);
+}
+
+/* Notifications */
+.dashboard-notifications-wrap {
   position: relative;
 }
 
-.topbar-notifications-btn {
+.dashboard-notifications-btn {
   position: relative;
   padding: 0.5rem;
   background: transparent;
@@ -208,17 +107,12 @@
   justify-content: center;
 }
 
-.topbar-notifications-btn:hover {
+.dashboard-notifications-btn:hover {
   background: var(--color-primary-50);
   color: var(--color-accent-600);
-  border-color: var(--color-accent-400);
 }
 
-.notification-bell-icon {
-  display: block;
-}
-
-.notification-badge {
+.dashboard-notification-badge {
   position: absolute;
   top: -4px;
   right: -4px;
@@ -234,7 +128,7 @@
   border-radius: 10px;
 }
 
-.topbar-notifications-dropdown {
+.dashboard-notifications-dropdown {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -249,11 +143,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* Ensure dropdown appears below header on the page, not clipped */
-  margin-top: 0;
 }
 
-.notifications-dropdown-header {
+.dashboard-notifications-dropdown-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -264,7 +156,7 @@
   color: var(--color-primary-800);
 }
 
-.notifications-mark-all {
+.dashboard-notifications-mark-all {
   font-size: 0.8rem;
   color: var(--color-accent-600);
   background: none;
@@ -273,18 +165,18 @@
   padding: 0.25rem 0.5rem;
 }
 
-.notifications-mark-all:hover {
+.dashboard-notifications-mark-all:hover {
   text-decoration: underline;
 }
 
-.notifications-dropdown-list {
+.dashboard-notifications-list {
   overflow-y: auto;
   max-height: 320px;
 }
 
-.notifications-loading,
-.notifications-empty,
-.notifications-error {
+.dashboard-notifications-loading,
+.dashboard-notifications-empty,
+.dashboard-notifications-error {
   padding: 1.5rem 1rem;
   text-align: center;
   color: var(--color-primary-700);
@@ -297,11 +189,11 @@
   gap: 0.5rem;
 }
 
-.notifications-error {
+.dashboard-notifications-error {
   color: var(--color-error, #b91c1c);
 }
 
-.notifications-retry {
+.dashboard-notifications-retry {
   padding: 0.35rem 0.75rem;
   font-size: 0.85rem;
   background: var(--color-primary-100);
@@ -311,11 +203,11 @@
   color: var(--color-primary-800);
 }
 
-.notifications-retry:hover {
+.dashboard-notifications-retry:hover {
   background: var(--color-primary-200);
 }
 
-.notification-item {
+.dashboard-notification-item {
   display: block;
   width: 100%;
   text-align: left;
@@ -328,15 +220,15 @@
   color: var(--color-primary-800);
 }
 
-.notification-item:hover {
+.dashboard-notification-item:hover {
   background: var(--color-primary-50);
 }
 
-.notification-item.unread {
+.dashboard-notification-item.unread {
   background: var(--color-accent-soft);
 }
 
-.notification-type-badge {
+.dashboard-notification-type-badge {
   display: inline-block;
   font-size: 0.7rem;
   font-weight: 600;
@@ -349,17 +241,17 @@
   color: var(--color-primary-800);
 }
 
-.notification-type-badge[data-type="message"] {
+.dashboard-notification-type-badge[data-type="message"] {
   background: var(--color-accent-soft);
   color: var(--color-accent-700);
 }
 
-.notification-type-badge[data-type="reminder"] {
+.dashboard-notification-type-badge[data-type="reminder"] {
   background: rgba(245, 158, 11, 0.2);
   color: #b45309;
 }
 
-.notification-type-badge[data-type="trainer_note"] {
+.dashboard-notification-type-badge[data-type="trainer_note"] {
   background: rgba(34, 197, 94, 0.2);
   color: #15803d;
 }
@@ -370,60 +262,25 @@
   margin-bottom: 0.25rem;
 }
 
-.notification-body {
+.dashboard-notification-body {
   display: block;
   font-size: 0.85rem;
   color: var(--color-primary-600);
   margin-bottom: 0.25rem;
 }
 
-.notification-time {
+.dashboard-notification-time {
   display: block;
   font-size: 0.75rem;
   color: var(--color-primary-500);
 }
 
-.notification-audio {
+.dashboard-notification-audio {
   width: 100%;
   height: 28px;
   margin-top: 0.25rem;
 }
 
-.topbar-break-request-btn {
-  padding: 0.5rem 1rem;
-  background: var(--color-accent-soft);
-  color: var(--color-accent-600);
-  border: none;
-  border-radius: 999px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.topbar-break-request-btn:hover {
-  background: var(--color-accent-100);
-  color: var(--color-accent-600);
-}
-
-.topbar-logout-btn {
-  padding: 0.6rem 1.5rem;
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-error);
-  border: none;
-  border-radius: 999px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.topbar-logout-btn:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--color-error);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
-}
 
 .dashboard-content {
   max-width: min(1600px, 100%);

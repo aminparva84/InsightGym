@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -29,7 +28,6 @@ import AskProgressCheck from './AskProgressCheck';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  const { t, i18n } = useTranslation();
   const API_BASE = getApiBase();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -58,7 +56,7 @@ const Dashboard = () => {
       setNotificationsLoading(true);
       setNotificationsError(null);
       const res = await axios.get(
-        `${API_BASE}/api/member/notifications?language=${i18n.language || 'fa'}`,
+        `${API_BASE}/api/member/notifications?language=en`,
         getAxiosConfig()
       );
       setNotifications(Array.isArray(res.data) ? res.data : []);
@@ -69,7 +67,7 @@ const Dashboard = () => {
     } finally {
       setNotificationsLoading(false);
     }
-  }, [API_BASE, i18n.language, user, getAxiosConfig]);
+  }, [API_BASE, user, getAxiosConfig]);
 
   useEffect(() => {
     if (user && userRole) loadNotifications();
@@ -135,7 +133,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (!notificationsOpen) return;
     const onOutside = (e) => {
-      if (e.target.closest('.topbar-notifications-wrap')) return;
+      if (e.target.closest('.dashboard-notifications-wrap')) return;
       setNotificationsOpen(false);
     };
     const t = setTimeout(() => document.addEventListener('click', onOutside), 0);
@@ -182,54 +180,45 @@ const Dashboard = () => {
     }
   }, [API_BASE, user]);
 
-  const changeLanguage = () => {
-    const newLang = i18n.language === 'fa' ? 'en' : 'fa';
-    i18n.changeLanguage(newLang);
-    document.documentElement.lang = newLang;
-    // Keep direction as LTR for consistent alignment
-    document.documentElement.dir = 'ltr';
-    document.body.dir = 'ltr';
-  };
-
   // Determine tabs based on user role
   const getTabs = () => {
     if (userRole === 'admin') {
       // Admin tabs
       return [
-        { id: 'members-assistants-management', label: i18n.language === 'fa' ? 'مدیریت اعضا و دستیاران' : 'Members and Assistants Management', icon: 'people' },
-        { id: 'training-info', label: i18n.language === 'fa' ? 'اطلاعات تمرین' : 'Training Info', icon: 'menu_book' },
-        { id: 'training-plans-products', label: i18n.language === 'fa' ? 'برنامه‌ها و بسته‌های خرید' : 'Training Plans & Packages', icon: 'assignment' },
-        { id: 'ai-settings', label: i18n.language === 'fa' ? 'تنظیمات AI' : 'AI Settings', icon: 'smart_toy' },
-        { id: 'site-settings', label: i18n.language === 'fa' ? 'تنظیمات سایت' : 'Site Settings', icon: 'settings' },
-        { id: 'members-programs', label: i18n.language === 'fa' ? 'برنامه اعضا' : 'Members Programs', icon: 'assignment' }
+        { id: 'members-assistants-management', label: 'Members and Assistants Management', icon: 'people' },
+        { id: 'training-info', label: 'Training Info', icon: 'menu_book' },
+        { id: 'training-plans-products', label: 'Training Plans & Packages', icon: 'assignment' },
+        { id: 'ai-settings', label: 'AI Settings', icon: 'smart_toy' },
+        { id: 'site-settings', label: 'Site Settings', icon: 'settings' },
+        { id: 'members-programs', label: 'Members Programs', icon: 'assignment' }
       ];
     } else if (userRole === 'assistant') {
       // Assistant sees profile tab if incomplete, otherwise assistant tabs
       if (!profileComplete) {
         return [
-          { id: 'profile', label: i18n.language === 'fa' ? 'پروفایل' : 'Profile', icon: 'person' }
+          { id: 'profile', label: 'Profile', icon: 'person' }
         ];
       } else {
         return [
-          { id: 'members-list', label: i18n.language === 'fa' ? 'لیست اعضا' : 'Members List', icon: 'people' },
-          { id: 'break-requests', label: i18n.language === 'fa' ? 'درخواست استراحت' : 'Break Requests', icon: 'pause' },
-          { id: 'in-person-sessions', label: i18n.language === 'fa' ? 'تاریخچه جلسات حضوری' : 'In-Person Sessions', icon: 'event' },
-          { id: 'members-programs', label: i18n.language === 'fa' ? 'برنامه اعضا' : 'Members Programs', icon: 'assignment' }
+          { id: 'members-list', label: 'Members List', icon: 'people' },
+          { id: 'break-requests', label: 'Break Requests', icon: 'pause' },
+          { id: 'in-person-sessions', label: 'In-Person Sessions', icon: 'event' },
+          { id: 'members-programs', label: 'Members Programs', icon: 'assignment' }
         ];
       }
     } else {
       // Regular members see profile tab, Training with Agent tab, and base tabs
       const baseTabs = [
-        { id: 'training-with-agent', label: i18n.language === 'fa' ? 'تمرین با دستیار' : 'Training with Agent', icon: 'smart_toy' },
-        { id: 'history', label: t('history'), icon: 'bar_chart' },
-        { id: 'steps', label: i18n.language === 'fa' ? 'شمارش قدم' : 'Steps', icon: 'directions_walk' },
-        { id: 'nutrition', label: t('nutrition'), icon: 'restaurant' },
-        { id: 'training-program', label: i18n.language === 'fa' ? 'برنامه تمرینی' : 'Training Program', icon: 'fitness_center' },
-        { id: 'online-lab', label: i18n.language === 'fa' ? 'آزمایشگاه آنلاین' : 'Online Laboratory', icon: 'science' },
-        { id: 'psychology-test', label: i18n.language === 'fa' ? 'تست روانشناسی' : 'Psychology Test', icon: 'psychology' }
+        { id: 'training-with-agent', label: 'Training with Agent', icon: 'smart_toy' },
+        { id: 'history', label: 'History', icon: 'bar_chart' },
+        { id: 'steps', label: 'Steps', icon: 'directions_walk' },
+        { id: 'nutrition', label: 'Nutrition', icon: 'restaurant' },
+        { id: 'training-program', label: 'Training Program', icon: 'fitness_center' },
+        { id: 'online-lab', label: 'Online Laboratory', icon: 'science' },
+        { id: 'psychology-test', label: 'Psychology Test', icon: 'psychology' }
       ];
       return [
-        { id: 'profile', label: i18n.language === 'fa' ? 'پروفایل' : 'Profile', icon: 'person' },
+        { id: 'profile', label: 'Profile', icon: 'person' },
         ...baseTabs
       ];
     }
@@ -250,126 +239,102 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <nav className="dashboard-topbar">
-        <div className="topbar-container">
-          {/* Right side - Title */}
-          <h1 className="topbar-title" onClick={() => {
-            // Navigate to landing page but keep user logged in
-            navigate('/');
-          }} style={{ cursor: 'pointer' }}>
-            {t('appName')}
-          </h1>
-          
-          {/* Left side - Language toggle and Logout */}
-          <div className="topbar-actions">
-            {(userRole === 'member' || userRole === 'admin' || userRole === 'assistant') && (
-              <div className="topbar-notifications-wrap">
-                <button
-                  type="button"
-                  className="topbar-notifications-btn"
-                  onClick={(e) => { e.stopPropagation(); setNotificationsOpen((o) => !o); }}
-                  title={i18n.language === 'fa' ? 'اعلان‌ها' : 'Notifications'}
-                  aria-label="Notifications"
-                >
-                  <svg className="notification-bell-icon" viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-                  </svg>
-                  {unreadCount > 0 && (
-                    <span className="notification-badge" aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>
-                  )}
-                </button>
-                {notificationsOpen && (
-                  <div className="topbar-notifications-dropdown">
-                    <div className="notifications-dropdown-header">
-                      <span>{i18n.language === 'fa' ? 'اعلان‌ها' : 'Notifications'}</span>
-                      {unreadCount > 0 && (
-                        <button type="button" className="notifications-mark-all" onClick={markAllNotificationsRead}>
-                          {i18n.language === 'fa' ? 'همه خوانده شد' : 'Mark all read'}
-                        </button>
-                      )}
-                    </div>
-                    <div className="notifications-dropdown-list">
-                      {notificationsLoading ? (
-                        <div className="notifications-loading">{i18n.language === 'fa' ? 'در حال بارگذاری...' : 'Loading...'}</div>
-                      ) : notificationsError ? (
-                        <div className="notifications-error">
-                          {i18n.language === 'fa' ? 'خطا در بارگذاری اعلان‌ها' : 'Error loading notifications'}
-                          <button type="button" className="notifications-retry" onClick={() => loadNotifications()}>
-                            {i18n.language === 'fa' ? 'تلاش مجدد' : 'Retry'}
-                          </button>
-                        </div>
-                      ) : notifications.length === 0 ? (
-                        <div className="notifications-empty">{i18n.language === 'fa' ? 'اعلانی نیست' : 'No notifications'}</div>
-                      ) : (
-                        notifications.map((n) => (
-                          <button
-                            key={n.id}
-                            type="button"
-                            className={`notification-item ${!n.read_at ? 'unread' : ''}`}
-                            onClick={() => handleNotificationClick(n)}
-                          >
-                            {n.type && (
-                              <span className="notification-type-badge" data-type={n.type}>
-                                {n.type === 'trainer_note' ? (i18n.language === 'fa' ? 'یادداشت مربی' : 'Trainer note') :
-                                 n.type === 'message' ? (i18n.language === 'fa' ? 'پیام' : 'Message') :
-                                 n.type === 'reminder' ? (i18n.language === 'fa' ? 'یادآوری' : 'Reminder') :
-                                 n.type}
-                              </span>
-                            )}
-                            <strong>{n.title}</strong>
-                            {n.body && <span className="notification-body">{n.body}</span>}
-                            {n.voice_url && (
-                              <audio controls src={`${API_BASE}${n.voice_url}`} preload="metadata" className="notification-audio" />
-                            )}
-                            {n.created_at && <span className="notification-time">{new Date(n.created_at).toLocaleString(i18n.language === 'fa' ? 'fa-IR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}</span>}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {userRole === 'member' && (
+      <div className="dashboard-bar">
+        <h1 className="dashboard-bar-title" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+          Insight GYM
+        </h1>
+        <div className="dashboard-bar-actions">
+          {(userRole === 'member' || userRole === 'admin' || userRole === 'assistant') && (
+            <div className="dashboard-notifications-wrap">
               <button
                 type="button"
-                className="topbar-break-request-btn"
-                onClick={() => setBreakRequestModalOpen(true)}
-                title={i18n.language === 'fa' ? 'درخواست استراحت' : 'Request a break'}
+                className="dashboard-notifications-btn"
+                onClick={(e) => { e.stopPropagation(); setNotificationsOpen((o) => !o); }}
+                title="Notifications"
+                aria-label="Notifications"
               >
-                {i18n.language === 'fa' ? 'استراحت' : 'Break'}
+                <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                  <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="dashboard-notification-badge" aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
               </button>
-            )}
+              {notificationsOpen && (
+                <div className="dashboard-notifications-dropdown">
+                  <div className="dashboard-notifications-dropdown-header">
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <button type="button" className="dashboard-notifications-mark-all" onClick={markAllNotificationsRead}>
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="dashboard-notifications-list">
+                    {notificationsLoading ? (
+                      <div className="dashboard-notifications-loading">Loading...</div>
+                    ) : notificationsError ? (
+                      <div className="dashboard-notifications-error">
+                        Error loading notifications
+                        <button type="button" className="dashboard-notifications-retry" onClick={() => loadNotifications()}>
+                          Retry
+                        </button>
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="dashboard-notifications-empty">No notifications</div>
+                    ) : (
+                      notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          type="button"
+                          className={`dashboard-notification-item ${!n.read_at ? 'unread' : ''}`}
+                          onClick={() => handleNotificationClick(n)}
+                        >
+                          {n.type && (
+                            <span className="dashboard-notification-type-badge" data-type={n.type}>
+                              {n.type === 'trainer_note' ? 'Trainer note' : n.type === 'message' ? 'Message' : n.type === 'reminder' ? 'Reminder' : n.type}
+                            </span>
+                          )}
+                          <strong>{n.title}</strong>
+                          {n.body && <span className="dashboard-notification-body">{n.body}</span>}
+                          {n.voice_url && (
+                            <audio controls src={`${API_BASE}${n.voice_url}`} preload="metadata" className="dashboard-notification-audio" />
+                          )}
+                          {n.created_at && <span className="dashboard-notification-time">{new Date(n.created_at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}</span>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {userRole === 'member' && (
             <button
               type="button"
-              className={`lang-toggle ${i18n.language === 'fa' ? 'fa-active' : 'en-active'}`}
-              onClick={changeLanguage}
-              title={i18n.language === 'fa' ? 'Switch to English' : 'تبدیل به فارسی'}
+              className="dashboard-break-btn"
+              onClick={() => setBreakRequestModalOpen(true)}
+              title="Request a break"
             >
-              <span className="lang-label-en">EN</span>
-              <span className="lang-label-fa">فا</span>
-              <span className="lang-toggle-slider"></span>
+              Break
             </button>
-            <span className="username">{user?.username}</span>
-            <button type="button" className="topbar-logout-btn" onClick={logout}>
-              {t('logout')}
-            </button>
-          </div>
+          )}
+          <span className="dashboard-username">{user?.username}</span>
+          <button type="button" className="dashboard-logout-btn" onClick={logout}>
+            Logout
+          </button>
         </div>
-      </nav>
-
+      </div>
       <div className="dashboard-content">
         {userRole === 'member' && trialStatus && (
           <div className={`trial-banner ${trialStatus.trial_ended ? 'trial-ended' : 'trial-active'}`}>
             {trialStatus.is_trial_active ? (
               <span>
-                {i18n.language === 'fa'
-                  ? `دوره آزمایشی رایگان: ${trialStatus.days_left === 0 ? 'امروز آخرین روز' : `${trialStatus.days_left} روز باقی‌مانده`}`
-                  : `Free trial: ${trialStatus.days_left === 0 ? 'Last day today' : `${trialStatus.days_left} days left`}`}
+                Free trial: {trialStatus.days_left === 0 ? 'Last day today' : `${trialStatus.days_left} days left`}
               </span>
             ) : trialStatus.trial_ended ? (
               <span>
-                {i18n.language === 'fa' ? 'دوره آزمایشی ۷ روزه شما به پایان رسید. برای ادامه از تمام امکانات، اشتراک تهیه کنید.' : 'Your 7-day free trial has ended. Subscribe to continue using all features.'}
+                Your 7-day free trial has ended. Subscribe to continue using all features.
               </span>
             ) : null}
           </div>
@@ -383,7 +348,7 @@ const Dashboard = () => {
                 onClick={() => setProgressCheckOpen(true)}
               >
                 <span className="member-action-icon"><DashboardIcon name="bar_chart" /></span>
-                {i18n.language === 'fa' ? 'درخواست بررسی پیشرفت' : 'Ask for progress check'}
+                Ask for progress check
               </button>
             </div>
           )}
@@ -433,7 +398,7 @@ const Dashboard = () => {
           type="button"
           className="floating-chat-btn"
           onClick={() => setChatOpen((prev) => !prev)}
-          aria-label={i18n.language === 'fa' ? 'باز کردن چت' : 'Open chat'}
+          aria-label="Open chat"
         >
           <DashboardIcon name="chat" />
         </button>
@@ -442,8 +407,8 @@ const Dashboard = () => {
             <div className="floating-chat-backdrop" onClick={() => setChatOpen(false)} />
             <div className="floating-chat-panel floating-chat-panel-open" role="dialog" aria-modal="true">
               <div className="floating-chat-header">
-                <span>{i18n.language === 'fa' ? 'چت' : 'Chat'}</span>
-                <button type="button" onClick={() => setChatOpen(false)} aria-label={i18n.language === 'fa' ? 'بستن' : 'Close'}>
+                <span>Chat</span>
+                <button type="button" onClick={() => setChatOpen(false)} aria-label="Close">
                   ×
                 </button>
               </div>
@@ -458,8 +423,8 @@ const Dashboard = () => {
           <div className="progress-check-modal-overlay" onClick={() => setProgressCheckOpen(false)} role="dialog" aria-modal="true">
             <div className="progress-check-modal" onClick={(e) => e.stopPropagation()} dir="ltr">
               <div className="progress-check-modal-header">
-                <span>{i18n.language === 'fa' ? 'درخواست بررسی پیشرفت' : 'Ask for progress check'}</span>
-                <button type="button" onClick={() => setProgressCheckOpen(false)} aria-label={i18n.language === 'fa' ? 'بستن' : 'Close'}>×</button>
+                <span>Ask for progress check</span>
+                <button type="button" onClick={() => setProgressCheckOpen(false)} aria-label="Close">×</button>
               </div>
               <AskProgressCheck />
             </div>

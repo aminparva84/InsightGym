@@ -1,4 +1,4 @@
-/* Tab content already has padding from .tab-content; we use full width so table fits */
+/* AI Settings Tab - Design system aligned */
 .ai-settings-tab {
   box-sizing: border-box;
   width: 100%;
@@ -10,12 +10,13 @@
 .ai-settings-tab h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: #000;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .ai-settings-desc {
   margin: 0 0 1.5rem 0;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 0.95rem;
   line-height: 1.5;
 }
@@ -23,36 +24,43 @@
 .ai-settings-loading {
   padding: 2rem;
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .ai-settings-selected {
   margin-bottom: 2rem;
   padding: 1rem 1.25rem;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
 }
 
 .ai-settings-selected label {
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .ai-settings-selected select {
   padding: 0.5rem 0.75rem;
   font-size: 1rem;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
   min-width: 200px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.ai-settings-selected select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .ai-settings-warn {
   margin: 0.75rem 0 0 0;
   font-size: 0.9rem;
-  color: #856404;
+  color: var(--warning);
 }
 
 .ai-settings-table-wrap {
@@ -61,9 +69,9 @@
   max-width: 100%;
   margin: 0;
   overflow-x: auto;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface-base);
 }
 
 .ai-settings-table {
@@ -75,20 +83,20 @@
 }
 
 .ai-settings-table thead {
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  background: var(--surface-subtle);
+  border-bottom: 2px solid var(--border-strong);
 }
 
 .ai-settings-table th {
   padding: 0.75rem 1rem;
   text-align: left;
   font-weight: 600;
-  color: #212529;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
 .ai-settings-table tbody tr {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .ai-settings-table tbody tr:last-child {
@@ -96,26 +104,26 @@
 }
 
 .ai-settings-table tbody tr:hover {
-  background: #f8f9fa;
+  background: var(--surface-raised);
 }
 
 .ai-settings-table tbody tr.valid {
-  background: #f0f9f4;
+  background: rgba(22, 163, 74, 0.12);
 }
 
 .ai-settings-table tbody tr.valid:hover {
-  background: #e7f5ec;
+  background: rgba(22, 163, 74, 0.18);
 }
 
 .ai-settings-table td {
   padding: 0.75rem 1rem;
   vertical-align: middle;
-  color: #495057;
+  color: var(--text-secondary);
 }
 
 .ai-settings-cell-name {
   font-weight: 600;
-  color: #212529;
+  color: var(--text-primary);
 }
 
 .ai-settings-cell-actions {
@@ -130,18 +138,26 @@
   width: 180px;
   min-width: 140px;
   padding: 0.4rem 0.6rem;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
   font-size: 0.9rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.ai-settings-key-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .ai-settings-btn {
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   border: none;
   font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
 .ai-settings-btn:disabled {
@@ -150,41 +166,42 @@
 }
 
 .ai-settings-btn-save {
-  background: #0d6efd;
+  background: var(--gradient-accent);
   color: #fff;
 }
 
 .ai-settings-btn-save:hover:not(:disabled) {
-  background: #0b5ed7;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .ai-settings-btn-test {
-  background: #198754;
+  background: var(--success);
   color: #fff;
 }
 
 .ai-settings-btn-test:hover:not(:disabled) {
-  background: #157347;
+  filter: brightness(0.95);
 }
 
 .ai-kb-section {
   margin-top: 2rem;
   padding: 1rem 1.25rem;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
 }
 
 .ai-kb-section h3 {
   margin: 0 0 0.5rem 0;
   font-size: 1.2rem;
-  color: #000;
+  color: var(--text-primary);
 }
 
 .ai-kb-meta {
   display: flex;
   gap: 1rem;
-  color: #555;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin-bottom: 0.75rem;
 }
@@ -193,13 +210,18 @@
   width: 100%;
   min-height: 220px;
   padding: 0.75rem;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
   font-size: 0.95rem;
   resize: vertical;
-  background: #fff;
-  color: #212529;
+  background: var(--input-bg);
+  color: var(--text-primary);
   box-sizing: border-box;
+}
+
+.ai-kb-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .ai-kb-actions {

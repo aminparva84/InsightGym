@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getApiBase } from '../../services/apiBase';
@@ -8,11 +9,15 @@ import './HistoryTab.css';
 
 const HistoryTab = ({ showOnlyMessages = false }) => {
   const { t, i18n } = useTranslation();
+  const [searchParams] = useSearchParams();
   const API_BASE = getApiBase();
   const { user, loading: authLoading } = useAuth();
+  const viewParam = searchParams.get('view');
   const [exercises, setExercises] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
-  const [activeView, setActiveView] = useState(showOnlyMessages ? 'chat' : 'exercises');
+  const [activeView, setActiveView] = useState(
+    showOnlyMessages ? 'chat' : (viewParam === 'progress' ? 'progress' : viewParam === 'chat' ? 'chat' : 'exercises')
+  );
   const [loading, setLoading] = useState(true);
 
   // Get auth token
@@ -57,6 +62,12 @@ const HistoryTab = ({ showOnlyMessages = false }) => {
       setLoading(false);
     }
   }, [authLoading, user, loadData]);
+
+  useEffect(() => {
+    if (viewParam === 'progress' || viewParam === 'chat') {
+      setActiveView(viewParam);
+    }
+  }, [viewParam]);
 
   if (loading) {
     return <div className="loading">{t('loading')}...</div>;

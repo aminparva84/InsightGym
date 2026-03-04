@@ -222,6 +222,245 @@ RAW_TEXT = r"""
 GROUP_RE = re.compile(r'^[🟥🟦🟩🟧🟪🟫⬛🟨]?\s*\d+\)\s*(.*?)\s*–\s*\d+\s*حرکت', re.M)
 ITEM_RE = re.compile(r'^\s*(\d+)\.\s*([A-Za-z0-9\-\(\)\/\+\s°]+)', re.M)
 
+NAME_FA = {
+    "Push-Up": "شنا سوئدی",
+    "Incline Push-Up": "شنا سوئدی شیب مثبت",
+    "Decline Push-Up": "شنا سوئدی شیب منفی",
+    "Diamond Push-Up": "شنا سوئدی الماسی",
+    "Wide Push-Up": "شنا سوئدی دست باز",
+    "Archer Push-Up": "شنا سوئدی کماندار",
+    "Clap Push-Up": "شنا سوئدی انفجاری با کف‌زنی",
+    "Spiderman Push-Up": "شنا سوئدی اسپایدرمن",
+    "Explosive Push-Up": "شنا سوئدی انفجاری",
+    "Staggered Hands Push-Up": "شنا سوئدی دست‌های نامتقارن",
+    "Hindu Push-Up": "شنا هندو",
+    "One Arm Push-Up": "شنا سوئدی تک‌دست",
+    "Planche Push-Up (سطح پیشرفته)": "شنا پلانچ",
+    "Planche Push-Up": "شنا پلانچ",
+    "T Push-Up": "شنا سوئدی تی",
+    "Incline Diamond Push-Up": "شنا سوئدی الماسی شیب مثبت",
+    "Decline Diamond Push-Up": "شنا سوئدی الماسی شیب منفی",
+    "Wide Archer Push-Up": "شنا سوئدی کماندار دست باز",
+    "Plyometric Push-Up": "شنا سوئدی پلیومتریک",
+    "Push-Up to Side Plank": "شنا سوئدی به پلانک پهلو",
+    "Ring Push-Up (در صورت داشتن رینگ)": "شنا سوئدی با رینگ",
+    "Ring Push-Up": "شنا سوئدی با رینگ",
+    "Pull-Up": "بارفیکس",
+    "Pull-Up (بارفیکس)": "بارفیکس",
+    "Chin-Up": "چین‌آپ",
+    "Wide Grip Pull-Up": "بارفیکس دست باز",
+    "Close Grip Pull-Up": "بارفیکس دست جمع",
+    "Inverted Row (روی میله پایین)": "روئینگ معکوس",
+    "Inverted Row": "روئینگ معکوس",
+    "Bodyweight Row": "روئینگ وزن بدن",
+    "Superman Hold": "نگه‌داشتن سوپرمن",
+    "Towel Row (با حوله و میله)": "روئینگ با حوله",
+    "Towel Row": "روئینگ با حوله",
+    "Horizontal Pull-Up": "بارفیکس افقی",
+    "One Arm Inverted Row": "روئینگ معکوس تک‌دست",
+    "Archer Pull-Up": "بارفیکس کماندار",
+    "Assisted Pull-Up (با کش)": "بارفیکس کمکی (با کش)",
+    "Assisted Pull-Up": "بارفیکس کمکی (با کش)",
+    "Jumping Pull-Up": "بارفیکس پرشی",
+    "Scapular Pull-Up": "بارفیکس کتف‌محور",
+    "L-Sit Pull-Up": "بارفیکس ال-سیت",
+    "Ring Row": "روئینگ با رینگ",
+    "Inverted Row Drop Set": "روئینگ معکوس دراپ‌ست",
+    "Wide Grip Inverted Row": "روئینگ معکوس دست باز",
+    "Bodyweight Row Single Arm": "روئینگ وزن بدن تک‌دست",
+    "Horizontal Pull-Up with Pause": "بارفیکس افقی با توقف",
+    "Pike Push-Up": "شنا پایک",
+    "Handstand Push-Up": "شنا هندستند",
+    "Plank to Shoulder Tap": "پلانک با تاچ شانه",
+    "Dumbbell-Free Lateral Raise Simulation (با کش یا وزنه بدن)": "شبیه‌سازی نشر جانب بدون دمبل",
+    "Dumbbell-Free Lateral Raise Simulation": "شبیه‌سازی نشر جانب بدون دمبل",
+    "Elevated Pike Push-Up": "شنا پایک با پا روی ارتفاع",
+    "Side Plank Reach Under": "پلانک پهلو با دست زیر بدن",
+    "T-Push-Up": "شنا سوئدی تی",
+    "Wall Walk": "راه رفتن روی دیوار",
+    "Plank to Downward Dog": "پلانک به داون‌داگ",
+    "Arm Circles": "چرخش دست‌ها",
+    "Shoulder Taps on Knees": "تاچ شانه روی زانو",
+    "Plank Reach": "پلانک با دست دراز",
+    "Scapular Push-Up": "شنا کتف‌محور",
+    "Side Plank Arm Lift": "پلانک پهلو با بالا بردن دست",
+    "Reverse Plank Leg Lift": "پلانک معکوس با بالا بردن پا",
+    "Handstand Wall Walk Hold": "نگه‌داشتن هندستند دیوار",
+    "Y-T Raises (با وزن بدن یا کش)": "حرکات Y-T با وزن بدن/کش",
+    "Y-T Raises": "حرکات وای-تی",
+    "Plank to Side Arm Raise": "پلانک با بالا بردن دست به پهلو",
+    "Shoulder Shrugs (با وزن بدن یا کش)": "شراگ شانه با وزن بدن/کش",
+    "Shoulder Shrugs": "شراگ شانه",
+    "Bodyweight Squat": "اسکوات وزن بدن",
+    "Jump Squat": "اسکوات پرشی",
+    "Lunge Forward": "لانج جلو",
+    "Reverse Lunge": "لانج عقب",
+    "Side Lunge": "لانج جانبی",
+    "Curtsy Lunge": "لانج ضربدری",
+    "Split Squat": "اسکوات اسپلیت",
+    "Bulgarian Split Squat": "اسکوات اسپلیت بلغاری",
+    "Step-Up (روی سطح ثابت)": "استپ‌آپ",
+    "Step-Up": "استپ‌آپ",
+    "Step-Up with Knee Raise": "استپ‌آپ با بالا آوردن زانو",
+    "Single Leg Squat (Pistol Squat)": "اسکوات تک‌پا (پیستول)",
+    "Wall Sit": "وال‌سیت",
+    "Calf Raise": "ساق پا ایستاده",
+    "Single Leg Calf Raise": "ساق تک‌پا",
+    "Jumping Lunge": "لانج پرشی",
+    "Side Step Squat": "اسکوات گام جانبی",
+    "Frog Jump": "پرش قورباغه‌ای",
+    "Glute Bridge": "پل باسن",
+    "Single Leg Glute Bridge": "پل باسن تک‌پا",
+    "Donkey Kick": "دانکی کیک",
+    "Fire Hydrant": "فایر هایدرنت",
+    "Side-Lying Leg Lift": "بالا بردن پای خوابیده به پهلو",
+    "Clamshell": "کلَم‌شِل",
+    "Sumo Squat": "اسکوات سومو",
+    "Broad Jump": "پرش طول",
+    "Skater Squat": "اسکوات اسکیتری",
+    "Lateral Step-Up": "استپ‌آپ جانبی",
+    "Curtsy Lunge Jump": "لانج ضربدری پرشی",
+    "Wall Sit with Arm Raise": "وال‌سیت با بالا بردن دست",
+    "Squat Hold with Pulse": "اسکوات ایزومتریک با پالس",
+    "Bodyweight Biceps Curl (با کش یا حوله)": "جلو بازو وزن بدن (با کش/حوله)",
+    "Bodyweight Biceps Curl": "جلو بازو وزن بدن",
+    "Chin-Up Narrow Grip": "چین‌آپ دست جمع",
+    "Commando Pull-Up": "بارفیکس کماندویی",
+    "Inverted Row Underhand Grip": "روئینگ معکوس دست برعکس",
+    "Isometric Curl Hold (با کش)": "نگه‌داشتن ایزومتریک جلو بازو (کش)",
+    "Isometric Curl Hold": "نگه‌داشتن ایزومتریک جلو بازو",
+    "Towel Curl (با حوله و میله)": "جلو بازو با حوله",
+    "Towel Curl": "جلو بازو با حوله",
+    "One Arm Chin-Up": "چین‌آپ تک‌دست",
+    "Bodyweight Hammer Curl Simulation": "شبیه‌سازی جلو بازو چکشی با وزن بدن",
+    "Pull-Up + Hold": "بارفیکس با نگه‌داشتن بالا",
+    "Inverted Row Single Arm": "روئینگ معکوس تک‌دست",
+    "Triceps Dips (روی صندلی یا سطح ثابت)": "دیپ پشت بازو روی صندلی",
+    "Triceps Dips": "دیپ پشت بازو",
+    "Bench Dip": "دیپ پشت بازو روی نیمکت",
+    "Close Grip Push-Up": "شنا سوئدی دست جمع",
+    "Overhead Triceps Extension (با کش)": "پشت بازو بالای سر با کش",
+    "Overhead Triceps Extension": "پشت بازو بالای سر",
+    "Bodyweight Kickback": "کیک‌بک پشت بازو با وزن بدن",
+    "Triceps Push-Up on Knees": "شنا پشت بازو روی زانو",
+    "Elevated Triceps Dip": "دیپ پشت بازو روی سطح بلند",
+    "Close Grip Elevated Push-Up": "شنا سوئدی دست جمع روی ارتفاع",
+    "Bodyweight Triceps Hold": "نگه‌داشتن ایزومتریک پشت بازو با وزن بدن",
+    "Plank": "پلانک",
+    "Side Plank": "پلانک پهلو",
+    "Plank with Shoulder Tap": "پلانک با تاچ شانه",
+    "Plank with Leg Lift": "پلانک با بالا بردن پا",
+    "Mountain Climbers": "کوه‌نوردی",
+    "Bicycle Crunch": "کرانچ دوچرخه‌ای",
+    "Reverse Crunch": "کرانچ معکوس",
+    "Flutter Kicks": "ضربه قیچی",
+    "Leg Raise": "بالا آوردن پا",
+    "V-Up": "وی-آپ",
+    "Russian Twist": "چرخش روسی",
+    "Side Plank Hip Dip": "پلانک پهلو با افت لگن",
+    "Plank with Arm Reach": "پلانک با دست دراز",
+    "Plank with Knee to Elbow": "پلانک زانو به آرنج",
+    "Spider Plank": "پلانک عنکبوتی",
+    "Hollow Body Hold": "هالو بادی هولد",
+    "Side Crunch": "کرانچ پهلو",
+    "Toe Touch": "لمس پنجه پا",
+    "Standing Oblique Crunch": "کرانچ مورب ایستاده",
+    "Plank to Side Plank": "پلانک به پلانک پهلو",
+    "Lateral Step-Out Squat": "اسکوات گام به بیرون",
+    "Glute Bridge March": "پل باسن مارچ",
+    "Burpee": "برپی",
+    "Burpee Pull-Up": "برپی بارفیکس",
+    "Mountain Climber to Push-Up": "کوه‌نوردی به شنا سوئدی",
+    "Jump Squat + Push-Up Combo": "اسکوات پرشی + شنا سوئدی",
+    "Plank to Push-Up": "پلانک به شنا سوئدی",
+    "Lunge to Knee Raise": "لانج به بالا آوردن زانو",
+    "Spiderman Plank to Push-Up": "پلانک اسپایدرمن به شنا",
+    "Tuck Jump": "پرش تاک",
+    "Skater Jump": "پرش اسکیتری",
+    "Lunge Jump + Twist": "لانج پرشی با چرخش",
+    "Bear Crawl": "خزیدن خرسی",
+    "Crab Walk": "راه رفتن خرچنگی",
+    "Side Lunge to Reach": "لانج جانبی با دست‌درازی",
+    "Plank Jacks": "جک پلانک",
+    "Jumping Jack to Squat": "جامپینگ جک به اسکوات",
+    "Broad Jump + Backward Walk": "پرش طول + راه رفتن عقب",
+    "Single-Leg Burpee": "برپی تک‌پا",
+    "Lunge Matrix": "ماتریس لانج",
+    "Push-Up + Mountain Climber Superset": "شنا سوئدی + کوه‌نوردی (سوپرست)",
+    "Bodyweight Biceps Curl with Towel Hold": "جلو بازو وزن بدن با نگه‌داشتن حوله",
+    "Isometric Chin-Up Hold": "نگه‌داشتن ایزومتریک چین‌آپ",
+    "Wide Grip Chin-Up": "چین‌آپ دست باز",
+    "Close Grip Chin-Up": "چین‌آپ دست جمع",
+    "Commando Pull-Up Hold": "نگه‌داشتن بارفیکس کماندویی",
+    "Towel Curl + Hold": "جلو بازو با حوله + نگه‌داشتن",
+    "Bodyweight Hammer Curl": "جلو بازو چکشی با وزن بدن",
+    "One Arm Chin-Up Hold": "نگه‌داشتن چین‌آپ تک‌دست",
+    "Inverted Row with Biceps Focus": "روئینگ معکوس با تاکید جلو بازو",
+    "Chin-Up to Hold": "چین‌آپ با نگه‌داشتن بالا",
+}
+
+TARGET_KEYWORDS = [
+    ("سینه بالا", "سینه بالا"),
+    ("سینه پایین", "سینه پایین"),
+    ("سینه وسط", "سینه میانی"),
+    ("سینه", "سینه"),
+    ("میان‌پشت", "میان پشت"),
+    ("میان پشت", "میان پشت"),
+    ("پشت بالا", "پشت بالا"),
+    ("پشت پایین", "پشت پایین"),
+    ("پشت", "پشت"),
+    ("دلتوئید جانبی", "شانه جانبی"),
+    ("شانه جانبی", "شانه جانبی"),
+    ("شانه جلو", "شانه جلو"),
+    ("شانه عقب", "شانه عقب"),
+    ("شانه پشت", "شانه عقب"),
+    ("شانه فوقانی", "شانه فوقانی"),
+    ("شانه", "شانه"),
+    ("چهارسر", "چهارسر"),
+    ("همسترینگ", "همسترینگ"),
+    ("باسن", "باسن"),
+    ("ساق", "ساق"),
+    ("داخل ران", "داخل ران"),
+    ("اداکتور داخلی", "داخل ران"),
+    ("اداکتور جانبی", "خارج ران"),
+    ("خارج ران", "خارج ران"),
+    ("جلو بازو", "جلو بازو"),
+    ("پشت بازو", "پشت بازو"),
+    ("شکم", "شکم"),
+    ("پهلو", "پهلو"),
+    ("مایل", "پهلو"),
+    ("ساعد", "ساعد"),
+    ("کل بدن", "کل بدن"),
+]
+
+TARGET_FA_TO_EN = {
+    "سینه": "Chest",
+    "سینه بالا": "Upper chest",
+    "سینه پایین": "Lower chest",
+    "سینه میانی": "Mid chest",
+    "میان پشت": "Mid back",
+    "پشت": "Back",
+    "پشت بالا": "Upper back",
+    "پشت پایین": "Lower back",
+    "شانه": "Shoulders",
+    "شانه جانبی": "Lateral deltoid",
+    "شانه جلو": "Front deltoid",
+    "شانه عقب": "Rear deltoid",
+    "شانه فوقانی": "Upper traps",
+    "چهارسر": "Quadriceps",
+    "همسترینگ": "Hamstrings",
+    "باسن": "Glutes",
+    "ساق": "Calves",
+    "داخل ران": "Inner thigh (adductors)",
+    "خارج ران": "Outer thigh (abductors)",
+    "جلو بازو": "Biceps",
+    "پشت بازو": "Triceps",
+    "شکم": "Abs",
+    "پهلو": "Obliques",
+    "ساعد": "Forearms",
+    "کل بدن": "Full body",
+}
+
 
 def _normalize_name(name: str) -> str:
     return re.sub(r'\s+', ' ', name.strip().lower())
@@ -268,6 +507,32 @@ def _extract_fa_name_and_notes(text: str):
         return text.strip(), ''
     return left.strip(), right.strip()
 
+def _extract_target_detail_fa(detail: str, fa_hint: str, title: str) -> str:
+    candidate = (fa_hint or '').strip()
+    if candidate and all(x not in candidate for x in ['مبتدی', 'متوسط', 'حرفه‌ای']):
+        return candidate
+    chunk = detail.replace('،', ',').split(',', 1)[0].strip()
+    if chunk and all(x not in chunk for x in ['مبتدی', 'متوسط', 'حرفه‌ای']):
+        return chunk
+    for key, value in TARGET_KEYWORDS:
+        if key in (fa_hint or ''):
+            return value
+    title_fa = title.split('(')[0].replace('عضلات', '').strip()
+    return title_fa
+
+def _target_fa_to_en(text: str) -> str:
+    if not text:
+        return ''
+    parts = [p.strip() for p in text.split(' و ') if p.strip()]
+    mapped = [TARGET_FA_TO_EN.get(p, p) for p in parts]
+    return ' & '.join(mapped)
+
+def _translate_name_fa(name_en: str) -> str:
+    key = name_en.strip()
+    if key.endswith('('):
+        key = key[:-1].strip()
+    return NAME_FA.get(key, NAME_FA.get(name_en, name_en))
+
 
 def parse_raw():
     groups = []
@@ -295,10 +560,13 @@ def parse_raw():
             span_end = next_match.start() if next_match else len(section)
             detail = section[span_start:span_end].strip()
             detail = detail.replace('\n', ' ').replace('  ', ' ')
-            fa_name, notes = _extract_fa_name_and_notes(detail)
+            fa_name_hint, notes = _extract_fa_name_and_notes(detail)
             level = _extract_level(detail)
             gender = _extract_gender(detail)
             breathing = _extract_breathing(detail)
+            name_fa = _translate_name_fa(name_en)
+            target_detail_fa = _extract_target_detail_fa(detail, fa_name_hint, title)
+            target_detail_en = _target_fa_to_en(target_detail_fa)
             key = _normalize_name(name_en)
             if key in seen:
                 continue
@@ -306,9 +574,9 @@ def parse_raw():
             items.append({
                 "index": int(idx),
                 "name_en": name_en,
-                "name_fa": fa_name,
-                "target_group_fa": title,
-                "target_group_en": title.split('(')[-1].replace(')', '').strip() if '(' in title else '',
+                "name_fa": name_fa,
+                "target_group_fa": target_detail_fa,
+                "target_group_en": target_detail_en,
                 "level_fa": level,
                 "tips_fa": notes,
                 "breathing_fa": breathing,

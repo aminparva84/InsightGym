@@ -5,7 +5,7 @@
   min-width: 0;
   margin: 0;
   padding: 0 0 1rem 0;
-  background-color: var(--color-white);
+  background-color: var(--surface-base);
   min-height: calc(100vh - 200px);
 }
 
@@ -35,7 +35,7 @@
   max-width: 100%;
   margin: 0;
   overflow-x: auto;
-  background: var(--color-white);
+  background: var(--surface-base);
   border-radius: 8px;
   box-shadow: var(--shadow-md);
 }
@@ -43,7 +43,7 @@
 .members-table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--color-white);
+  background: var(--surface-base);
 }
 
 .members-table thead {
@@ -113,7 +113,7 @@
 }
 
 .progress-modal-content {
-  background: var(--color-white);
+  background: var(--surface-base);
   border-radius: 12px;
   padding: 2rem;
   max-width: 900px;
@@ -218,7 +218,7 @@
 .goal-badge,
 .injury-badge {
   padding: 0.5rem 1rem;
-  background: var(--color-white);
+  background: var(--surface-base);
   border: 1px solid var(--color-primary-200);
   border-radius: 20px;
   font-size: 0.9rem;
@@ -230,7 +230,7 @@
   padding: 3rem;
   color: var(--color-primary-800);
   font-size: 1.1rem;
-  background-color: var(--color-white);
+  background-color: var(--surface-base);
 }
 
 /* Admin form overlay styles */
@@ -250,7 +250,7 @@
 }
 
 .admin-form-container {
-  background: var(--color-white);
+  background: var(--surface-base);
   border-radius: 12px;
   padding: 2rem;
   max-width: 800px;
@@ -293,7 +293,7 @@
   border-radius: 6px;
   font-size: 0.95rem;
   color: var(--color-primary-800);
-  background: var(--color-white);
+  background: var(--surface-base);
 }
 
 .form-group input:focus,
@@ -363,7 +363,7 @@
 }
 
 .btn-edit:hover {
-  background: #0056b3;
+  background: var(--color-accent-600);
 }
 
 .btn-delete {
@@ -379,9 +379,7 @@
 }
 
 .btn-delete:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+  filter: brightness(0.9);
 }
 
 @media (max-width: 768px) {
